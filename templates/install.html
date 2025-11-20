@@ -82,18 +82,21 @@
                     <input type="password" id="steam_password" name="steam_password" required>
                 </div>
 
+                <input type="hidden" name="skip_verification" id="skip_verification" value="">
+
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Verify & Continue</button>
+                    <button type="button" class="btn btn-primary" onclick="verifySteam()">Verify & Continue</button>
+                    <button type="button" class="btn btn-secondary" onclick="skipVerification()">Skip Verification</button>
                     <a href="{{ url_for('install', step='1') }}" class="btn btn-secondary">Back</a>
                 </div>
             </form>
 
-            {% if verification_attempted %}
-            <div class="verification-status">
-                <div class="spinner"></div>
-                <p>Verifying Steam credentials...</p>
+            <div id="verificationStatus" style="display: none; margin-top: 1rem;">
+                <div class="verification-status">
+                    <div class="spinner"></div>
+                    <p id="verificationMessage">Verifying Steam credentials... This may take up to 3 minutes on first run.</p>
+                </div>
             </div>
-            {% endif %}
         </div>
 
         {% elif step == '3' %}
@@ -120,4 +123,74 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verifySteam() {
+    const username = document.getElementById('steam_username').value;
+    const password = document.getElementById('steam_password').value;
+
+    if (!username || !password) {
+        alert('Please enter both username and password');
+        return;
+    }
+
+    // Show verification status
+    const statusDiv = document.getElementById('verificationStatus');
+    const messageEl = document.getElementById('verificationMessage');
+    statusDiv.style.display = 'block';
+    messageEl.textContent = 'Verifying Steam credentials... This may take up to 3 minutes on first run.';
+
+    // Disable buttons
+    const buttons = document.querySelectorAll('.form-actions button');
+    buttons.forEach(btn => btn.disabled = true);
+
+    // Start verification
+    fetch('/api/verify-steam', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            username: username,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageEl.textContent = '✓ ' + data.message;
+            messageEl.style.color = '#2ea043';
+
+            // Submit form after successful verification
+            setTimeout(() => {
+                document.getElementById('steamForm').submit();
+            }, 1000);
+        } else {
+            messageEl.textContent = '✗ ' + data.message;
+            messageEl.style.color = '#da3633';
+
+            // Re-enable buttons
+            buttons.forEach(btn => btn.disabled = false);
+
+            // Show skip option
+            alert(data.message + '\n\nYou can skip verification and try later during server installation.');
+        }
+    })
+    .catch(error => {
+        messageEl.textContent = '✗ Verification failed: ' + error;
+        messageEl.style.color = '#da3633';
+        buttons.forEach(btn => btn.disabled = false);
+        alert('Verification error. You can skip verification and try later.');
+    });
+}
+
+function skipVerification() {
+    if (confirm('Skip Steam verification? You can test credentials later during server installation.')) {
+        document.getElementById('skip_verification').value = '1';
+        document.getElementById('steamForm').submit();
+    }
+}
+</script>
 {% endblock %}

@@ -41,10 +41,11 @@ class SteamCMDManager:
             return False, "SteamCMD not found on system"
 
         try:
+            # First run of SteamCMD may take longer to update itself
             # Create a temporary script to test login
             test_script = f"+login {username} {password} +quit"
 
-            # Run SteamCMD
+            # Run SteamCMD with increased timeout for first-time setup
             process = subprocess.Popen(
                 [self.steamcmd_path, test_script],
                 stdout=subprocess.PIPE,
@@ -52,7 +53,8 @@ class SteamCMDManager:
                 text=True
             )
 
-            stdout, stderr = process.communicate(timeout=30)
+            # Increase timeout to 180 seconds (3 minutes) for SteamCMD first run
+            stdout, stderr = process.communicate(timeout=180)
             output = stdout + stderr
 
             # Check for success indicators
@@ -73,7 +75,8 @@ class SteamCMDManager:
             return False, "Could not verify Steam credentials. Please check username and password."
 
         except subprocess.TimeoutExpired:
-            return False, "Connection timeout. Please try again."
+            process.kill()
+            return False, "Verification timeout. SteamCMD may still be updating. You can skip verification and try server installation later."
         except Exception as e:
             return False, f"Error: {str(e)}"
 

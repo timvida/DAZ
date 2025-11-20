@@ -88,25 +88,32 @@ def install():
             # Step 2: Steam account setup
             steam_username = request.form.get('steam_username')
             steam_password = request.form.get('steam_password')
+            skip_verification = request.form.get('skip_verification')
 
             if not all([steam_username, steam_password]):
                 flash('Steam credentials are required', 'error')
                 return render_template('install.html', step='2')
-
-            # Verify Steam credentials
-            success, message = steam_manager.verify_credentials(steam_username, steam_password)
-
-            if not success:
-                flash(message, 'error')
-                return render_template('install.html', step='2',
-                                     steam_username=steam_username,
-                                     verification_attempted=True)
 
             # Store Steam credentials
             session['install_steam'] = {
                 'username': steam_username,
                 'password': steam_password
             }
+
+            # If skip verification, just continue
+            if skip_verification:
+                flash('Steam verification skipped. Credentials will be tested during first server installation.', 'info')
+                return redirect(url_for('install', step='3'))
+
+            # Otherwise verify (but this should be done via AJAX now)
+            # This is a fallback if JavaScript is disabled
+            success, message = steam_manager.verify_credentials(steam_username, steam_password)
+
+            if not success:
+                flash(f'{message} - You can skip verification and try later.', 'error')
+                return render_template('install.html', step='2',
+                                     steam_username=steam_username,
+                                     verification_attempted=True)
 
             # Complete installation
             return redirect(url_for('install', step='3'))
@@ -199,6 +206,22 @@ def dashboard():
     """Main dashboard"""
     servers = server_manager.get_all_servers()
     return render_template('dashboard.html', servers=servers, username=session.get('username'))
+
+
+@app.route('/api/verify-steam', methods=['POST'])
+def verify_steam():
+    """AJAX endpoint for Steam credential verification"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not all([username, password]):
+        return jsonify({'success': False, 'message': 'Username and password required'}), 400
+
+    # Verify credentials
+    success, message = steam_manager.verify_credentials(username, password)
+
+    return jsonify({'success': success, 'message': message})
 
 
 @app.route('/server/create', methods=['POST'])

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Web Interface Console{% endblock %}
+
+{% block content %}
+<style>
+.console-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+}
+
+.console-topbar {
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.console-topbar h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.console-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.console-content {
+    flex: 1;
+    padding: 30px;
+}
+
+.console-container {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.console-header h2 {
+    margin: 0;
+    color: #00ff00;
+}
+
+.console-output {
+    flex: 1;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #00ff00;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.console-info {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+}
+
+.console-info p {
+    margin: 5px 0;
+    color: #888;
+}
+
+.console-info code {
+    background: #0a0a0a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #00ff00;
+}
+</style>
+
+<div class="console-page">
+    <!-- Topbar -->
+    <div class="console-topbar">
+        <div>
+            <h1>Web Interface Console</h1>
+        </div>
+        <div class="console-topbar-right">
+            <span class="user-info">{{ username }}</span>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="console-content">
+        <div class="console-info">
+            <p><strong>Console Log Location:</strong> <code>webinterface.log</code></p>
+            <p><strong>Start Command:</strong> <code>./web_start.sh</code></p>
+            <p><strong>Stop Command:</strong> <code>./web_stop.sh</code></p>
+            <p><strong>Restart Command:</strong> <code>./web_restart.sh</code></p>
+            <p style="margin-top: 10px; color: #ff9900;">⚠️ Use these scripts to manage the web interface persistently (survives SSH disconnects)</p>
+        </div>
+
+        <div class="console-container">
+            <div class="console-header">
+                <h2>Live Console Output</h2>
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="refreshConsole()">Refresh</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear Display</button>
+                </div>
+            </div>
+            <div class="console-output" id="consoleOutput">
+                Loading console output...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let consoleInterval;
+
+// Load console output
+function loadConsole() {
+    fetch('/api/system/console?lines=200')
+        .then(response => response.json())
+        .then(data => {
+            const output = document.getElementById('consoleOutput');
+            output.textContent = data.content || 'No console output yet...';
+            // Auto-scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        })
+        .catch(error => {
+            console.error('Error loading console:', error);
+        });
+}
+
+function refreshConsole() {
+    loadConsole();
+}
+
+function clearConsole() {
+    document.getElementById('consoleOutput').textContent = '';
+}
+
+// Auto-refresh console every 2 seconds
+function startConsoleRefresh() {
+    consoleInterval = setInterval(loadConsole, 2000);
+}
+
+function stopConsoleRefresh() {
+    if (consoleInterval) {
+        clearInterval(consoleInterval);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadConsole();
+    startConsoleRefresh();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    stopConsoleRefresh();
+});
+</script>
+{% endblock %}

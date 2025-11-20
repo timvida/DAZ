@@ -57,26 +57,26 @@ class UpdateManager:
                     'has_updates': True,
                     'commits_behind': commits_behind,
                     'changes': log_result.stdout.strip(),
-                    'message': f'{commits_behind} neue Update(s) verfügbar'
+                    'message': f'{commits_behind} new update(s) available'
                 }
             else:
                 return {
                     'success': True,
                     'has_updates': False,
                     'commits_behind': 0,
-                    'message': 'System ist auf dem neuesten Stand'
+                    'message': 'System is up to date'
                 }
 
         except subprocess.CalledProcessError as e:
             return {
                 'success': False,
-                'message': f'Fehler beim Prüfen auf Updates: {str(e)}',
+                'message': f'Error checking for updates: {str(e)}',
                 'has_updates': False
             }
         except Exception as e:
             return {
                 'success': False,
-                'message': f'Unerwarteter Fehler: {str(e)}',
+                'message': f'Unexpected error: {str(e)}',
                 'has_updates': False
             }
 
@@ -116,12 +116,12 @@ class UpdateManager:
             # Update Python dependencies
             self._update_dependencies()
 
-            return True, 'Update erfolgreich! Webinterface wird neu gestartet...'
+            return True, 'Update successful! Web interface is restarting...'
 
         except subprocess.CalledProcessError as e:
-            return False, f'Fehler beim Update: {e.stderr if e.stderr else str(e)}'
+            return False, f'Error during update: {e.stderr if e.stderr else str(e)}'
         except Exception as e:
-            return False, f'Unerwarteter Fehler beim Update: {str(e)}'
+            return False, f'Unexpected error during update: {str(e)}'
 
     def _update_dependencies(self):
         """Update Python dependencies from requirements.txt"""
@@ -150,14 +150,34 @@ class UpdateManager:
             print(f"Warning: Could not update dependencies: {str(e)}")
 
     def restart_application(self):
-        """Restart the web interface"""
+        """Restart the web interface using web_restart.sh"""
         try:
-            # This will cause the current process to restart
-            # Note: This requires proper process management (systemd, supervisor, etc.)
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
+            import subprocess
+            restart_script = os.path.join(self.base_dir, 'web_restart.sh')
+
+            if os.path.exists(restart_script):
+                # Kill current process and let web_restart.sh handle the restart
+                current_pid = os.getpid()
+
+                # Execute restart script in background
+                subprocess.Popen(
+                    ['/bin/bash', restart_script],
+                    cwd=self.base_dir,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    preexec_fn=os.setsid
+                )
+
+                # Give script time to start, then kill current process
+                import time
+                time.sleep(1)
+                os.kill(current_pid, 15)  # SIGTERM
+            else:
+                # Fallback: direct restart
+                python = sys.executable
+                os.execl(python, python, *sys.argv)
         except Exception as e:
-            return False, f'Fehler beim Neustart: {str(e)}'
+            return False, f'Error restarting: {str(e)}'
 
     def get_current_version(self):
         """Get current Git commit hash"""

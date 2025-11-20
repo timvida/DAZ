@@ -11,8 +11,9 @@
             <span class="version-info" id="versionInfo" style="font-size: 0.8em; color: #888; margin-left: 10px;">Version: <span id="currentVersion">...</span></span>
         </div>
         <div class="header-right">
+            <a href="{{ url_for('system_console') }}" class="btn btn-info btn-sm">System Console</a>
             <button class="btn btn-primary btn-sm" onclick="checkForUpdates()" id="updateBtn">
-                Nach Updates suchen
+                Check for Updates
             </button>
             <span class="user-info">Welcome, {{ username }}</span>
             <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
@@ -177,17 +178,17 @@
 <!-- Update Modal -->
 <div id="updateModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 600px;">
-        <h2 id="updateModalTitle">System-Update</h2>
+        <h2 id="updateModalTitle">System Update</h2>
         <div id="updateModalBody" style="margin: 20px 0;">
             <p id="updateMessage"></p>
             <div id="updateChanges" style="background: #1a1a1a; padding: 10px; border-radius: 4px; margin-top: 10px; display: none;">
-                <h4>Änderungen:</h4>
+                <h4>Changes:</h4>
                 <pre id="updateChangesList" style="color: #00ff00; font-family: monospace; font-size: 0.9em; white-space: pre-wrap;"></pre>
             </div>
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="btn btn-secondary" onclick="closeUpdateModal()">Abbrechen</button>
-            <button class="btn btn-success" id="confirmUpdateBtn" onclick="performUpdate()" style="display: none;">Jetzt updaten</button>
+            <button class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
+            <button class="btn btn-success" id="confirmUpdateBtn" onclick="performUpdate()" style="display: none;">Update Now</button>
         </div>
     </div>
 </div>
@@ -250,13 +251,13 @@ function loadCurrentVersion() {
 function checkForUpdates() {
     const btn = document.getElementById('updateBtn');
     btn.disabled = true;
-    btn.textContent = 'Prüfe...';
+    btn.textContent = 'Checking...';
 
     fetch('/api/update/check')
         .then(response => response.json())
         .then(data => {
             btn.disabled = false;
-            btn.textContent = 'Nach Updates suchen';
+            btn.textContent = 'Check for Updates';
 
             if (data.success) {
                 if (data.has_updates) {
@@ -265,13 +266,13 @@ function checkForUpdates() {
                     alert(data.message);
                 }
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             btn.disabled = false;
-            btn.textContent = 'Nach Updates suchen';
-            alert('Fehler beim Prüfen auf Updates: ' + error);
+            btn.textContent = 'Check for Updates';
+            alert('Error checking for updates: ' + error);
         });
 }
 
@@ -297,12 +298,12 @@ function closeUpdateModal() {
 
 // Perform update
 function performUpdate() {
-    if (!confirm('Das Webinterface wird jetzt aktualisiert und neu gestartet. Fortfahren?')) {
+    if (!confirm('The web interface will now be updated and restarted. Continue?')) {
         return;
     }
 
     closeUpdateModal();
-    showLoading('Update wird durchgeführt... Bitte warten.');
+    showLoading('Performing update... Please wait.');
 
     fetch('/api/update/perform', {
         method: 'POST',
@@ -313,19 +314,19 @@ function performUpdate() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('loadingMessage').textContent = 'Update erfolgreich! Seite wird neu geladen...';
+            document.getElementById('loadingMessage').textContent = 'Update successful! Page will reload...';
             // Wait for server to restart and reload page
             setTimeout(() => {
                 location.reload();
             }, 5000);
         } else {
             hideLoading();
-            alert('Fehler beim Update: ' + data.message);
+            alert('Update error: ' + data.message);
         }
     })
     .catch(error => {
         // Server is restarting, wait and reload
-        document.getElementById('loadingMessage').textContent = 'Server wird neu gestartet... Bitte warten.';
+        document.getElementById('loadingMessage').textContent = 'Server is restarting... Please wait.';
         setTimeout(() => {
             location.reload();
         }, 5000);

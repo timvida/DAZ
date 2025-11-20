@@ -414,6 +414,35 @@ def api_server_config(server_id):
         return jsonify({'success': success, 'message': message})
 
 
+@app.route('/system/console')
+@installation_check
+@login_required
+def system_console():
+    """View web interface console log"""
+    username = User.query.get(session['user_id']).username
+    return render_template('system_console.html', username=username)
+
+
+@app.route('/api/system/console', methods=['GET'])
+@installation_check
+@login_required
+def get_system_console():
+    """Get web interface console output"""
+    lines = request.args.get('lines', 100, type=int)
+    log_path = os.path.join(Config.BASE_DIR, 'webinterface.log')
+
+    if not os.path.exists(log_path):
+        return jsonify({'content': 'No log file found. Start the web interface using ./web_start.sh to create logs.'})
+
+    try:
+        with open(log_path, 'r') as f:
+            all_lines = f.readlines()
+            content = ''.join(all_lines[-lines:])
+        return jsonify({'content': content})
+    except Exception as e:
+        return jsonify({'content': f'Error reading log: {str(e)}'})
+
+
 @app.route('/api/update/check', methods=['GET'])
 @installation_check
 @login_required

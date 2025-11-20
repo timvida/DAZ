@@ -28,6 +28,10 @@ servers/
 
 # Logs
 *.log
+webinterface.log
+
+# Process management
+webinterface.pid
 
 # Environment variables
 .env

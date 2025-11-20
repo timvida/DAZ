@@ -3,637 +3,348 @@
 {% block title %}{{ server.name }} - Dashboard{% endblock %}
 
 {% block content %}
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-:root {
-    --bg-primary: #0D1117;
-    --bg-secondary: #1A1F29;
-    --accent: #E32345;
-    --text-primary: #ffffff;
-    --text-secondary: #8b949e;
-    --border: rgba(227, 35, 69, 0.2);
-    --hover: rgba(227, 35, 69, 0.1);
-}
-
-body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-}
-
-.layout {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Sidebar */
-.sidebar {
-    width: 280px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-header {
-    padding: 30px 25px;
-    border-bottom: 1px solid var(--border);
-}
-
-.sidebar-header h1 {
-    font-size: 1.3em;
-    color: var(--accent);
-    margin-bottom: 5px;
-}
-
-.sidebar-header p {
-    color: var(--text-secondary);
-    font-size: 0.85em;
-}
-
-.server-info-box {
-    margin-top: 15px;
-    padding: 15px;
-    background: var(--hover);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.server-info-item {
-    display: flex;
-    justify-content: space-between;
-    margin: 8px 0;
-    font-size: 0.9em;
-}
-
-.server-info-label {
-    color: var(--text-secondary);
-}
-
-.server-info-value {
-    color: var(--accent);
-    font-weight: 600;
-}
-
-.sidebar-nav {
-    flex: 1;
-    padding: 20px 0;
-    overflow-y: auto;
-}
-
-.sidebar-nav a {
-    display: flex;
-    align-items: center;
-    padding: 15px 25px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: all 0.2s;
-    border-left: 3px solid transparent;
-    gap: 12px;
-}
-
-.sidebar-nav a:hover {
-    background: var(--hover);
-    color: var(--text-primary);
-    border-left-color: var(--accent);
-}
-
-.sidebar-nav a.active {
-    background: var(--hover);
-    color: var(--accent);
-    border-left-color: var(--accent);
-}
-
-/* Topbar */
-.topbar {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.topbar-left h2 {
-    font-size: 1.5em;
-}
-
-.topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.user-badge {
-    padding: 8px 16px;
-    background: var(--hover);
-    border-radius: 8px;
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.content-area {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-}
-
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.2s;
-}
-
-.stat-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    margin-bottom: 8px;
-}
-
-.stat-value {
-    font-size: 1.8em;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-/* Controls Section */
-.card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 30px;
-}
-
-.card h3 {
-    margin-bottom: 20px;
-    color: var(--accent);
-}
-
-.controls-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
-
-/* Buttons */
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #c41d39;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-secondary);
-}
-
-.btn-success {
-    background: #2ea043;
-    color: white;
-}
-
-.btn-warning {
-    background: #9e6a03;
-    color: white;
-}
-
-.btn-info {
-    background: #1f6feb;
-    color: white;
-}
-
-.btn-sm {
-    padding: 8px 16px;
-    font-size: 0.9em;
-}
-
-/* Console */
-.console-container {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 25px;
-    height: 500px;
-    display: flex;
-    flex-direction: column;
-}
-
-.console-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.console-header h3 {
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.live-indicator {
-    width: 8px;
-    height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-.console-output {
-    flex: 1;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 15px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85em;
-    color: var(--accent);
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.console-output::-webkit-scrollbar {
-    width: 8px;
-}
-
-.console-output::-webkit-scrollbar-track {
-    background: var(--bg-primary);
-}
-
-.console-output::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 4px;
-}
-
-/* Status Badge */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85em;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-running {
-    background: rgba(46, 160, 67, 0.2);
-    color: #2ea043;
-    border: 1px solid #2ea043;
-}
-
-.status-stopped {
-    background: rgba(139, 148, 158, 0.2);
-    color: #8b949e;
-    border: 1px solid #8b949e;
-}
-
-.status-installing, .status-updating {
-    background: rgba(158, 106, 3, 0.2);
-    color: #9e6a03;
-    border: 1px solid #9e6a03;
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    background: var(--bg-secondary);
-    padding: 30px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    text-align: center;
-}
-
-.spinner {
-    border: 4px solid var(--border);
-    border-left-color: var(--accent);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .stats-grid, .controls-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
-<div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>{{ server.name }}</h1>
-            <p>Server Management</p>
-            <div class="server-info-box">
-                <div class="server-info-item">
-                    <span class="server-info-label">Port:</span>
-                    <span class="server-info-value">{{ server.server_port }}</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style type="text/tailwindcss">
+        @theme {
+            --color-primary: #0D1117;
+            --color-secondary: #1A1F29;
+            --color-accent: #E32345;
+        }
+    </style>
+</head>
+<body class="bg-[#0D1117] text-white min-h-screen">
+    <!-- Top Navigation -->
+    <nav class="bg-[#1A1F29] border-b border-[#E32345]/20 sticky top-0 z-50 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-4">
+                    <div class="bg-[#E32345] p-3 rounded-xl shadow-lg shadow-[#E32345]/20">
+                        <i class="fas fa-server text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">{{ server.name }}</h1>
+                        <p class="text-sm text-gray-400">Server Management</p>
+                    </div>
                 </div>
-                <div class="server-info-item">
-                    <span class="server-info-label">RCon:</span>
-                    <span class="server-info-value">{{ server.rcon_port }}</span>
+
+                <!-- Navigation Items -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 text-[#E32345] font-medium px-3 py-2 rounded-lg bg-[#E32345]/10">
+                        <i class="fas fa-gauge-high"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('server_config', server_id=server.id) }}" class="flex items-center gap-2 text-gray-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-white/5">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuration</span>
+                    </a>
                 </div>
-                <div class="server-info-item">
-                    <span class="server-info-label">CPU:</span>
-                    <span class="server-info-value">{{ server.cpu_count }}</span>
+
+                <!-- User & Actions -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 px-4 py-2 bg-[#0D1117] rounded-lg border border-[#E32345]/20">
+                        <i class="fas fa-user-circle text-[#E32345]"></i>
+                        <span class="hidden sm:block">{{ username }}</span>
+                    </div>
+                    <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden lg:inline">Main Dashboard</span>
+                    </a>
                 </div>
             </div>
         </div>
-        <nav class="sidebar-nav">
-            <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="active">
-                <span>📊</span><span>Dashboard</span>
-            </a>
-            <a href="{{ url_for('server_config', server_id=server.id) }}">
-                <span>⚙️</span><span>Configuration</span>
-            </a>
-        </nav>
-    </div>
+    </nav>
 
     <!-- Main Content -->
-    <div class="main-content">
-        <!-- Topbar -->
-        <div class="topbar">
-            <div class="topbar-left">
-                <h2>Server Dashboard</h2>
-            </div>
-            <div class="topbar-right">
-                <span class="user-badge">👤 {{ username }}</span>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Main Dashboard</a>
-            </div>
-        </div>
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Server Info Header -->
+        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-8">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-[#0D1117] p-5 rounded-xl border border-[#E32345]/30">
+                        <i class="fas fa-server text-[#E32345] text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-2">{{ server.name }}</h2>
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-400">
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-network-wired text-[#E32345]"></i>
+                                <span>Port: <strong class="text-white">{{ server.server_port }}</strong></span>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-plug text-[#E32345]"></i>
+                                <span>RCon: <strong class="text-white">{{ server.rcon_port }}</strong></span>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-microchip text-[#E32345]"></i>
+                                <span>CPU: <strong class="text-white">{{ server.cpu_count }} Cores</strong></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Status</div>
-                    <div class="stat-value">
-                        <span class="status-badge status-{{ server.status }}" id="statusBadge">
-                            {{ server.status|upper }}
+                <!-- Status Badge -->
+                <div>
+                    {% if server.status == 'running' %}
+                        <span class="px-6 py-3 bg-green-500/20 border-2 border-green-500 text-green-500 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-circle-dot animate-pulse"></i>RUNNING
                         </span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Server Port</div>
-                    <div class="stat-value">{{ server.server_port }}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">RCon Port</div>
-                    <div class="stat-value">{{ server.rcon_port }}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">CPU Cores</div>
-                    <div class="stat-value">{{ server.cpu_count }}</div>
-                </div>
-            </div>
-
-            <!-- Server Controls -->
-            <div class="card">
-                <h3>Server Controls</h3>
-                <div class="controls-grid">
-                    <button class="btn btn-success" onclick="startServer()" id="startBtn">▶️ Start</button>
-                    <button class="btn btn-warning" onclick="stopServer()" id="stopBtn">⏹️ Stop</button>
-                    <button class="btn btn-info" onclick="restartServer()" id="restartBtn">🔄 Restart</button>
-                    <button class="btn btn-primary" onclick="updateServer()" id="updateBtn">⬇️ Update</button>
-                </div>
-            </div>
-
-            <!-- Console -->
-            <div class="console-container">
-                <div class="console-header">
-                    <h3>
-                        <span class="live-indicator"></span>
-                        Live Console
-                    </h3>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary btn-sm" onclick="refreshConsole()">🔄 Refresh</button>
-                        <button class="btn btn-secondary btn-sm" onclick="clearConsole()">🗑️ Clear</button>
-                    </div>
-                </div>
-                <div class="console-output" id="consoleOutput">
-                    Loading console output...
+                    {% elif server.status == 'stopped' %}
+                        <span class="px-6 py-3 bg-gray-500/20 border-2 border-gray-500 text-gray-400 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-circle"></i>STOPPED
+                        </span>
+                    {% elif server.status == 'installing' %}
+                        <span class="px-6 py-3 bg-yellow-500/20 border-2 border-yellow-500 text-yellow-500 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-spinner fa-spin"></i>INSTALLING
+                        </span>
+                    {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Status -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-heart-pulse text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Status</h3>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ server.status|upper }}</p>
+            </div>
+
+            <!-- Server Port -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-network-wired text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Server Port</h3>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ server.server_port }}</p>
+            </div>
+
+            <!-- RCon Port -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-plug text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">RCon Port</h3>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ server.rcon_port }}</p>
+            </div>
+
+            <!-- CPU Cores -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-microchip text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">CPU Cores</h3>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ server.cpu_count }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Server Controls -->
+            <div class="lg:col-span-1">
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 sticky top-24">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-sliders text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Server Controls</h2>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button onclick="startServer()" id="startBtn" class="w-full px-6 py-3 bg-green-500 hover:bg-green-600 rounded-lg font-medium transition shadow-lg shadow-green-500/20 hover:shadow-green-500/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i>
+                            <span>Start Server</span>
+                        </button>
+
+                        <button onclick="stopServer()" id="stopBtn" class="w-full px-6 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg font-medium transition shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40 flex items-center justify-center gap-2 text-black">
+                            <i class="fas fa-stop"></i>
+                            <span>Stop Server</span>
+                        </button>
+
+                        <button onclick="restartServer()" id="restartBtn" class="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-rotate-right"></i>
+                            <span>Restart Server</span>
+                        </button>
+
+                        <button onclick="updateServer()" id="updateBtn" class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-download"></i>
+                            <span>Update Server</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Console -->
+            <div class="lg:col-span-2">
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 h-[600px] flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 bg-[#E32345] rounded-full animate-pulse"></span>
+                                <h2 class="text-xl font-bold text-white">Live Console</h2>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="refreshConsole()" class="px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition flex items-center gap-2">
+                                <i class="fas fa-sync-alt"></i>
+                                <span class="hidden sm:inline">Refresh</span>
+                            </button>
+                            <button onclick="clearConsole()" class="px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition flex items-center gap-2">
+                                <i class="fas fa-trash"></i>
+                                <span class="hidden sm:inline">Clear</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="consoleOutput" class="flex-1 bg-[#0D1117] border border-[#E32345]/30 rounded-lg p-4 font-mono text-sm text-[#E32345] overflow-y-auto whitespace-pre-wrap">
+                        Loading console output...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
+            <div class="text-center">
+                <div class="w-16 h-16 border-4 border-[#E32345]/30 border-t-[#E32345] rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Processing...</h3>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Loading Modal -->
-<div id="loadingModal" class="modal">
-    <div class="modal-content">
-        <div class="spinner"></div>
-        <p id="loadingMessage">Processing...</p>
-    </div>
-</div>
+    <script>
+        const serverId = {{ server.id }};
+        let consoleInterval;
 
-<script>
-const serverId = {{ server.id }};
-let consoleInterval;
+        function loadConsole() {
+            fetch(`/api/server/${serverId}/console?lines=100`)
+                .then(response => response.json())
+                .then(data => {
+                    const output = document.getElementById('consoleOutput');
+                    output.textContent = data.content || 'No console output yet...';
+                    output.scrollTop = output.scrollHeight;
+                })
+                .catch(error => console.error('Error loading console:', error));
+        }
 
-function loadConsole() {
-    fetch(`/api/server/${serverId}/console?lines=100`)
-        .then(response => response.json())
-        .then(data => {
-            const output = document.getElementById('consoleOutput');
-            output.textContent = data.content || 'No console output yet...';
-            output.scrollTop = output.scrollHeight;
-        })
-        .catch(error => console.error('Error loading console:', error));
-}
+        function refreshConsole() {
+            loadConsole();
+        }
 
-function refreshConsole() {
-    loadConsole();
-}
+        function clearConsole() {
+            document.getElementById('consoleOutput').textContent = '';
+        }
 
-function clearConsole() {
-    document.getElementById('consoleOutput').textContent = '';
-}
+        function startConsoleRefresh() {
+            consoleInterval = setInterval(loadConsole, 2000);
+        }
 
-function startConsoleRefresh() {
-    consoleInterval = setInterval(loadConsole, 2000);
-}
+        function stopConsoleRefresh() {
+            if (consoleInterval) {
+                clearInterval(consoleInterval);
+            }
+        }
 
-function stopConsoleRefresh() {
-    if (consoleInterval) {
-        clearInterval(consoleInterval);
-    }
-}
+        function showLoading(message) {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
 
-function startServer() {
-    showLoading('Starting server...');
-    fetch(`/server/${serverId}/start`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        alert(data.message);
-        if (data.success) location.reload();
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
 
-function stopServer() {
-    showLoading('Stopping server...');
-    fetch(`/server/${serverId}/stop`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        alert(data.message);
-        if (data.success) location.reload();
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
+        function startServer() {
+            showLoading('Starting server...');
+            fetch(`/server/${serverId}/start`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
 
-function restartServer() {
-    if (!confirm('Restart the server? This will disconnect all players.')) return;
-    showLoading('Restarting server...');
-    fetch(`/api/server/${serverId}/restart`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        alert(data.message);
-        if (data.success) location.reload();
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
+        function stopServer() {
+            showLoading('Stopping server...');
+            fetch(`/server/${serverId}/stop`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
 
-function updateServer() {
-    if (!confirm('Update the server? This may take several minutes.')) return;
-    showLoading('Updating server...');
-    fetch(`/server/${serverId}/install`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        alert(data.message);
-        if (data.success) location.reload();
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
+        function restartServer() {
+            if (!confirm('Restart the server? This will disconnect all players.')) return;
+            showLoading('Restarting server...');
+            fetch(`/api/server/${serverId}/restart`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
 
-function showLoading(message) {
-    document.getElementById('loadingMessage').textContent = message;
-    document.getElementById('loadingModal').style.display = 'flex';
-}
+        function updateServer() {
+            if (!confirm('Update the server? This may take several minutes.')) return;
+            showLoading('Updating server...');
+            fetch(`/server/${serverId}/install`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
 
-function hideLoading() {
-    document.getElementById('loadingModal').style.display = 'none';
-}
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConsole();
+            startConsoleRefresh();
+        });
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadConsole();
-    startConsoleRefresh();
-});
-
-window.addEventListener('beforeunload', function() {
-    stopConsoleRefresh();
-});
-</script>
+        window.addEventListener('beforeunload', function() {
+            stopConsoleRefresh();
+        });
+    </script>
+</body>
+</html>
 {% endblock %}

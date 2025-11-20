@@ -3,834 +3,355 @@
 {% block title %}{{ server.name }} - Configuration{% endblock %}
 
 {% block content %}
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-:root {
-    --bg-primary: #0D1117;
-    --bg-secondary: #1A1F29;
-    --accent: #E32345;
-    --text-primary: #ffffff;
-    --text-secondary: #8b949e;
-    --border: rgba(227, 35, 69, 0.2);
-    --hover: rgba(227, 35, 69, 0.1);
-}
-
-body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-}
-
-.layout {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Sidebar */
-.sidebar {
-    width: 280px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-header {
-    padding: 30px 25px;
-    border-bottom: 1px solid var(--border);
-}
-
-.sidebar-header h1 {
-    font-size: 1.3em;
-    color: var(--accent);
-    margin-bottom: 5px;
-}
-
-.sidebar-header p {
-    color: var(--text-secondary);
-    font-size: 0.85em;
-}
-
-.server-info-box {
-    margin-top: 15px;
-    padding: 15px;
-    background: var(--hover);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.server-info-item {
-    display: flex;
-    justify-content: space-between;
-    margin: 8px 0;
-    font-size: 0.9em;
-}
-
-.server-info-label {
-    color: var(--text-secondary);
-}
-
-.server-info-value {
-    color: var(--accent);
-    font-weight: 600;
-}
-
-.sidebar-nav {
-    flex: 1;
-    padding: 20px 0;
-    overflow-y: auto;
-}
-
-.sidebar-nav a {
-    display: flex;
-    align-items: center;
-    padding: 15px 25px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: all 0.2s;
-    border-left: 3px solid transparent;
-    gap: 12px;
-}
-
-.sidebar-nav a:hover {
-    background: var(--hover);
-    color: var(--text-primary);
-    border-left-color: var(--accent);
-}
-
-.sidebar-nav a.active {
-    background: var(--hover);
-    color: var(--accent);
-    border-left-color: var(--accent);
-}
-
-/* Topbar */
-.topbar {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.topbar-left h2 {
-    font-size: 1.5em;
-}
-
-.topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.user-badge {
-    padding: 8px 16px;
-    background: var(--hover);
-    border-radius: 8px;
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.content-area {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-}
-
-/* Alert Banner */
-.alert-banner {
-    background: rgba(158, 106, 3, 0.2);
-    color: #9e6a03;
-    border: 1px solid #9e6a03;
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.alert-banner.show {
-    display: flex;
-}
-
-/* Config Sections */
-.config-section {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 20px;
-}
-
-.config-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: var(--accent);
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-/* Config Fields */
-.config-field {
-    margin-bottom: 20px;
-}
-
-.config-field label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 0.95em;
-}
-
-.config-field .description {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-    font-size: 0.85em;
-    line-height: 1.4;
-}
-
-.config-field input[type="text"],
-.config-field input[type="number"],
-.config-field select,
-.config-field textarea {
-    width: 100%;
-    padding: 12px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 0.95em;
-    transition: all 0.2s;
-}
-
-.config-field input[type="text"]:focus,
-.config-field input[type="number"]:focus,
-.config-field select:focus,
-.config-field textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-.config-field input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 10px;
-    cursor: pointer;
-    accent-color: var(--accent);
-}
-
-.config-field input[readonly] {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Save Indicators */
-.save-indicator {
-    display: inline-block;
-    margin-left: 10px;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.8em;
-    font-weight: 600;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.save-indicator.saving {
-    background: rgba(158, 106, 3, 0.2);
-    color: #9e6a03;
-    border: 1px solid #9e6a03;
-    opacity: 1;
-}
-
-.save-indicator.saved {
-    background: rgba(46, 160, 67, 0.2);
-    color: #2ea043;
-    border: 1px solid #2ea043;
-    opacity: 1;
-}
-
-.save-indicator.error {
-    background: rgba(227, 35, 69, 0.2);
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    opacity: 1;
-}
-
-/* Buttons */
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #c41d39;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-secondary);
-}
-
-.btn-warning {
-    background: #9e6a03;
-    color: white;
-}
-
-.btn-warning:hover {
-    background: #7c5302;
-    transform: translateY(-1px);
-}
-
-.btn-sm {
-    padding: 8px 16px;
-    font-size: 0.9em;
-}
-
-/* Scrollbar */
-.content-area::-webkit-scrollbar {
-    width: 8px;
-}
-
-.content-area::-webkit-scrollbar-track {
-    background: var(--bg-primary);
-}
-
-.content-area::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 4px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-}
-</style>
-
-<div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>{{ server.name }}</h1>
-            <p>Server Configuration</p>
-            <div class="server-info-box">
-                <div class="server-info-item">
-                    <span class="server-info-label">Port:</span>
-                    <span class="server-info-value">{{ server.server_port }}</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style type="text/tailwindcss">
+        @theme {
+            --color-primary: #0D1117;
+            --color-secondary: #1A1F29;
+            --color-accent: #E32345;
+        }
+    </style>
+</head>
+<body class="bg-[#0D1117] text-white min-h-screen">
+    <!-- Top Navigation -->
+    <nav class="bg-[#1A1F29] border-b border-[#E32345]/20 sticky top-0 z-50 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-4">
+                    <div class="bg-[#E32345] p-3 rounded-xl shadow-lg shadow-[#E32345]/20">
+                        <i class="fas fa-cog text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">{{ server.name }}</h1>
+                        <p class="text-sm text-gray-400">Server Configuration</p>
+                    </div>
                 </div>
-                <div class="server-info-item">
-                    <span class="server-info-label">RCon:</span>
-                    <span class="server-info-value">{{ server.rcon_port }}</span>
+
+                <!-- Navigation Items -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 text-gray-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-white/5">
+                        <i class="fas fa-gauge-high"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('server_config', server_id=server.id) }}" class="flex items-center gap-2 text-[#E32345] font-medium px-3 py-2 rounded-lg bg-[#E32345]/10">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuration</span>
+                    </a>
                 </div>
-                <div class="server-info-item">
-                    <span class="server-info-label">CPU:</span>
-                    <span class="server-info-value">{{ server.cpu_count }}</span>
+
+                <!-- User & Actions -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 px-4 py-2 bg-[#0D1117] rounded-lg border border-[#E32345]/20">
+                        <i class="fas fa-user-circle text-[#E32345]"></i>
+                        <span class="hidden sm:block">{{ username }}</span>
+                    </div>
+                    <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden lg:inline">Main Dashboard</span>
+                    </a>
                 </div>
             </div>
         </div>
-        <nav class="sidebar-nav">
-            <a href="{{ url_for('server_dashboard', server_id=server.id) }}">
-                <span>📊</span><span>Dashboard</span>
-            </a>
-            <a href="{{ url_for('server_config', server_id=server.id) }}" class="active">
-                <span>⚙️</span><span>Configuration</span>
-            </a>
-        </nav>
-    </div>
+    </nav>
 
     <!-- Main Content -->
-    <div class="main-content">
-        <!-- Topbar -->
-        <div class="topbar">
-            <div class="topbar-left">
-                <h2>Server Configuration</h2>
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Restart Alert -->
+        <div id="restartAlert" class="hidden bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+                <span class="text-yellow-500 font-medium">Configuration changed. Restart server to apply changes.</span>
             </div>
-            <div class="topbar-right">
-                <span class="user-badge">👤 {{ username }}</span>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Main Dashboard</a>
-            </div>
+            <button onclick="restartServer()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg transition font-medium">
+                Restart Now
+            </button>
         </div>
 
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Restart Alert -->
-            <div class="alert-banner" id="restartAlert">
-                <span>⚠️ Configuration changed. Restart server to apply changes.</span>
-                <button class="btn btn-warning btn-sm" onclick="restartServer()">Restart Now</button>
-            </div>
-
+        <!-- Config Sections -->
+        <div class="space-y-6">
             <!-- Basic Settings -->
-            <div class="config-section">
-                <h3>Basic Server Settings</h3>
-
-                <div class="config-field">
-                    <label for="hostname">Server Name
-                        <span class="save-indicator" id="save-hostname">Saved</span>
-                    </label>
-                    <span class="description">The name of your server as it appears in the server browser</span>
-                    <input type="text" id="hostname" data-config-key="hostname" oninput="saveField(this)">
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
+                    <i class="fas fa-info-circle text-[#E32345] text-2xl"></i>
+                    <h2 class="text-2xl font-bold text-white">Basic Server Settings</h2>
                 </div>
 
-                <div class="config-field">
-                    <label for="password">Server Password
-                        <span class="save-indicator" id="save-password">Saved</span>
-                    </label>
-                    <span class="description">Password required to join the server (leave empty for public server)</span>
-                    <input type="text" id="password" data-config-key="password" oninput="saveField(this)">
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Server Name -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-signature text-[#E32345]"></i>
+                            <span>Server Name</span>
+                            <span id="save-hostname" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">The name of your server as it appears in the server browser</p>
+                        <input type="text" id="hostname" data-config-key="hostname" oninput="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                    </div>
 
-                <div class="config-field">
-                    <label for="passwordAdmin">Admin Password
-                        <span class="save-indicator" id="save-passwordAdmin">Saved</span>
-                    </label>
-                    <span class="description">Password to become a server admin</span>
-                    <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="saveField(this)">
-                </div>
+                    <!-- Server Password -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-lock text-[#E32345]"></i>
+                            <span>Server Password</span>
+                            <span id="save-password" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Password required to join (leave empty for public)</p>
+                        <input type="text" id="password" data-config-key="password" oninput="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                    </div>
 
-                <div class="config-field">
-                    <label for="description">Server Description
-                        <span class="save-indicator" id="save-description">Saved</span>
-                    </label>
-                    <span class="description">Description displayed in the server browser</span>
-                    <textarea id="description" data-config-key="description" rows="3" oninput="saveField(this)"></textarea>
-                </div>
+                    <!-- Admin Password -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-key text-[#E32345]"></i>
+                            <span>Admin Password</span>
+                            <span id="save-passwordAdmin" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Password to become a server admin</p>
+                        <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                    </div>
 
-                <div class="config-field">
-                    <label for="maxPlayers">Max Players
-                        <span class="save-indicator" id="save-maxPlayers">Saved</span>
-                    </label>
-                    <span class="description">Maximum number of players allowed on the server</span>
-                    <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="saveField(this)">
+                    <!-- Max Players -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-users text-[#E32345]"></i>
+                            <span>Max Players</span>
+                            <span id="save-maxPlayers" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Maximum number of players (1-127)</p>
+                        <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                    </div>
+
+                    <!-- Server Description (full width) -->
+                    <div class="md:col-span-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-file-lines text-[#E32345]"></i>
+                            <span>Server Description</span>
+                            <span id="save-description" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Description displayed in the server browser</p>
+                        <textarea id="description" data-config-key="description" rows="3" oninput="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"></textarea>
+                    </div>
                 </div>
             </div>
 
             <!-- Gameplay Settings -->
-            <div class="config-section">
-                <h3>Gameplay Settings</h3>
-
-                <div class="config-field">
-                    <label for="disable3rdPerson">
-                        <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="saveField(this)">
-                        Disable 3rd Person View
-                        <span class="save-indicator" id="save-disable3rdPerson">Saved</span>
-                    </label>
-                    <span class="description">When enabled, players can only use first-person view</span>
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
+                    <i class="fas fa-gamepad text-[#E32345] text-2xl"></i>
+                    <h2 class="text-2xl font-bold text-white">Gameplay Settings</h2>
                 </div>
 
-                <div class="config-field">
-                    <label for="disableCrosshair">
-                        <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="saveField(this)">
-                        Disable Crosshair
-                        <span class="save-indicator" id="save-disableCrosshair">Saved</span>
-                    </label>
-                    <span class="description">When enabled, the crosshair is hidden</span>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                        <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="saveField(this)"
+                            class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                        <div class="flex-1">
+                            <label for="disable3rdPerson" class="font-medium text-white cursor-pointer flex items-center gap-2">
+                                <i class="fas fa-eye-slash text-[#E32345]"></i>
+                                Disable 3rd Person View
+                                <span id="save-disable3rdPerson" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                            </label>
+                            <p class="text-xs text-gray-400 mt-1">Players can only use first-person view</p>
+                        </div>
+                    </div>
 
-                <div class="config-field">
-                    <label for="disablePersonalLight">
-                        <input type="checkbox" id="disablePersonalLight" data-config-key="disablePersonalLight" onchange="saveField(this)">
-                        Disable Personal Light
-                        <span class="save-indicator" id="save-disablePersonalLight">Saved</span>
-                    </label>
-                    <span class="description">Disables personal light for all players</span>
-                </div>
+                    <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                        <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="saveField(this)"
+                            class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                        <div class="flex-1">
+                            <label for="disableCrosshair" class="font-medium text-white cursor-pointer flex items-center gap-2">
+                                <i class="fas fa-crosshairs text-[#E32345]"></i>
+                                Disable Crosshair
+                                <span id="save-disableCrosshair" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                            </label>
+                            <p class="text-xs text-gray-400 mt-1">The crosshair is hidden</p>
+                        </div>
+                    </div>
 
-                <div class="config-field">
-                    <label for="lightingConfig">Lighting Configuration
-                        <span class="save-indicator" id="save-lightingConfig">Saved</span>
-                    </label>
-                    <span class="description">0 for brighter nights, 1 for darker nights</span>
-                    <select id="lightingConfig" data-config-key="lightingConfig" onchange="saveField(this)">
-                        <option value="0">Brighter Nights</option>
-                        <option value="1">Darker Nights</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Time Settings -->
-            <div class="config-section">
-                <h3>Time Settings</h3>
-
-                <div class="config-field">
-                    <label for="serverTime">Server Time
-                        <span class="save-indicator" id="save-serverTime">Saved</span>
-                    </label>
-                    <span class="description">Initial server time. Use "SystemTime" for real-time or format: YYYY/MM/DD/HH/MM</span>
-                    <input type="text" id="serverTime" data-config-key="serverTime" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="serverTimeAcceleration">Time Acceleration
-                        <span class="save-indicator" id="save-serverTimeAcceleration">Saved</span>
-                    </label>
-                    <span class="description">Time multiplier (0-24). Value of 12 means 1 real hour = 12 game hours</span>
-                    <input type="number" id="serverTimeAcceleration" data-config-key="serverTimeAcceleration" min="0" max="24" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="serverNightTimeAcceleration">Night Time Acceleration
-                        <span class="save-indicator" id="save-serverNightTimeAcceleration">Saved</span>
-                    </label>
-                    <span class="description">Night time multiplier (0.1-64), also multiplied by serverTimeAcceleration</span>
-                    <input type="number" id="serverNightTimeAcceleration" data-config-key="serverNightTimeAcceleration" min="0.1" max="64" step="0.1" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="serverTimePersistent">
-                        <input type="checkbox" id="serverTimePersistent" data-config-key="serverTimePersistent" onchange="saveField(this)">
-                        Persistent Time
-                        <span class="save-indicator" id="save-serverTimePersistent">Saved</span>
-                    </label>
-                    <span class="description">When enabled, server time is saved and persists across restarts</span>
-                </div>
-            </div>
-
-            <!-- Voice & Communication -->
-            <div class="config-section">
-                <h3>Voice & Communication</h3>
-
-                <div class="config-field">
-                    <label for="disableVoN">
-                        <input type="checkbox" id="disableVoN" data-config-key="disableVoN" onchange="saveField(this)">
-                        Disable Voice Over Network
-                        <span class="save-indicator" id="save-disableVoN">Saved</span>
-                    </label>
-                    <span class="description">When enabled, voice chat is disabled</span>
-                </div>
-
-                <div class="config-field">
-                    <label for="vonCodecQuality">Voice Codec Quality
-                        <span class="save-indicator" id="save-vonCodecQuality">Saved</span>
-                    </label>
-                    <span class="description">Voice quality (0-30). Higher is better but uses more bandwidth</span>
-                    <input type="number" id="vonCodecQuality" data-config-key="vonCodecQuality" min="0" max="30" oninput="saveField(this)">
-                </div>
-            </div>
-
-            <!-- Advanced Settings -->
-            <div class="config-section">
-                <h3>Advanced Settings</h3>
-
-                <div class="config-field">
-                    <label for="shardId">Shard ID
-                        <span class="save-indicator" id="save-shardId">Saved</span>
-                    </label>
-                    <span class="description">Six alphanumeric characters for private servers (e.g., "123abc")</span>
-                    <input type="text" id="shardId" data-config-key="shardId" maxlength="6" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="enableWhitelist">
-                        <input type="checkbox" id="enableWhitelist" data-config-key="enableWhitelist" onchange="saveField(this)">
-                        Enable Whitelist
-                        <span class="save-indicator" id="save-enableWhitelist">Saved</span>
-                    </label>
-                    <span class="description">Only whitelisted players can join</span>
-                </div>
-
-                <div class="config-field">
-                    <label for="verifySignatures">Verify Signatures
-                        <span class="save-indicator" id="save-verifySignatures">Saved</span>
-                    </label>
-                    <span class="description">Verifies mod files (only value 2 is supported)</span>
-                    <input type="number" id="verifySignatures" data-config-key="verifySignatures" value="2" readonly>
-                </div>
-
-                <div class="config-field">
-                    <label for="forceSameBuild">
-                        <input type="checkbox" id="forceSameBuild" data-config-key="forceSameBuild" onchange="saveField(this)">
-                        Force Same Build
-                        <span class="save-indicator" id="save-forceSameBuild">Saved</span>
-                    </label>
-                    <span class="description">Only allow clients with the same game version</span>
-                </div>
-
-                <div class="config-field">
-                    <label for="storageAutoFix">
-                        <input type="checkbox" id="storageAutoFix" data-config-key="storageAutoFix" onchange="saveField(this)">
-                        Storage Auto-Fix
-                        <span class="save-indicator" id="save-storageAutoFix">Saved</span>
-                    </label>
-                    <span class="description">Automatically fix corrupted persistence files</span>
-                </div>
-
-                <div class="config-field">
-                    <label for="instanceId">Instance ID
-                        <span class="save-indicator" id="save-instanceId">Saved</span>
-                    </label>
-                    <span class="description">Server instance identifier for multiple servers on same machine</span>
-                    <input type="number" id="instanceId" data-config-key="instanceId" min="1" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="loginQueueConcurrentPlayers">Login Queue Concurrent Players
-                        <span class="save-indicator" id="save-loginQueueConcurrentPlayers">Saved</span>
-                    </label>
-                    <span class="description">Number of players processed concurrently during login</span>
-                    <input type="number" id="loginQueueConcurrentPlayers" data-config-key="loginQueueConcurrentPlayers" min="1" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="loginQueueMaxPlayers">Login Queue Max Players
-                        <span class="save-indicator" id="save-loginQueueMaxPlayers">Saved</span>
-                    </label>
-                    <span class="description">Maximum players that can wait in login queue</span>
-                    <input type="number" id="loginQueueMaxPlayers" data-config-key="loginQueueMaxPlayers" min="1" oninput="saveField(this)">
-                </div>
-
-                <div class="config-field">
-                    <label for="guaranteedUpdates">Guaranteed Updates
-                        <span class="save-indicator" id="save-guaranteedUpdates">Saved</span>
-                    </label>
-                    <span class="description">Communication protocol (always use 1)</span>
-                    <input type="number" id="guaranteedUpdates" data-config-key="guaranteedUpdates" value="1" readonly>
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-lightbulb text-[#E32345]"></i>
+                            <span>Lighting Configuration</span>
+                            <span id="save-lightingConfig" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">0 for brighter nights, 1 for darker nights</p>
+                        <select id="lightingConfig" data-config-key="lightingConfig" onchange="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                            <option value="0">Brighter Nights</option>
+                            <option value="1">Darker Nights</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <!-- Mission Settings -->
-            <div class="config-section">
-                <h3>Mission Settings</h3>
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
+                    <i class="fas fa-map text-[#E32345] text-2xl"></i>
+                    <h2 class="text-2xl font-bold text-white">Mission Settings</h2>
+                </div>
 
-                <div class="config-field">
-                    <label for="missionTemplate">Map / Mission
-                        <span class="save-indicator" id="save-missionTemplate">Saved</span>
-                    </label>
-                    <span class="description">Select the map for your server</span>
-                    <select id="missionTemplate" data-config-key="missionTemplate" onchange="saveField(this)">
-                        <option value="dayzOffline.chernarusplus">Chernarus (Base Game)</option>
-                        <option value="dayzOffline.enoch">Livonia (DLC)</option>
-                        <option value="dayzOffline.sakhal">Sakhal (DLC)</option>
-                    </select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-globe text-[#E32345]"></i>
+                            <span>Map / Mission</span>
+                            <span id="save-missionTemplate" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Select the map for your server</p>
+                        <select id="missionTemplate" data-config-key="missionTemplate" onchange="saveField(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                            <option value="dayzOffline.chernarusplus">Chernarus (Base Game)</option>
+                            <option value="dayzOffline.enoch">Livonia (DLC)</option>
+                            <option value="dayzOffline.sakhal">Sakhal (DLC)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </main>
 
-<script>
-const serverId = {{ server.id }};
-let configData = {};
-let saveTimeout = null;
-let configChanged = false;
+    <script>
+        const serverId = {{ server.id }};
+        let configData = {};
+        let saveTimeout = null;
+        let configChanged = false;
 
-// Parse config file
-function parseConfig(configText) {
-    const config = {};
-    const lines = configText.split('\n');
-
-    for (let line of lines) {
-        line = line.trim();
-        if (line.startsWith('//') || !line) continue;
-
-        // Parse template from Missions class
-        if (line.includes('template')) {
-            const match = line.match(/template\s*=\s*"([^"]+)"/);
-            if (match) config.missionTemplate = match[1];
-            continue;
+        function parseConfig(configText) {
+            const config = {};
+            const lines = configText.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (line.startsWith('//') || !line) continue;
+                if (line.includes('template')) {
+                    const match = line.match(/template\s*=\s*"([^"]+)"/);
+                    if (match) config.missionTemplate = match[1];
+                    continue;
+                }
+                const match = line.match(/^(\w+)\s*=\s*(.+?);/);
+                if (match) {
+                    let [, key, value] = match;
+                    value = value.trim();
+                    const commentIndex = value.indexOf('//');
+                    if (commentIndex !== -1) value = value.substring(0, commentIndex).trim();
+                    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+                    config[key] = value;
+                }
+            }
+            return config;
         }
 
-        // Parse regular key = value pairs
-        const match = line.match(/^(\w+)\s*=\s*(.+?);/);
-        if (match) {
-            let [, key, value] = match;
-            value = value.trim();
-
-            // Remove everything after // (comments)
-            const commentIndex = value.indexOf('//');
-            if (commentIndex !== -1) {
-                value = value.substring(0, commentIndex).trim();
-            }
-
-            // Remove quotes if present
-            if (value.startsWith('"') && value.endsWith('"')) {
-                value = value.slice(1, -1);
-            }
-
-            config[key] = value;
+        function loadConfig() {
+            fetch(`/api/server/${serverId}/config`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        configData = parseConfig(data.config);
+                        populateForm();
+                    }
+                })
+                .catch(error => console.error('Error loading config:', error));
         }
-    }
 
-    return config;
-}
-
-// Load config
-function loadConfig() {
-    fetch(`/api/server/${serverId}/config`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                configData = parseConfig(data.config);
-                populateForm();
+        function populateForm() {
+            for (let key in configData) {
+                const element = document.querySelector(`[data-config-key="${key}"]`);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = configData[key] == '1';
+                    } else {
+                        element.value = configData[key];
+                    }
+                }
             }
-        })
-        .catch(error => console.error('Error loading config:', error));
-}
+        }
 
-// Populate form with config data
-function populateForm() {
-    for (let key in configData) {
-        const element = document.querySelector(`[data-config-key="${key}"]`);
-        if (element) {
+        function saveField(element) {
+            const key = element.dataset.configKey;
+            const indicator = document.getElementById(`save-${key}`);
+
             if (element.type === 'checkbox') {
-                element.checked = configData[key] == '1';
+                configData[key] = element.checked ? '1' : '0';
             } else {
-                element.value = configData[key];
+                configData[key] = element.value;
             }
+
+            indicator.textContent = 'Saving...';
+            indicator.className = 'text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-500 opacity-100 transition-opacity';
+
+            configChanged = true;
+            document.getElementById('restartAlert').classList.remove('hidden');
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => saveConfig(indicator), 500);
         }
-    }
-}
 
-// Save individual field
-function saveField(element) {
-    const key = element.dataset.configKey;
-    const indicator = document.getElementById(`save-${key}`);
+        function saveConfig(indicator) {
+            let configContent = `// ${document.getElementById('hostname').value} - DayZ Server Configuration\n`;
+            configContent += `// Auto-generated by GameServer Manager\n\n`;
 
-    // Update config data
-    if (element.type === 'checkbox') {
-        configData[key] = element.checked ? '1' : '0';
-    } else {
-        configData[key] = element.value;
-    }
-
-    // Show saving indicator
-    indicator.className = 'save-indicator saving';
-    indicator.textContent = 'Saving...';
-
-    // Mark as changed
-    configChanged = true;
-    document.getElementById('restartAlert').classList.add('show');
-
-    // Debounce save
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        saveConfig(indicator);
-    }, 500);
-}
-
-// Save entire config
-function saveConfig(indicator) {
-    // Build config content
-    let configContent = `// ${document.getElementById('hostname').value} - DayZ Server Configuration\n`;
-    configContent += `// Auto-generated by GameServer Manager\n\n`;
-
-    // Add all config values
-    for (let key in configData) {
-        if (key === 'missionTemplate') continue; // Handle separately
-
-        const value = configData[key];
-        const needsQuotes = isNaN(value) && value !== '0' && value !== '1';
-
-        if (needsQuotes) {
-            configContent += `${key} = "${value}";\n`;
-        } else {
-            configContent += `${key} = ${value};\n`;
-        }
-    }
-
-    // Add Missions class
-    configContent += `\nclass Missions\n{\n    class DayZ\n    {\n`;
-    configContent += `        template = "${configData.missionTemplate || 'dayzOffline.chernarusplus'}";\n`;
-    configContent += `    };\n};\n`;
-
-    // Save to server
-    fetch(`/api/server/${serverId}/config`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({config: configContent})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (indicator) {
-                indicator.className = 'save-indicator saved';
-                indicator.textContent = 'Saved';
-                setTimeout(() => {
-                    indicator.className = 'save-indicator';
-                }, 2000);
+            for (let key in configData) {
+                if (key === 'missionTemplate') continue;
+                const value = configData[key];
+                const needsQuotes = isNaN(value) && value !== '0' && value !== '1';
+                configContent += needsQuotes ? `${key} = "${value}";\n` : `${key} = ${value};\n`;
             }
-        } else {
-            if (indicator) {
-                indicator.className = 'save-indicator error';
-                indicator.textContent = 'Error';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error saving config:', error);
-        if (indicator) {
-            indicator.className = 'save-indicator error';
-            indicator.textContent = 'Error';
-        }
-    });
-}
 
-// Restart server
-function restartServer() {
-    if (!confirm('Restart the server now? This will disconnect all players.')) {
-        return;
-    }
+            configContent += `\nclass Missions\n{\n    class DayZ\n    {\n`;
+            configContent += `        template = "${configData.missionTemplate || 'dayzOffline.chernarusplus'}";\n`;
+            configContent += `    };\n};\n`;
 
-    fetch(`/api/server/${serverId}/restart`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        if (data.success) {
-            configChanged = false;
-            document.getElementById('restartAlert').classList.remove('show');
-            // Redirect to dashboard
-            window.location.href = `/server/${serverId}/dashboard`;
+            fetch(`/api/server/${serverId}/config`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({config: configContent})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    indicator.textContent = 'Saved';
+                    indicator.className = 'text-xs px-2 py-1 rounded bg-green-500/20 text-green-500 opacity-100 transition-opacity';
+                    setTimeout(() => indicator.className = 'text-xs px-2 py-1 rounded opacity-0 transition-opacity', 2000);
+                } else {
+                    indicator.textContent = 'Error';
+                    indicator.className = 'text-xs px-2 py-1 rounded bg-red-500/20 text-red-500 opacity-100 transition-opacity';
+                }
+            });
         }
-    })
-    .catch(error => {
-        alert('Error restarting server: ' + error);
-    });
-}
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    loadConfig();
-});
-</script>
+        function restartServer() {
+            if (!confirm('Restart the server now? This will disconnect all players.')) return;
+            fetch(`/api/server/${serverId}/restart`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    configChanged = false;
+                    document.getElementById('restartAlert').classList.add('hidden');
+                    window.location.href = `/server/${serverId}/dashboard`;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+        });
+    </script>
+</body>
+</html>
 {% endblock %}

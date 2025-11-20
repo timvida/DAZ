@@ -3,805 +3,382 @@
 {% block title %}Dashboard - DayZ Server Manager{% endblock %}
 
 {% block content %}
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style type="text/tailwindcss">
+        @theme {
+            --color-primary: #0D1117;
+            --color-secondary: #1A1F29;
+            --color-accent: #E32345;
+        }
+    </style>
+</head>
+<body class="bg-[#0D1117] text-white min-h-screen">
+    <!-- Top Navigation -->
+    <nav class="bg-[#1A1F29] border-b border-[#E32345]/20 sticky top-0 z-50 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-4">
+                    <div class="bg-[#E32345] p-3 rounded-xl shadow-lg shadow-[#E32345]/20">
+                        <i class="fas fa-server text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">DayZ Server Manager</h1>
+                        <p class="text-sm text-gray-400">Dashboard Overview</p>
+                    </div>
+                </div>
 
-:root {
-    --bg-primary: #0D1117;
-    --bg-secondary: #1A1F29;
-    --accent: #E32345;
-    --text-primary: #ffffff;
-    --text-secondary: #8b949e;
-    --border: rgba(227, 35, 69, 0.2);
-    --hover: rgba(227, 35, 69, 0.1);
-}
+                <!-- Navigation Items -->
+                <div class="hidden md:flex items-center gap-6">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center gap-2 text-[#E32345] font-medium px-3 py-2 rounded-lg bg-[#E32345]/10">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('system_console') }}" class="flex items-center gap-2 text-gray-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-white/5">
+                        <i class="fas fa-terminal"></i>
+                        <span>Console</span>
+                    </a>
+                </div>
 
-body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-}
-
-.layout {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Sidebar */
-.sidebar {
-    width: 280px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-header {
-    padding: 30px 25px;
-    border-bottom: 1px solid var(--border);
-}
-
-.sidebar-header h1 {
-    font-size: 1.5em;
-    color: var(--accent);
-    margin-bottom: 5px;
-}
-
-.sidebar-header p {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-}
-
-.sidebar-nav {
-    flex: 1;
-    padding: 20px 0;
-    overflow-y: auto;
-}
-
-.sidebar-nav a {
-    display: flex;
-    align-items: center;
-    padding: 15px 25px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: all 0.2s;
-    border-left: 3px solid transparent;
-    gap: 12px;
-}
-
-.sidebar-nav a:hover {
-    background: var(--hover);
-    color: var(--text-primary);
-    border-left-color: var(--accent);
-}
-
-.sidebar-nav a.active {
-    background: var(--hover);
-    color: var(--accent);
-    border-left-color: var(--accent);
-}
-
-/* Topbar */
-.topbar {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 30px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 15px;
-}
-
-.user-badge {
-    padding: 8px 16px;
-    background: var(--hover);
-    border-radius: 8px;
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.content-area {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-}
-
-/* Page Header */
-.page-header {
-    margin-bottom: 30px;
-}
-
-.page-header h2 {
-    font-size: 2em;
-    margin-bottom: 10px;
-}
-
-.page-header p {
-    color: var(--text-secondary);
-}
-
-/* Create Server Card */
-.card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 30px;
-}
-
-.card h3 {
-    margin-bottom: 20px;
-    color: var(--accent);
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 12px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1em;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-/* Buttons */
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-primary {
-    background: var(--accent);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #c41d39;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--bg-secondary);
-}
-
-.btn-info {
-    background: #1f6feb;
-    color: white;
-}
-
-.btn-success {
-    background: #2ea043;
-    color: white;
-}
-
-.btn-warning {
-    background: #9e6a03;
-    color: white;
-}
-
-.btn-danger {
-    background: var(--accent);
-    color: white;
-}
-
-.btn-sm {
-    padding: 8px 16px;
-    font-size: 0.9em;
-}
-
-/* Server Grid */
-.servers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
-}
-
-.server-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.2s;
-}
-
-.server-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-
-.server-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 15px;
-}
-
-.server-info h3 {
-    margin-bottom: 5px;
-}
-
-.server-game {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-}
-
-.server-status {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85em;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-running {
-    background: rgba(46, 160, 67, 0.2);
-    color: #2ea043;
-    border: 1px solid #2ea043;
-}
-
-.status-stopped {
-    background: rgba(139, 148, 158, 0.2);
-    color: #8b949e;
-    border: 1px solid #8b949e;
-}
-
-.status-installing, .status-updating {
-    background: rgba(158, 106, 3, 0.2);
-    color: #9e6a03;
-    border: 1px solid #9e6a03;
-}
-
-.server-details {
-    margin: 15px 0;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.detail-label {
-    color: var(--text-secondary);
-}
-
-.detail-value {
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85em;
-}
-
-.badge-success {
-    background: rgba(46, 160, 67, 0.2);
-    color: #2ea043;
-}
-
-.badge-warning {
-    background: rgba(158, 106, 3, 0.2);
-    color: #9e6a03;
-}
-
-.server-card-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 15px;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary);
-}
-
-.empty-icon {
-    font-size: 4em;
-    margin-bottom: 20px;
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    background: var(--bg-secondary);
-    padding: 30px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    max-width: 500px;
-    width: 90%;
-}
-
-.modal-content h2 {
-    color: var(--accent);
-    margin-bottom: 20px;
-}
-
-.spinner {
-    border: 4px solid var(--border);
-    border-left-color: var(--accent);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .servers-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
-<div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>DayZ Server Manager</h1>
-            <p>Control Panel</p>
+                <!-- User & Actions -->
+                <div class="flex items-center gap-3">
+                    <button onclick="checkForUpdates()" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+                        <i class="fas fa-sync-alt"></i>
+                        <span class="hidden lg:inline">Check Updates</span>
+                    </button>
+                    <div class="flex items-center gap-3 px-4 py-2 bg-[#0D1117] rounded-lg border border-[#E32345]/20">
+                        <i class="fas fa-user-circle text-[#E32345]"></i>
+                        <span class="hidden sm:block">{{ username }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="p-2 hover:bg-[#E32345]/10 rounded-lg transition" title="Logout">
+                        <i class="fas fa-sign-out-alt text-gray-400 hover:text-[#E32345]"></i>
+                    </a>
+                </div>
+            </div>
         </div>
-        <nav class="sidebar-nav">
-            <a href="{{ url_for('dashboard') }}" class="active">
-                <span>🏠</span><span>Dashboard</span>
-            </a>
-            <a href="{{ url_for('system_console') }}">
-                <span>💻</span><span>System Console</span>
-            </a>
-        </nav>
-    </div>
+    </nav>
 
     <!-- Main Content -->
-    <div class="main-content">
-        <!-- Topbar -->
-        <div class="topbar">
-            <button class="btn btn-primary btn-sm" onclick="checkForUpdates()" id="updateBtn">
-                Check for Updates
-            </button>
-            <span class="user-badge">👤 {{ username }}</span>
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
-        </div>
-
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h2>Server Overview</h2>
-                <p>Manage your DayZ game servers</p>
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Servers -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-[#E32345]/10 p-3 rounded-lg">
+                        <i class="fas fa-server text-[#E32345] text-2xl"></i>
+                    </div>
+                    <span class="text-3xl font-bold text-white">{{ servers|length }}</span>
+                </div>
+                <h3 class="text-gray-400 text-sm font-medium">Total Servers</h3>
             </div>
 
-            <!-- Create Server Card -->
-            <div class="card">
-                <h3>Create New DayZ Server</h3>
-                <form method="POST" action="{{ url_for('create_server') }}">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="name">Server Name</label>
-                            <input type="text" id="name" name="name" placeholder="My DayZ Server #1" required>
+            <!-- Running Servers -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-green-500/10 p-3 rounded-lg">
+                        <i class="fas fa-circle-check text-green-500 text-2xl"></i>
+                    </div>
+                    <span class="text-3xl font-bold text-white">{{ servers|selectattr('status', 'equalto', 'running')|list|length }}</span>
+                </div>
+                <h3 class="text-gray-400 text-sm font-medium">Running</h3>
+            </div>
+
+            <!-- Stopped Servers -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-gray-500/10 p-3 rounded-lg">
+                        <i class="fas fa-circle-stop text-gray-500 text-2xl"></i>
+                    </div>
+                    <span class="text-3xl font-bold text-white">{{ servers|selectattr('status', 'equalto', 'stopped')|list|length }}</span>
+                </div>
+                <h3 class="text-gray-400 text-sm font-medium">Stopped</h3>
+            </div>
+
+            <!-- System Status -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-blue-500/10 p-3 rounded-lg">
+                        <i class="fas fa-heart-pulse text-blue-500 text-2xl"></i>
+                    </div>
+                    <span class="text-3xl font-bold text-green-500">OK</span>
+                </div>
+                <h3 class="text-gray-400 text-sm font-medium">System Health</h3>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Create New Server -->
+            <div class="lg:col-span-1">
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 sticky top-24">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-plus-circle text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Create New Server</h2>
+                    </div>
+
+                    <form action="{{ url_for('create_server') }}" method="POST" class="space-y-4">
+                        <!-- Server Name -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-signature text-[#E32345] mr-2"></i>Server Name
+                            </label>
+                            <input type="text" name="name" required
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="My DayZ Server">
                         </div>
 
-                        <div class="form-group">
-                            <label for="server_port">Server Port</label>
-                            <input type="number" id="server_port" name="server_port" value="2302" min="1024" max="65535" required>
+                        <!-- Game Name (Hidden) -->
+                        <input type="hidden" name="game_name" value="DayZ">
+                        <input type="hidden" name="app_id" value="223350">
+
+                        <!-- Server Port -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-network-wired text-[#E32345] mr-2"></i>Server Port
+                            </label>
+                            <input type="number" name="server_port" value="2302" required
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
-                        <div class="form-group">
-                            <label for="rcon_port">RCon Port</label>
-                            <input type="number" id="rcon_port" name="rcon_port" value="2306" min="1024" max="65535" required>
+                        <!-- RCon Port -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-plug text-[#E32345] mr-2"></i>RCon Port
+                            </label>
+                            <input type="number" name="rcon_port" value="2306" required
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
-                        <div class="form-group">
-                            <label for="rcon_password">RCon Password</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" id="rcon_password" name="rcon_password" readonly required style="flex: 1;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateRconPassword()">Generate</button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyRconPassword()">Copy</button>
+                        <!-- RCon Password -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-key text-[#E32345] mr-2"></i>RCon Password
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" name="rcon_password" id="rconPassword" required readonly
+                                    class="flex-1 px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                                <button type="button" onclick="generateRconPassword()"
+                                    class="px-4 py-2.5 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40" title="Generate Password">
+                                    <i class="fas fa-dice"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <div class="form-group" style="display: flex; align-items: flex-end;">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Server</button>
-                        </div>
-                    </div>
+                        <!-- Submit Button -->
+                        <button type="submit"
+                            class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-rocket"></i>
+                            <span>Create Server</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-                    <input type="hidden" name="game_name" value="DayZ">
-                    <input type="hidden" name="app_id" value="223350">
+            <!-- Server List -->
+            <div class="lg:col-span-2">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-list text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Your Servers</h2>
+                    </div>
+                    <span class="text-sm text-gray-400 bg-[#1A1F29] px-3 py-1.5 rounded-lg border border-[#E32345]/20">{{ servers|length }} server(s)</span>
+                </div>
+
+                <div class="space-y-4">
+                    {% if servers %}
+                        {% for server in servers %}
+                        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 hover:shadow-lg hover:shadow-[#E32345]/10 transition-all duration-300">
+                            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <!-- Server Info -->
+                                <div class="flex items-center gap-4 flex-1">
+                                    <div class="bg-[#0D1117] p-4 rounded-lg border border-[#E32345]/30">
+                                        <i class="fas fa-server text-[#E32345] text-2xl"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-lg font-bold text-white mb-1 truncate">{{ server.name }}</h3>
+                                        <div class="flex flex-wrap gap-3 text-sm text-gray-400">
+                                            <span class="flex items-center gap-1"><i class="fas fa-network-wired"></i>{{ server.server_port }}</span>
+                                            <span class="flex items-center gap-1"><i class="fas fa-plug"></i>{{ server.rcon_port }}</span>
+                                            <span class="flex items-center gap-1"><i class="fas fa-microchip"></i>{{ server.cpu_count }} Cores</span>
+                                            {% if server.is_installed %}
+                                                <span class="flex items-center gap-1 text-green-500"><i class="fas fa-check-circle"></i>Installed</span>
+                                            {% else %}
+                                                <span class="flex items-center gap-1 text-yellow-500"><i class="fas fa-exclamation-triangle"></i>Not Installed</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Status & Actions -->
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <!-- Status Badge -->
+                                    {% if server.status == 'running' %}
+                                        <span class="px-3 py-1.5 bg-green-500/20 border border-green-500 text-green-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                                            <i class="fas fa-circle-dot animate-pulse"></i>RUNNING
+                                        </span>
+                                    {% elif server.status == 'stopped' %}
+                                        <span class="px-3 py-1.5 bg-gray-500/20 border border-gray-500 text-gray-400 rounded-lg text-sm font-medium flex items-center gap-2">
+                                            <i class="fas fa-circle"></i>STOPPED
+                                        </span>
+                                    {% elif server.status == 'installing' %}
+                                        <span class="px-3 py-1.5 bg-yellow-500/20 border border-yellow-500 text-yellow-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                                            <i class="fas fa-spinner fa-spin"></i>INSTALLING
+                                        </span>
+                                    {% endif %}
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ url_for('server_dashboard', server_id=server.id) }}"
+                                            class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
+                                            <i class="fas fa-gauge-high"></i>
+                                            <span class="hidden xl:inline">Manage</span>
+                                        </a>
+                                        <button onclick="confirmDelete({{ server.id }}, '{{ server.name }}')"
+                                            class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded-lg transition hover:text-red-300">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-12 text-center">
+                            <div class="bg-[#E32345]/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-inbox text-[#E32345] text-5xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-300 mb-2">No Servers Yet</h3>
+                            <p class="text-gray-500">Create your first DayZ server to get started</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Update Modal -->
+    <div id="updateModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8 animate-scaleIn">
+            <div class="text-center">
+                <div class="bg-[#E32345]/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-download text-[#E32345] text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2" id="updateTitle">Checking for Updates...</h3>
+                <p class="text-gray-400 mb-6" id="updateMessage">Please wait...</p>
+                <div id="updateActions" class="flex gap-3">
+                    <button onclick="closeUpdateModal()" class="flex-1 px-6 py-3 bg-[#0D1117] hover:bg-[#0D1117]/80 border border-[#E32345]/30 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button onclick="performUpdate()" id="updateBtn" class="hidden flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition shadow-lg shadow-[#E32345]/20">
+                        Update Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div class="bg-[#1A1F29] border border-red-500/30 rounded-2xl max-w-md w-full p-8 animate-scaleIn">
+            <div class="text-center">
+                <div class="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Delete Server?</h3>
+                <p class="text-gray-400 mb-6">Are you sure you want to delete <strong class="text-white" id="deleteServerName"></strong>? This action cannot be undone.</p>
+                <form id="deleteForm" method="POST" class="flex gap-3">
+                    <button type="button" onclick="closeDeleteModal()" class="flex-1 px-6 py-3 bg-[#0D1117] hover:bg-[#0D1117]/80 border border-[#E32345]/30 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg transition shadow-lg shadow-red-500/20">
+                        Delete
+                    </button>
                 </form>
             </div>
-
-            <!-- Servers List -->
-            <div class="page-header">
-                <h2>Your Servers ({{ servers|length }})</h2>
-            </div>
-
-            {% if servers %}
-            <div class="servers-grid">
-                {% for server in servers %}
-                <div class="server-card">
-                    <div class="server-card-header">
-                        <div class="server-info">
-                            <h3>{{ server.name }}</h3>
-                            <span class="server-game">{{ server.game_name }}</span>
-                        </div>
-                        <span class="server-status status-{{ server.status }}">
-                            {{ server.status }}
-                        </span>
-                    </div>
-
-                    <div class="server-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Installed:</span>
-                            <span class="detail-value">
-                                {% if server.is_installed %}
-                                    <span class="badge badge-success">Yes</span>
-                                {% else %}
-                                    <span class="badge badge-warning">No</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Server Port:</span>
-                            <span class="detail-value">{{ server.server_port }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">RCon Port:</span>
-                            <span class="detail-value">{{ server.rcon_port }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">RCon Password:</span>
-                            <span class="detail-value" style="font-family: monospace;">
-                                {{ server.rcon_password }}
-                                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ server.rcon_password }}')" style="padding: 2px 8px; margin-left: 5px;">Copy</button>
-                            </span>
-                        </div>
-                        {% if server.cpu_count %}
-                        <div class="detail-item">
-                            <span class="detail-label">CPU Cores:</span>
-                            <span class="detail-value">{{ server.cpu_count }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="server-card-actions">
-                        {% if not server.is_installed %}
-                            <button class="btn btn-primary btn-sm" onclick="installServer({{ server.id }})">
-                                Install Server
-                            </button>
-                        {% else %}
-                            <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="btn btn-info btn-sm">
-                                Dashboard
-                            </a>
-                            {% if server.status == 'stopped' %}
-                                <button class="btn btn-success btn-sm" onclick="startServer({{ server.id }})">
-                                    Start
-                                </button>
-                            {% elif server.status == 'running' %}
-                                <button class="btn btn-warning btn-sm" onclick="stopServer({{ server.id }})">
-                                    Stop
-                                </button>
-                            {% endif %}
-                            <button class="btn btn-primary btn-sm" onclick="installServer({{ server.id }})">
-                                Update
-                            </button>
-                        {% endif %}
-
-                        <form method="POST" action="{{ url_for('delete_server', server_id=server.id) }}"
-                              style="display: inline;"
-                              onsubmit="return confirm('Are you sure you want to delete this server? All files will be removed!')">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🎮</div>
-                <h3>No servers yet</h3>
-                <p>Create your first DayZ server using the form above</p>
-            </div>
-            {% endif %}
         </div>
     </div>
-</div>
 
-<!-- Loading Modal -->
-<div id="loadingModal" class="modal">
-    <div class="modal-content" style="text-align: center;">
-        <div class="spinner"></div>
-        <p id="loadingMessage">Processing...</p>
-    </div>
-</div>
-
-<!-- Update Modal -->
-<div id="updateModal" class="modal">
-    <div class="modal-content">
-        <h2>System Update</h2>
-        <p id="updateMessage"></p>
-        <div id="updateChanges" style="background: var(--bg-primary); padding: 15px; border-radius: 8px; margin: 15px 0; display: none;">
-            <h4>Changes:</h4>
-            <pre id="updateChangesList" style="color: var(--accent); font-family: monospace; font-size: 0.9em; white-space: pre-wrap;"></pre>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-            <button class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
-            <button class="btn btn-primary" id="confirmUpdateBtn" onclick="performUpdate()" style="display: none;">Update Now</button>
-        </div>
-    </div>
-</div>
-
-<script>
-// RCon Password Generator
-function generateRconPassword() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let password = '';
-    for (let i = 0; i < 32; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    document.getElementById('rcon_password').value = password;
-}
-
-function copyRconPassword() {
-    const passwordField = document.getElementById('rcon_password');
-    if (passwordField.value) {
-        navigator.clipboard.writeText(passwordField.value).then(() => {
-            alert('RCon password copied to clipboard!');
-        });
-    } else {
-        alert('Please generate a password first!');
-    }
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
-    });
-}
-
-// Update Functions
-function loadCurrentVersion() {
-    fetch('/api/update/version')
-        .then(response => response.json())
-        .then(data => {
-            // Version can be displayed somewhere if needed
-        });
-}
-
-function checkForUpdates() {
-    const btn = document.getElementById('updateBtn');
-    btn.disabled = true;
-    btn.textContent = 'Checking...';
-
-    fetch('/api/update/check')
-        .then(response => response.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.textContent = 'Check for Updates';
-
-            if (data.success) {
-                if (data.has_updates) {
-                    showUpdateModal(data);
-                } else {
-                    alert(data.message);
-                }
-            } else {
-                alert('Error: ' + data.message);
+    <script>
+        // Generate RCon Password
+        function generateRconPassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let password = '';
+            for (let i = 0; i < 32; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-        })
-        .catch(error => {
-            btn.disabled = false;
-            btn.textContent = 'Check for Updates';
-            alert('Error checking for updates: ' + error);
+            document.getElementById('rconPassword').value = password;
+        }
+
+        // Update Modal Functions
+        function checkForUpdates() {
+            document.getElementById('updateModal').classList.remove('hidden');
+            document.getElementById('updateTitle').textContent = 'Checking for Updates...';
+            document.getElementById('updateMessage').textContent = 'Please wait...';
+            document.getElementById('updateBtn').classList.add('hidden');
+
+            fetch('/api/update/check')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.update_available) {
+                        document.getElementById('updateTitle').textContent = 'Update Available!';
+                        document.getElementById('updateMessage').innerHTML = `Version <strong class="text-[#E32345]">${data.latest_version}</strong> is available.<br><small class="text-gray-500">${data.changelog}</small>`;
+                        document.getElementById('updateBtn').classList.remove('hidden');
+                    } else {
+                        document.getElementById('updateTitle').textContent = 'Up to Date!';
+                        document.getElementById('updateMessage').textContent = 'You are running the latest version.';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('updateTitle').textContent = 'Error';
+                    document.getElementById('updateMessage').textContent = 'Failed to check for updates.';
+                });
+        }
+
+        function performUpdate() {
+            document.getElementById('updateTitle').textContent = 'Updating...';
+            document.getElementById('updateMessage').textContent = 'Please wait, this may take a moment...';
+            document.getElementById('updateBtn').classList.add('hidden');
+
+            fetch('/api/update/perform', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('updateTitle').textContent = 'Success!';
+                        document.getElementById('updateMessage').textContent = 'Update completed. Restarting...';
+                        setTimeout(() => location.reload(), 3000);
+                    } else {
+                        document.getElementById('updateTitle').textContent = 'Failed';
+                        document.getElementById('updateMessage').textContent = data.message;
+                    }
+                });
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.add('hidden');
+        }
+
+        // Delete Modal Functions
+        function confirmDelete(serverId, serverName) {
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteServerName').textContent = serverName;
+            document.getElementById('deleteForm').action = `/server/${serverId}/delete`;
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        // Auto-generate RCon password on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            generateRconPassword();
         });
-}
-
-function showUpdateModal(data) {
-    document.getElementById('updateMessage').textContent = data.message;
-
-    if (data.changes) {
-        document.getElementById('updateChanges').style.display = 'block';
-        document.getElementById('updateChangesList').textContent = data.changes;
-    }
-
-    document.getElementById('confirmUpdateBtn').style.display = 'inline-block';
-    document.getElementById('updateModal').style.display = 'flex';
-}
-
-function closeUpdateModal() {
-    document.getElementById('updateModal').style.display = 'none';
-}
-
-function performUpdate() {
-    if (!confirm('The web interface will now be updated and restarted. Continue?')) {
-        return;
-    }
-
-    closeUpdateModal();
-    showLoading('Performing update... Please wait.');
-
-    fetch('/api/update/perform', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('loadingMessage').textContent = 'Update successful! Page will reload...';
-            setTimeout(() => location.reload(), 5000);
-        } else {
-            hideLoading();
-            alert('Update error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        document.getElementById('loadingMessage').textContent = 'Server is restarting... Please wait.';
-        setTimeout(() => location.reload(), 5000);
-    });
-}
-
-// Server Functions
-function showLoading(message) {
-    document.getElementById('loadingMessage').textContent = message;
-    document.getElementById('loadingModal').style.display = 'flex';
-}
-
-function hideLoading() {
-    document.getElementById('loadingModal').style.display = 'none';
-}
-
-function installServer(serverId) {
-    if (!confirm('Install/Update this server? This may take several minutes.')) {
-        return;
-    }
-
-    showLoading('Installing server... This may take a while.');
-
-    fetch(`/server/${serverId}/install`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            alert('Success: ' + data.message);
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
-
-function startServer(serverId) {
-    showLoading('Starting server...');
-
-    fetch(`/server/${serverId}/start`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            alert('Success: ' + data.message);
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
-
-function stopServer(serverId) {
-    showLoading('Stopping server...');
-
-    fetch(`/server/${serverId}/stop`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            alert('Success: ' + data.message);
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        alert('Error: ' + error);
-    });
-}
-
-// Auto-generate password on load
-document.addEventListener('DOMContentLoaded', function() {
-    generateRconPassword();
-    loadCurrentVersion();
-});
-</script>
+    </script>
+</body>
+</html>
 {% endblock %}

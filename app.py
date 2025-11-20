@@ -4,6 +4,7 @@ from config import Config
 from database import db, User, SteamAccount, GameServer
 from steam_utils import SteamCMDManager
 from server_manager import ServerManager
+from update_manager import UpdateManager
 from functools import wraps
 
 app = Flask(__name__)
@@ -15,6 +16,7 @@ db.init_app(app)
 # Initialize managers
 steam_manager = SteamCMDManager()
 server_manager = ServerManager()
+update_manager = UpdateManager()
 
 # Login required decorator
 def login_required(f):
@@ -228,19 +230,32 @@ def verify_steam():
 @installation_check
 @login_required
 def create_server():
-    """Create a new server"""
+    """Create a new DayZ server"""
     name = request.form.get('name')
     game_name = request.form.get('game_name')
     app_id = request.form.get('app_id')
+    server_port = request.form.get('server_port')
+    rcon_port = request.form.get('rcon_port')
+    rcon_password = request.form.get('rcon_password')
 
-    if not all([name, game_name, app_id]):
+    if not all([name, game_name, app_id, server_port, rcon_port, rcon_password]):
         flash('All fields are required', 'error')
         return redirect(url_for('dashboard'))
 
     try:
         app_id = int(app_id)
-        server = server_manager.create_server(name, game_name, app_id)
-        flash(f'Server "{name}" created successfully!', 'success')
+        server_port = int(server_port)
+        rcon_port = int(rcon_port)
+
+        server = server_manager.create_server(
+            name=name,
+            game_name=game_name,
+            app_id=app_id,
+            server_port=server_port,
+            rcon_port=rcon_port,
+            rcon_password=rcon_password
+        )
+        flash(f'DayZ Server "{name}" created successfully! Port: {server_port}, RCon Port: {rcon_port}', 'success')
     except Exception as e:
         flash(f'Error creating server: {str(e)}', 'error')
 
@@ -329,6 +344,44 @@ def server_status(server_id):
         'is_installed': server.is_installed,
         'install_info': status_info
     })
+
+
+@app.route('/api/update/check', methods=['GET'])
+@installation_check
+@login_required
+def check_updates():
+    """Check for available updates"""
+    result = update_manager.check_for_updates()
+    return jsonify(result)
+
+
+@app.route('/api/update/perform', methods=['POST'])
+@installation_check
+@login_required
+def perform_update():
+    """Perform the update"""
+    success, message = update_manager.perform_update()
+
+    if success:
+        # Schedule restart after response is sent
+        import threading
+        def delayed_restart():
+            import time
+            time.sleep(2)  # Wait 2 seconds before restarting
+            update_manager.restart_application()
+
+        threading.Thread(target=delayed_restart).start()
+
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/update/version', methods=['GET'])
+@installation_check
+@login_required
+def get_version():
+    """Get current version"""
+    version = update_manager.get_current_version()
+    return jsonify({'version': version})
 
 
 # Initialize database

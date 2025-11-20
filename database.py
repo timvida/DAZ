@@ -50,9 +50,22 @@ class GameServer(db.Model):
     game_name = db.Column(db.String(80), nullable=False)  # e.g., "DayZ"
     app_id = db.Column(db.Integer, nullable=False)  # Steam App ID
     install_path = db.Column(db.String(255), nullable=False)
-    port = db.Column(db.Integer)
+
+    # DayZ-specific configuration
+    server_port = db.Column(db.Integer, default=2302)
+    rcon_port = db.Column(db.Integer, default=2306)
+    rcon_password = db.Column(db.String(255))
+    cpu_count = db.Column(db.Integer)
+    profile_path = db.Column(db.String(255))
+    be_path = db.Column(db.String(255))
+    mods = db.Column(db.Text, default='')  # Semicolon-separated mod paths
+    server_mods = db.Column(db.Text, default='')  # Semicolon-separated server mod paths
+
+    # Server status and management
+    port = db.Column(db.Integer)  # Legacy field, kept for compatibility
     status = db.Column(db.String(20), default='stopped')  # stopped, running, installing, updating
     is_installed = db.Column(db.Boolean, default=False)
+    process_id = db.Column(db.Integer)  # PID of running server process
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

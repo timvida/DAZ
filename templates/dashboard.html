@@ -7,9 +7,13 @@
     <!-- Header -->
     <header class="dashboard-header">
         <div class="header-left">
-            <h1>GameServer Manager</h1>
+            <h1>DayZ Server Manager</h1>
+            <span class="version-info" id="versionInfo" style="font-size: 0.8em; color: #888; margin-left: 10px;">Version: <span id="currentVersion">...</span></span>
         </div>
         <div class="header-right">
+            <button class="btn btn-primary btn-sm" onclick="checkForUpdates()" id="updateBtn">
+                Nach Updates suchen
+            </button>
             <span class="user-info">Welcome, {{ username }}</span>
             <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
         </div>
@@ -27,30 +31,37 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="name">Server Name</label>
-                            <input type="text" id="name" name="name" placeholder="My DayZ Server" required>
+                            <input type="text" id="name" name="name" placeholder="My DayZ Server #1" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="game_name">Game</label>
-                            <select id="game_name" name="game_name" required onchange="updateAppId(this)">
-                                <option value="">Select a game...</option>
-                                <option value="DayZ" data-appid="223350">DayZ</option>
-                                <option value="Rust" data-appid="258550">Rust</option>
-                                <option value="ARK" data-appid="376030">ARK: Survival Evolved</option>
-                                <option value="Custom" data-appid="">Custom (Enter App ID)</option>
-                            </select>
+                            <label for="server_port">Server Port</label>
+                            <input type="number" id="server_port" name="server_port" value="2302" min="1024" max="65535" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="app_id">Steam App ID</label>
-                            <input type="number" id="app_id" name="app_id" placeholder="223350" required>
+                            <label for="rcon_port">RCon Port</label>
+                            <input type="number" id="rcon_port" name="rcon_port" value="2306" min="1024" max="65535" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rcon_password">RCon Password</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="rcon_password" name="rcon_password" readonly required style="flex: 1;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateRconPassword()" style="white-space: nowrap;">Generate</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyRconPassword()" style="white-space: nowrap;">Copy</button>
+                            </div>
                         </div>
 
                         <div class="form-group form-group-submit">
                             <label>&nbsp;</label>
-                            <button type="submit" class="btn btn-primary">Create Server</button>
+                            <button type="submit" class="btn btn-primary">Create DayZ Server</button>
                         </div>
                     </div>
+
+                    <!-- Hidden fields for DayZ -->
+                    <input type="hidden" name="game_name" value="DayZ">
+                    <input type="hidden" name="app_id" value="223350">
                 </form>
             </div>
         </div>
@@ -79,10 +90,6 @@
                     <div class="server-card-body">
                         <div class="server-details">
                             <div class="detail-item">
-                                <span class="detail-label">App ID:</span>
-                                <span class="detail-value">{{ server.app_id }}</span>
-                            </div>
-                            <div class="detail-item">
                                 <span class="detail-label">Installed:</span>
                                 <span class="detail-value">
                                     {% if server.is_installed %}
@@ -92,10 +99,25 @@
                                     {% endif %}
                                 </span>
                             </div>
-                            {% if server.port %}
                             <div class="detail-item">
-                                <span class="detail-label">Port:</span>
-                                <span class="detail-value">{{ server.port }}</span>
+                                <span class="detail-label">Server Port:</span>
+                                <span class="detail-value">{{ server.server_port }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">RCon Port:</span>
+                                <span class="detail-value">{{ server.rcon_port }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">RCon Password:</span>
+                                <span class="detail-value" style="font-family: monospace; font-size: 0.9em;">
+                                    {{ server.rcon_password }}
+                                    <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ server.rcon_password }}')" style="margin-left: 5px; padding: 2px 8px;">Copy</button>
+                                </span>
+                            </div>
+                            {% if server.cpu_count %}
+                            <div class="detail-item">
+                                <span class="detail-label">CPU Cores:</span>
+                                <span class="detail-value">{{ server.cpu_count }}</span>
                             </div>
                             {% endif %}
                         </div>
@@ -148,23 +170,163 @@
         <p id="loadingMessage">Processing...</p>
     </div>
 </div>
+
+<!-- Update Modal -->
+<div id="updateModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <h2 id="updateModalTitle">System-Update</h2>
+        <div id="updateModalBody" style="margin: 20px 0;">
+            <p id="updateMessage"></p>
+            <div id="updateChanges" style="background: #1a1a1a; padding: 10px; border-radius: 4px; margin-top: 10px; display: none;">
+                <h4>Änderungen:</h4>
+                <pre id="updateChangesList" style="color: #00ff00; font-family: monospace; font-size: 0.9em; white-space: pre-wrap;"></pre>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeUpdateModal()">Abbrechen</button>
+            <button class="btn btn-success" id="confirmUpdateBtn" onclick="performUpdate()" style="display: none;">Jetzt updaten</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function updateAppId(select) {
-    const selectedOption = select.options[select.selectedIndex];
-    const appId = selectedOption.getAttribute('data-appid');
-    const appIdInput = document.getElementById('app_id');
-
-    if (appId) {
-        appIdInput.value = appId;
-        appIdInput.readOnly = true;
-    } else {
-        appIdInput.value = '';
-        appIdInput.readOnly = false;
-        appIdInput.focus();
+// Generate random RCon password (32 characters: letters + numbers)
+function generateRconPassword() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 32; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    document.getElementById('rcon_password').value = password;
+}
+
+// Copy RCon password to clipboard
+function copyRconPassword() {
+    const passwordField = document.getElementById('rcon_password');
+    if (passwordField.value) {
+        navigator.clipboard.writeText(passwordField.value).then(() => {
+            alert('RCon password copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    } else {
+        alert('Please generate a password first!');
+    }
+}
+
+// Copy any text to clipboard
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+
+// Auto-generate password when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    generateRconPassword();
+    loadCurrentVersion();
+});
+
+// Load current version
+function loadCurrentVersion() {
+    fetch('/api/update/version')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('currentVersion').textContent = data.version;
+        })
+        .catch(error => {
+            document.getElementById('currentVersion').textContent = 'Unknown';
+        });
+}
+
+// Check for updates
+function checkForUpdates() {
+    const btn = document.getElementById('updateBtn');
+    btn.disabled = true;
+    btn.textContent = 'Prüfe...';
+
+    fetch('/api/update/check')
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Nach Updates suchen';
+
+            if (data.success) {
+                if (data.has_updates) {
+                    showUpdateModal(data);
+                } else {
+                    alert(data.message);
+                }
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = 'Nach Updates suchen';
+            alert('Fehler beim Prüfen auf Updates: ' + error);
+        });
+}
+
+// Show update modal
+function showUpdateModal(data) {
+    document.getElementById('updateMessage').textContent = data.message;
+
+    if (data.changes) {
+        document.getElementById('updateChanges').style.display = 'block';
+        document.getElementById('updateChangesList').textContent = data.changes;
+    } else {
+        document.getElementById('updateChanges').style.display = 'none';
+    }
+
+    document.getElementById('confirmUpdateBtn').style.display = 'inline-block';
+    document.getElementById('updateModal').style.display = 'flex';
+}
+
+// Close update modal
+function closeUpdateModal() {
+    document.getElementById('updateModal').style.display = 'none';
+}
+
+// Perform update
+function performUpdate() {
+    if (!confirm('Das Webinterface wird jetzt aktualisiert und neu gestartet. Fortfahren?')) {
+        return;
+    }
+
+    closeUpdateModal();
+    showLoading('Update wird durchgeführt... Bitte warten.');
+
+    fetch('/api/update/perform', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('loadingMessage').textContent = 'Update erfolgreich! Seite wird neu geladen...';
+            // Wait for server to restart and reload page
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+        } else {
+            hideLoading();
+            alert('Fehler beim Update: ' + data.message);
+        }
+    })
+    .catch(error => {
+        // Server is restarting, wait and reload
+        document.getElementById('loadingMessage').textContent = 'Server wird neu gestartet... Bitte warten.';
+        setTimeout(() => {
+            location.reload();
+        }, 5000);
+    });
 }
 
 function showLoading(message) {

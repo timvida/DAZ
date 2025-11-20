@@ -34,51 +34,89 @@ class SteamCMDManager:
 
     def verify_credentials(self, username, password):
         """
-        Verify Steam credentials
+        Verify Steam credentials by attempting login via SteamCMD
         Returns: (success: bool, message: str)
         """
         if not self.is_available():
             return False, "SteamCMD not found on system"
 
         try:
-            # First run of SteamCMD may take longer to update itself
-            # Create a temporary script to test login
-            test_script = f"+login {username} {password} +quit"
+            # SteamCMD login command
+            # Format: steamcmd +login username password +quit
+            cmd = [
+                self.steamcmd_path,
+                '+login', username, password,
+                '+quit'
+            ]
 
             # Run SteamCMD with increased timeout for first-time setup
+            # First run downloads/updates SteamCMD itself
             process = subprocess.Popen(
-                [self.steamcmd_path, test_script],
+                cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
+                stderr=subprocess.STDOUT,  # Combine stderr with stdout
+                text=True,
+                bufsize=1
             )
 
-            # Increase timeout to 180 seconds (3 minutes) for SteamCMD first run
-            stdout, stderr = process.communicate(timeout=180)
-            output = stdout + stderr
+            # Wait up to 180 seconds (3 minutes) for SteamCMD
+            stdout, _ = process.communicate(timeout=180)
 
-            # Check for success indicators
-            if "Logged in OK" in output or "Success" in output:
-                return True, "Steam credentials verified successfully"
+            # Debug: Print full output (remove in production)
+            print("=== SteamCMD Output ===")
+            print(stdout)
+            print("======================")
 
-            # Check for common errors
-            if "Two-factor" in output or "Steam Guard" in output or "GUARD" in output:
-                return False, "2FA/Steam Guard is enabled. Please use an account without 2FA as recommended."
+            # Check for success - SteamCMD says "Logged in OK" on success
+            if "Logged in OK" in stdout:
+                return True, "Steam credentials verified successfully! ✓"
 
-            if "Invalid Password" in output or "Invalid password" in output:
-                return False, "Invalid username or password"
+            # Check for specific error conditions
 
-            if "rate limit" in output.lower():
-                return False, "Steam rate limit reached. Please try again later."
+            # Two-Factor Authentication / Steam Guard
+            if any(x in stdout for x in ["Two-factor", "Steam Guard", "GUARD:", "enter the auth code"]):
+                return False, "2FA/Steam Guard is enabled. Please disable it or use a different account without 2FA."
 
-            # Generic failure
-            return False, "Could not verify Steam credentials. Please check username and password."
+            # Invalid credentials
+            if any(x in stdout for x in ["Invalid Password", "Invalid password", "FAILED login", "Logged in FAILED"]):
+                return False, "Invalid Steam username or password. Please check your credentials."
+
+            # Account doesn't exist
+            if "no user with that login" in stdout.lower():
+                return False, "Steam account not found. Please check the username."
+
+            # Rate limiting
+            if "rate limit" in stdout.lower() or "too many login failures" in stdout.lower():
+                return False, "Too many login attempts. Please wait a few minutes and try again."
+
+            # Connection issues
+            if "Failed to connect" in stdout or "Connection" in stdout:
+                return False, "Could not connect to Steam servers. Please check your internet connection."
+
+            # Timeout during login
+            if "timed out" in stdout.lower():
+                return False, "Steam login timed out. Please try again."
+
+            # If we get here, something else went wrong
+            # Try to extract error message from output
+            error_lines = [line for line in stdout.split('\n') if 'error' in line.lower() or 'failed' in line.lower()]
+            if error_lines:
+                return False, f"Steam verification failed: {error_lines[0][:100]}"
+
+            return False, "Could not verify Steam credentials. Please check username and password and ensure the account is valid."
 
         except subprocess.TimeoutExpired:
-            process.kill()
-            return False, "Verification timeout. SteamCMD may still be updating. You can skip verification and try server installation later."
+            try:
+                process.kill()
+            except:
+                pass
+            return False, "Verification timeout after 3 minutes. SteamCMD may be updating. Try 'Skip Verification' and test during server installation."
+
+        except FileNotFoundError:
+            return False, f"SteamCMD not found at: {self.steamcmd_path}"
+
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            return False, f"Verification error: {str(e)}"
 
     def install_server(self, app_id, install_dir, username, password, validate=True):
         """

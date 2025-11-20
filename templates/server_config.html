@@ -486,12 +486,18 @@ function parseConfig(configText) {
         }
 
         // Parse regular key = value pairs
-        const match = line.match(/^(\w+)\s*=\s*(.+);?\s*$/);
+        const match = line.match(/^(\w+)\s*=\s*(.+?);/);
         if (match) {
             let [, key, value] = match;
-            value = value.replace(/;$/, '').trim();
+            value = value.trim();
 
-            // Remove quotes
+            // Remove everything after // (comments)
+            const commentIndex = value.indexOf('//');
+            if (commentIndex !== -1) {
+                value = value.substring(0, commentIndex).trim();
+            }
+
+            // Remove quotes if present
             if (value.startsWith('"') && value.endsWith('"')) {
                 value = value.slice(1, -1);
             }

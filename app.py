@@ -490,6 +490,17 @@ if __name__ == '__main__':
     # Create necessary directories
     os.makedirs(Config.SERVERS_DIR, exist_ok=True)
 
+    # Ensure management scripts are executable
+    import stat
+    scripts = ['web_start.sh', 'web_stop.sh', 'web_restart.sh', 'install.sh']
+    for script in scripts:
+        script_path = os.path.join(Config.BASE_DIR, script)
+        if os.path.exists(script_path):
+            try:
+                os.chmod(script_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)  # 755
+            except Exception as e:
+                print(f"Warning: Could not set permissions for {script}: {e}")
+
     # Run Flask app
     print(f"Starting GameServer Web Interface on {Config.HOST}:{Config.PORT}")
     app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)

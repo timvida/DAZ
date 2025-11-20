@@ -67,18 +67,27 @@ class SteamCMDManager:
             print(stdout)
             print("======================")
 
-            # Check for success - SteamCMD says "Logged in OK" on success
-            if "Logged in OK" in stdout:
-                return True, "Steam credentials verified successfully! ✓"
+            # Check for success first - multiple patterns indicate successful login
+            success_patterns = [
+                "Logged in OK",
+                "Logging in user",  # When you see "Logging in user 'name' to Steam Public...OK"
+                "Waiting for user info...OK",  # This confirms full login
+            ]
 
-            # Check for specific error conditions
+            # If we see "Logging in user" AND it ends with "OK", login was successful
+            if any(pattern in stdout for pattern in success_patterns):
+                # Make sure it's not a failed login
+                if "to Steam Public...FAILED" not in stdout and "Logged in FAILED" not in stdout:
+                    return True, "Steam credentials verified successfully! ✓"
+
+            # Now check for specific error conditions
 
             # Two-Factor Authentication / Steam Guard
             if any(x in stdout for x in ["Two-factor", "Steam Guard", "GUARD:", "enter the auth code"]):
                 return False, "2FA/Steam Guard is enabled. Please disable it or use a different account without 2FA."
 
-            # Invalid credentials
-            if any(x in stdout for x in ["Invalid Password", "Invalid password", "FAILED login", "Logged in FAILED"]):
+            # Invalid credentials - check for FAILED login
+            if any(x in stdout for x in ["Invalid Password", "Invalid password", "FAILED login", "Logged in FAILED", "to Steam Public...FAILED"]):
                 return False, "Invalid Steam username or password. Please check your credentials."
 
             # Account doesn't exist
@@ -89,17 +98,26 @@ class SteamCMDManager:
             if "rate limit" in stdout.lower() or "too many login failures" in stdout.lower():
                 return False, "Too many login attempts. Please wait a few minutes and try again."
 
-            # Connection issues
-            if "Failed to connect" in stdout or "Connection" in stdout:
+            # Connection issues (but ignore locale warnings)
+            if ("Failed to connect" in stdout or "connection" in stdout.lower()) and "setlocale" not in stdout.lower():
                 return False, "Could not connect to Steam servers. Please check your internet connection."
 
             # Timeout during login
             if "timed out" in stdout.lower():
                 return False, "Steam login timed out. Please try again."
 
-            # If we get here, something else went wrong
-            # Try to extract error message from output
-            error_lines = [line for line in stdout.split('\n') if 'error' in line.lower() or 'failed' in line.lower()]
+            # If we get here, check if login actually succeeded despite warnings
+            # SteamCMD often shows warnings about locale but login still works
+            if "Waiting for user info...OK" in stdout or "Loading Steam API...OK" in stdout:
+                return True, "Steam credentials verified successfully! ✓"
+
+            # Try to extract actual error message, but ignore locale/setlocale warnings
+            error_lines = [
+                line for line in stdout.split('\n')
+                if ('error' in line.lower() or 'failed' in line.lower())
+                and 'setlocale' not in line.lower()
+                and 'WARNING' not in line
+            ]
             if error_lines:
                 return False, f"Steam verification failed: {error_lines[0][:100]}"
 

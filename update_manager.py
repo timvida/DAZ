@@ -17,11 +17,22 @@ class UpdateManager:
         if not self.is_git_repo:
             return {
                 'success': False,
-                'message': 'Not a Git repository. Cannot check for updates.',
+                'message': 'Not a Git repository. Please run ./update.sh to initialize Git and perform updates manually.',
+                'update_available': False,
                 'has_updates': False
             }
 
         try:
+            # Get current branch name
+            branch_result = subprocess.run(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                cwd=self.base_dir,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            current_branch = branch_result.stdout.strip()
+
             # Fetch latest changes from remote
             subprocess.run(
                 ['git', 'fetch', 'origin'],
@@ -33,7 +44,7 @@ class UpdateManager:
 
             # Check if local is behind remote
             result = subprocess.run(
-                ['git', 'rev-list', '--count', 'HEAD..origin/main'],
+                ['git', 'rev-list', '--count', f'HEAD..origin/{current_branch}'],
                 cwd=self.base_dir,
                 capture_output=True,
                 text=True,
@@ -45,7 +56,7 @@ class UpdateManager:
             if commits_behind > 0:
                 # Get commit messages
                 log_result = subprocess.run(
-                    ['git', 'log', '--oneline', 'HEAD..origin/main'],
+                    ['git', 'log', '--oneline', f'HEAD..origin/{current_branch}'],
                     cwd=self.base_dir,
                     capture_output=True,
                     text=True,
@@ -104,9 +115,19 @@ class UpdateManager:
                     capture_output=True
                 )
 
+            # Get current branch
+            branch_result = subprocess.run(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                cwd=self.base_dir,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            current_branch = branch_result.stdout.strip()
+
             # Pull latest changes
             pull_result = subprocess.run(
-                ['git', 'pull', 'origin', 'main'],
+                ['git', 'pull', 'origin', current_branch],
                 cwd=self.base_dir,
                 capture_output=True,
                 text=True,

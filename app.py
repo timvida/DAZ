@@ -346,6 +346,74 @@ def server_status(server_id):
     })
 
 
+@app.route('/server/<int:server_id>/dashboard')
+@installation_check
+@login_required
+def server_dashboard(server_id):
+    """Server-specific dashboard"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    username = User.query.get(session['user_id']).username
+    return render_template('server_dashboard.html', server=server, username=username)
+
+
+@app.route('/server/<int:server_id>/config')
+@installation_check
+@login_required
+def server_config(server_id):
+    """Server configuration page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    config_content = server_manager.get_server_config(server_id)
+    username = User.query.get(session['user_id']).username
+    return render_template('server_config.html', server=server, config=config_content, username=username)
+
+
+@app.route('/api/server/<int:server_id>/restart', methods=['POST'])
+@installation_check
+@login_required
+def restart_server(server_id):
+    """Restart a server"""
+    success, message = server_manager.restart_server(server_id)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/server/<int:server_id>/console', methods=['GET'])
+@installation_check
+@login_required
+def get_server_console(server_id):
+    """Get server console output"""
+    lines = request.args.get('lines', 100, type=int)
+    log_content = server_manager.read_server_log(server_id, lines)
+    return jsonify({'content': log_content})
+
+
+@app.route('/api/server/<int:server_id>/config', methods=['GET', 'POST'])
+@installation_check
+@login_required
+def api_server_config(server_id):
+    """Get or update server configuration"""
+    if request.method == 'GET':
+        config = server_manager.get_server_config(server_id)
+        if config is None:
+            return jsonify({'success': False, 'message': 'Config not found'}), 404
+        return jsonify({'success': True, 'config': config})
+
+    elif request.method == 'POST':
+        config_content = request.json.get('config')
+        if not config_content:
+            return jsonify({'success': False, 'message': 'No config content provided'}), 400
+
+        success, message = server_manager.update_server_config(server_id, config_content)
+        return jsonify({'success': success, 'message': message})
+
+
 @app.route('/api/update/check', methods=['GET'])
 @installation_check
 @login_required

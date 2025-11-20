@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} - Dashboard{% endblock %}
+
+{% block content %}
+<style>
+.server-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 250px;
+    background: #1a1a1a;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #00ff00;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+    background: #2a2a2a;
+    border-left: 3px solid #00ff00;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.topbar {
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar-left h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.content-area {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background: #0a0a0a;
+}
+
+.console-container {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.console-output {
+    flex: 1;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #00ff00;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.server-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.server-status-badge {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.status-running {
+    background: #00ff00;
+    color: #000;
+}
+
+.status-stopped {
+    background: #666;
+    color: #fff;
+}
+
+.status-installing, .status-updating {
+    background: #ff9900;
+    color: #000;
+}
+</style>
+
+<div class="server-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>{{ server.name }}</h2>
+            <p style="margin: 5px 0 0 0; font-size: 0.85em; color: #888;">Port: {{ server.server_port }}</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="active">
+                <span>📊 Dashboard</span>
+            </a>
+            <a href="{{ url_for('server_config', server_id=server.id) }}">
+                <span>⚙️ Configuration</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <h1>Server Dashboard</h1>
+            </div>
+            <div class="topbar-right">
+                <span class="user-info">{{ username }}</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">Main Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Server Controls -->
+            <div class="server-controls">
+                <button class="btn btn-success" onclick="startServer()" id="startBtn">Start Server</button>
+                <button class="btn btn-warning" onclick="stopServer()" id="stopBtn">Stop Server</button>
+                <button class="btn btn-info" onclick="restartServer()" id="restartBtn">Restart Server</button>
+                <button class="btn btn-primary" onclick="updateServer()" id="updateBtn">Update Server</button>
+                <span class="server-status-badge status-{{ server.status }}" id="statusBadge">{{ server.status|upper }}</span>
+            </div>
+
+            <!-- Console -->
+            <div class="console-container">
+                <div class="console-header">
+                    <h3 style="margin: 0;">Live Server Console</h3>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshConsole()">Refresh</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear</button>
+                    </div>
+                </div>
+                <div class="console-output" id="consoleOutput">
+                    Loading console output...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Processing...</p>
+    </div>
+</div>
+
+<script>
+const serverId = {{ server.id }};
+let consoleInterval;
+
+// Load console output
+function loadConsole() {
+    fetch(`/api/server/${serverId}/console?lines=100`)
+        .then(response => response.json())
+        .then(data => {
+            const output = document.getElementById('consoleOutput');
+            output.textContent = data.content || 'No console output yet...';
+            // Auto-scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        })
+        .catch(error => {
+            console.error('Error loading console:', error);
+        });
+}
+
+function refreshConsole() {
+    loadConsole();
+}
+
+function clearConsole() {
+    document.getElementById('consoleOutput').textContent = '';
+}
+
+// Auto-refresh console every 2 seconds
+function startConsoleRefresh() {
+    consoleInterval = setInterval(loadConsole, 2000);
+}
+
+function stopConsoleRefresh() {
+    if (consoleInterval) {
+        clearInterval(consoleInterval);
+    }
+}
+
+// Server controls
+function startServer() {
+    showLoading('Starting server...');
+    fetch(`/server/${serverId}/start`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        alert(data.message);
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function stopServer() {
+    showLoading('Stopping server...');
+    fetch(`/server/${serverId}/stop`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        alert(data.message);
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function restartServer() {
+    if (!confirm('Restart the server? This will disconnect all players.')) {
+        return;
+    }
+    showLoading('Restarting server...');
+    fetch(`/api/server/${serverId}/restart`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        alert(data.message);
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function updateServer() {
+    if (!confirm('Update the server? This may take several minutes.')) {
+        return;
+    }
+    showLoading('Updating server...');
+    fetch(`/server/${serverId}/install`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        alert(data.message);
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function showLoading(message) {
+    document.getElementById('loadingMessage').textContent = message;
+    document.getElementById('loadingModal').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingModal').style.display = 'none';
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadConsole();
+    startConsoleRefresh();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    stopConsoleRefresh();
+});
+</script>
+{% endblock %}

@@ -164,6 +164,28 @@ class ServerManager:
         except Exception as e:
             return False, f"Error starting server: {str(e)}"
 
+    def restart_server(self, server_id):
+        """Restart a DayZ server"""
+        server = self.get_server(server_id)
+        if not server:
+            return False, "Server not found"
+
+        if not server.is_installed:
+            return False, "Server is not installed"
+
+        # Stop the server first
+        if server.status == 'running':
+            success, message = self.stop_server(server_id)
+            if not success:
+                return False, f"Failed to stop server: {message}"
+
+            # Wait a moment for complete shutdown
+            import time
+            time.sleep(3)
+
+        # Start the server
+        return self.start_server(server_id)
+
     def stop_server(self, server_id):
         """Stop a DayZ server"""
         server = self.get_server(server_id)
@@ -275,20 +297,29 @@ class ServerManager:
 hostname = "{server.name}";
 password = "";
 passwordAdmin = "{server.rcon_password}";
+description = "";
+
+enableWhitelist = 0;
 
 maxPlayers = 60;
 
 verifySignatures = 2;
 forceSameBuild = 1;
+
 disableVoN = 0;
 vonCodecQuality = 20;
 
+shardId = "123abc";
+
 disable3rdPerson = 0;
 disableCrosshair = 0;
+disablePersonalLight = 1;
+lightingConfig = 0;
 
 serverTime = "SystemTime";
-serverTimeAcceleration = 6;
-serverNightTimeAcceleration = 4;
+serverTimeAcceleration = 12;
+serverNightTimeAcceleration = 1;
+serverTimePersistent = 0;
 
 guaranteedUpdates = 1;
 
@@ -298,22 +329,6 @@ loginQueueMaxPlayers = 500;
 instanceId = 1;
 
 storageAutoFix = 1;
-
-respawnTime = 5;
-
-motd[] = {{"Welcome to {server.name}"}};
-motdInterval = 1;
-
-timeStampFormat = "Short";
-
-logAverageFps = 1;
-logMemory = 1;
-logPlayers = 1;
-logFile = "server_console.log";
-
-enableDebugMonitor = 0;
-
-steamQueryPort = {server.server_port + 2};
 
 class Missions
 {{
@@ -330,3 +345,83 @@ class Missions
             print(f"Created serverDZ.cfg at {config_path}")
         except Exception as e:
             print(f"Error creating serverDZ.cfg: {str(e)}")
+
+        # Create BEServer_x64.cfg
+        self._create_battleye_config(server)
+
+    def _create_battleye_config(self, server):
+        """Create BEServer_x64.cfg file for BattlEye RCon"""
+        be_config_path = os.path.join(server.be_path, 'BEServer_x64.cfg')
+
+        # Don't overwrite existing config
+        if os.path.exists(be_config_path):
+            return
+
+        be_config_content = f"""RConPassword {server.rcon_password}
+RestrictRCon 0
+RConPort {server.rcon_port}
+RConIP 127.0.0.1
+"""
+
+        try:
+            with open(be_config_path, 'w') as f:
+                f.write(be_config_content)
+            print(f"Created BEServer_x64.cfg at {be_config_path}")
+        except Exception as e:
+            print(f"Error creating BEServer_x64.cfg: {str(e)}")
+
+    def get_server_config(self, server_id):
+        """Read serverDZ.cfg and parse it into a dictionary"""
+        server = self.get_server(server_id)
+        if not server:
+            return None
+
+        config_path = os.path.join(server.install_path, 'serverDZ.cfg')
+        if not os.path.exists(config_path):
+            return None
+
+        try:
+            with open(config_path, 'r') as f:
+                content = f.read()
+            return content
+        except Exception as e:
+            print(f"Error reading config: {str(e)}")
+            return None
+
+    def update_server_config(self, server_id, config_content):
+        """Write updated config content to serverDZ.cfg"""
+        server = self.get_server(server_id)
+        if not server:
+            return False, "Server not found"
+
+        config_path = os.path.join(server.install_path, 'serverDZ.cfg')
+
+        try:
+            with open(config_path, 'w') as f:
+                f.write(config_content)
+            return True, "Config updated successfully"
+        except Exception as e:
+            return False, f"Error writing config: {str(e)}"
+
+    def get_server_log_path(self, server_id):
+        """Get the path to the server's stdout log file"""
+        server = self.get_server(server_id)
+        if not server:
+            return None
+
+        log_path = os.path.join(server.profile_path, 'logs', 'server_stdout.log')
+        return log_path if os.path.exists(log_path) else None
+
+    def read_server_log(self, server_id, lines=100):
+        """Read the last N lines from the server log"""
+        log_path = self.get_server_log_path(server_id)
+        if not log_path:
+            return ""
+
+        try:
+            with open(log_path, 'r') as f:
+                # Read all lines and return the last N
+                all_lines = f.readlines()
+                return ''.join(all_lines[-lines:])
+        except Exception as e:
+            return f"Error reading log: {str(e)}"

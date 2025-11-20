@@ -129,6 +129,9 @@
                                 Install Server
                             </button>
                         {% else %}
+                            <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="btn btn-info btn-sm">
+                                Dashboard
+                            </a>
                             {% if server.status == 'stopped' %}
                                 <button class="btn btn-success btn-sm" onclick="startServer({{ server.id }})">
                                     Start

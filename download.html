@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameServer Web Interface - Download</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            background: #1a1f2e;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #2ea043, #1f6feb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .feature {
+            background: #232938;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            color: #8b949e;
+            font-size: 0.9rem;
+        }
+
+        .install-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .install-title {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #1f6feb;
+        }
+
+        .command {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #2ea043;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            background: #2ea043;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .copy-btn:hover {
+            background: #3fb950;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 160, 67, 0.3);
+        }
+
+        .btn-download {
+            display: inline-block;
+            background: #1f6feb;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 1rem;
+        }
+
+        .btn-download:hover {
+            background: #388bfd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
+        }
+
+        .btn-github {
+            display: inline-block;
+            background: #232938;
+            color: white;
+            padding: 1rem 2rem;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-github:hover {
+            background: #2d3548;
+            border-color: #484f58;
+        }
+
+        .buttons {
+            margin: 2rem 0;
+        }
+
+        .note {
+            background: rgba(31, 111, 235, 0.1);
+            border-left: 3px solid #1f6feb;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 2rem;
+        }
+
+        .note strong {
+            color: #1f6feb;
+        }
+
+        .steps {
+            margin: 2rem 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #2ea043;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .step-content p {
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 GameServer Web Interface</h1>
+        <p class="subtitle">Self-hosted game server management made easy</p>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">One-Line Install</div>
+                <div class="feature-desc">Get started in seconds with automatic installation</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <div class="feature-title">Modern UI</div>
+                <div class="feature-desc">Clean dark interface, easy to use</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Self-Hosted</div>
+                <div class="feature-desc">Your data stays on your server</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-title">Multi-Game</div>
+                <div class="feature-desc">DayZ, Rust, ARK, and more</div>
+            </div>
+        </div>
+
+        <div class="install-box">
+            <div class="install-title">Quick Installation</div>
+            <p style="color: #8b949e; margin-bottom: 1rem;">Copy and paste this command on your Linux server:</p>
+            <div class="command" id="installCommand">wget https://raw.githubusercontent.com/timvida/DAZ/main/install.sh && chmod +x install.sh && ./install.sh</div>
+            <button class="copy-btn" onclick="copyCommand()">📋 Copy Command</button>
+        </div>
+
+        <div class="steps">
+            <h2 style="margin-bottom: 1.5rem;">How It Works</h2>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Run Installation</h3>
+                    <p>Execute the install script on your Linux server. It will automatically download and install everything.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Open Web Interface</h3>
+                    <p>Access http://YOUR_SERVER_IP:29911/install in your browser to configure the admin account.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Manage Servers</h3>
+                    <p>Create, install, and manage your game servers through the intuitive web dashboard.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <a href="https://raw.githubusercontent.com/timvida/DAZ/main/install.sh" download class="btn-download">
+                ⬇️ Download install.sh
+            </a>
+            <a href="https://github.com/timvida/DAZ" target="_blank" class="btn-github">
+                📂 View on GitHub
+            </a>
+        </div>
+
+        <div class="note">
+            <strong>Supported Systems:</strong> Ubuntu, Debian, CentOS, RHEL<br>
+            <strong>Requirements:</strong> Linux server with internet connection<br>
+            <strong>Supported Games:</strong> DayZ, Rust, ARK, and any SteamCMD-compatible game
+        </div>
+    </div>
+
+    <script>
+        function copyCommand() {
+            const command = document.getElementById('installCommand').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = '#3fb950';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#2ea043';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

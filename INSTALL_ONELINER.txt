@@ -1,0 +1,23 @@
+One-Line Installation Command:
+
+wget https://raw.githubusercontent.com/timvida/DAZ/main/install.sh && chmod +x install.sh && ./install.sh
+
+
+Alternative (using curl):
+
+curl -O https://raw.githubusercontent.com/timvida/DAZ/main/install.sh && chmod +x install.sh && ./install.sh
+
+
+Step-by-Step Installation:
+
+1. Download the script:
+   wget https://raw.githubusercontent.com/timvida/DAZ/main/install.sh
+
+2. Make it executable:
+   chmod +x install.sh
+
+3. Run it:
+   ./install.sh
+
+4. Access the web interface:
+   http://YOUR_SERVER_IP:29911/install

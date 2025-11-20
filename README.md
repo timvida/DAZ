@@ -32,23 +32,22 @@ A modern, self-hosted web interface for managing game servers. Built with Python
 
 ## Quick Installation
 
-1. **Clone or download this repository**:
+Just download and run the install script - it does everything automatically!
+
+1. **Download the install script**:
    ```bash
-   git clone https://github.com/yourusername/gameserver-webinterface.git
-   cd gameserver-webinterface
+   wget https://raw.githubusercontent.com/timvida/DAZ/main/install.sh
    ```
 
-2. **Make the install script executable**:
+2. **Make it executable and run**:
    ```bash
    chmod +x install.sh
-   ```
-
-3. **Run the installation**:
-   ```bash
    ./install.sh
    ```
 
-The install script will:
+That's it! The install script will automatically:
+- Install Git (if not already installed)
+- Clone the complete project from GitHub
 - Detect your operating system
 - Install Python3 and pip (if not already installed)
 - Install SteamCMD (if not already installed)
@@ -56,7 +55,7 @@ The install script will:
 - Install all required dependencies
 - Start the web server
 
-4. **Access the installation wizard**:
+3. **Access the installation wizard**:
    Open your browser and navigate to:
    ```
    http://YOUR_SERVER_IP:29911/install

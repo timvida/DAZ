@@ -10,43 +10,59 @@
     box-sizing: border-box;
 }
 
-.server-layout {
+:root {
+    --bg-primary: #0D1117;
+    --bg-secondary: #1A1F29;
+    --accent: #E32345;
+    --text-primary: #ffffff;
+    --text-secondary: #8b949e;
+    --border: rgba(227, 35, 69, 0.2);
+    --hover: rgba(227, 35, 69, 0.1);
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+}
+
+.layout {
     display: flex;
     height: 100vh;
     overflow: hidden;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
 }
 
 /* Sidebar */
 .sidebar {
     width: 280px;
-    background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-    border-right: 1px solid #2a2a2a;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
 }
 
 .sidebar-header {
     padding: 30px 25px;
-    border-bottom: 1px solid #2a2a2a;
-    background: rgba(0, 255, 0, 0.05);
+    border-bottom: 1px solid var(--border);
 }
 
-.sidebar-header h2 {
-    margin: 0;
-    font-size: 1.4em;
-    color: #00ff00;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-    font-weight: 600;
+.sidebar-header h1 {
+    font-size: 1.3em;
+    color: var(--accent);
+    margin-bottom: 5px;
+}
+
+.sidebar-header p {
+    color: var(--text-secondary);
+    font-size: 0.85em;
 }
 
 .server-info-box {
     margin-top: 15px;
     padding: 15px;
-    background: rgba(0, 255, 0, 0.1);
+    background: var(--hover);
     border-radius: 8px;
-    border: 1px solid rgba(0, 255, 0, 0.2);
+    border: 1px solid var(--border);
 }
 
 .server-info-item {
@@ -57,45 +73,69 @@
 }
 
 .server-info-label {
-    color: #888;
+    color: var(--text-secondary);
 }
 
 .server-info-value {
-    color: #00ff00;
+    color: var(--accent);
     font-weight: 600;
 }
 
 .sidebar-nav {
     flex: 1;
-    padding: 25px 0;
+    padding: 20px 0;
+    overflow-y: auto;
 }
 
 .sidebar-nav a {
     display: flex;
     align-items: center;
     padding: 15px 25px;
-    color: #aaa;
+    color: var(--text-secondary);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.2s;
     border-left: 3px solid transparent;
-    font-size: 1em;
+    gap: 12px;
 }
 
 .sidebar-nav a:hover {
-    background: rgba(0, 255, 0, 0.1);
-    color: #00ff00;
-    border-left-color: #00ff00;
+    background: var(--hover);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
 }
 
 .sidebar-nav a.active {
-    background: rgba(0, 255, 0, 0.15);
-    color: #00ff00;
-    border-left-color: #00ff00;
-    font-weight: 600;
+    background: var(--hover);
+    color: var(--accent);
+    border-left-color: var(--accent);
 }
 
-.sidebar-nav a span {
-    margin-left: 12px;
+/* Topbar */
+.topbar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar-left h2 {
+    font-size: 1.5em;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-badge {
+    padding: 8px 16px;
+    background: var(--hover);
+    border-radius: 8px;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
 }
 
 /* Main Content */
@@ -106,177 +146,126 @@
     overflow: hidden;
 }
 
-.topbar {
-    background: linear-gradient(90deg, #1a1a1a 0%, #252525 100%);
-    border-bottom: 1px solid #2a2a2a;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.topbar-left h1 {
-    margin: 0;
-    font-size: 1.8em;
-    background: linear-gradient(90deg, #00ff00, #00cc00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700;
-}
-
-.topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.user-info {
-    padding: 8px 16px;
-    background: rgba(0, 255, 0, 0.1);
-    border-radius: 20px;
-    color: #00ff00;
-    font-size: 0.9em;
-}
-
-/* Content Area */
 .content-area {
     flex: 1;
-    padding: 40px;
+    padding: 30px;
     overflow-y: auto;
-    background: #0a0a0a;
 }
 
-/* Stats Cards */
+/* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 25px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #1a1a1a 0%, #151515 100%);
-    border: 1px solid #2a2a2a;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
+    padding: 20px;
+    transition: all 0.2s;
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 255, 0, 0.2);
-    border-color: #00ff00;
+    border-color: var(--accent);
+    transform: translateY(-2px);
 }
 
-.stat-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.stat-card-title {
-    color: #888;
+.stat-label {
+    color: var(--text-secondary);
     font-size: 0.9em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    margin-bottom: 8px;
 }
 
-.stat-card-icon {
+.stat-value {
     font-size: 1.8em;
-}
-
-.stat-card-value {
-    font-size: 2.2em;
     font-weight: 700;
-    color: #00ff00;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    color: var(--text-primary);
 }
 
-/* Server Controls */
-.controls-section {
-    background: linear-gradient(135deg, #1a1a1a 0%, #151515 100%);
-    border: 1px solid #2a2a2a;
+/* Controls Section */
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 30px;
+    padding: 25px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.controls-section h2 {
-    margin: 0 0 20px 0;
-    color: #00ff00;
-    font-size: 1.3em;
+.card h3 {
+    margin-bottom: 20px;
+    color: var(--accent);
 }
 
-.server-controls {
+.controls-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 15px;
 }
 
-.control-btn {
-    padding: 15px 20px;
+/* Buttons */
+.btn {
+    padding: 12px 24px;
     border: none;
     border-radius: 8px;
     font-size: 1em;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 
-.control-btn-start {
-    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-    color: #000;
+.btn-primary {
+    background: var(--accent);
+    color: white;
 }
 
-.control-btn-start:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 0, 0.4);
+.btn-primary:hover {
+    background: #c41d39;
+    transform: translateY(-1px);
 }
 
-.control-btn-stop {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-    color: #fff;
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
 }
 
-.control-btn-stop:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+.btn-secondary:hover {
+    background: var(--bg-secondary);
 }
 
-.control-btn-restart {
-    background: linear-gradient(135deg, #4ecdc4 0%, #44a8a0 100%);
-    color: #fff;
+.btn-success {
+    background: #2ea043;
+    color: white;
 }
 
-.control-btn-restart:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+.btn-warning {
+    background: #9e6a03;
+    color: white;
 }
 
-.control-btn-update {
-    background: linear-gradient(135deg, #95e1d3 0%, #81d4c4 100%);
-    color: #000;
+.btn-info {
+    background: #1f6feb;
+    color: white;
 }
 
-.control-btn-update:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(149, 225, 211, 0.4);
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.9em;
 }
 
 /* Console */
-.console-section {
-    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-    border: 1px solid #2a2a2a;
+.console-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    height: 600px;
+    padding: 25px;
+    height: 500px;
     display: flex;
     flex-direction: column;
 }
@@ -285,24 +274,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid var(--border);
 }
 
-.console-header h2 {
-    margin: 0;
-    color: #00ff00;
-    font-size: 1.3em;
+.console-header h3 {
+    color: var(--accent);
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.console-live-indicator {
-    width: 10px;
-    height: 10px;
-    background: #00ff00;
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
     border-radius: 50%;
     animation: pulse 2s infinite;
 }
@@ -312,69 +299,61 @@
     50% { opacity: 0.3; }
 }
 
-.console-controls {
-    display: flex;
-    gap: 10px;
-}
-
 .console-output {
     flex: 1;
-    background: #000;
-    border: 1px solid #2a2a2a;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 20px;
+    padding: 15px;
     font-family: 'Courier New', monospace;
     font-size: 0.85em;
-    color: #00ff00;
+    color: var(--accent);
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
-    line-height: 1.6;
 }
 
 .console-output::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 .console-output::-webkit-scrollbar-track {
-    background: #0a0a0a;
+    background: var(--bg-primary);
 }
 
 .console-output::-webkit-scrollbar-thumb {
-    background: #00ff00;
-    border-radius: 5px;
+    background: var(--accent);
+    border-radius: 4px;
 }
 
 /* Status Badge */
-.server-status-badge {
-    display: inline-block;
-    padding: 8px 20px;
-    border-radius: 25px;
-    font-weight: 700;
-    font-size: 0.9em;
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .status-running {
-    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-    color: #000;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    background: rgba(46, 160, 67, 0.2);
+    color: #2ea043;
+    border: 1px solid #2ea043;
 }
 
 .status-stopped {
-    background: linear-gradient(135deg, #666 0%, #555 100%);
-    color: #fff;
+    background: rgba(139, 148, 158, 0.2);
+    color: #8b949e;
+    border: 1px solid #8b949e;
 }
 
 .status-installing, .status-updating {
-    background: linear-gradient(135deg, #ff9900 0%, #ff8800 100%);
-    color: #000;
-    animation: pulse 2s infinite;
+    background: rgba(158, 106, 3, 0.2);
+    color: #9e6a03;
+    border: 1px solid #9e6a03;
 }
 
-/* Loading Modal */
+/* Modal */
 .modal {
     display: none;
     position: fixed;
@@ -390,20 +369,19 @@
 }
 
 .modal-content {
-    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-    padding: 40px;
+    background: var(--bg-secondary);
+    padding: 30px;
     border-radius: 12px;
+    border: 1px solid var(--border);
     text-align: center;
-    border: 1px solid #00ff00;
-    box-shadow: 0 10px 40px rgba(0, 255, 0, 0.3);
 }
 
 .spinner {
-    border: 4px solid rgba(0, 255, 0, 0.1);
-    border-left-color: #00ff00;
+    border: 4px solid var(--border);
+    border-left-color: var(--accent);
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
     margin: 0 auto 20px;
 }
@@ -418,21 +396,18 @@
         width: 200px;
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .server-controls {
+    .stats-grid, .controls-grid {
         grid-template-columns: 1fr;
     }
 }
 </style>
 
-<div class="server-layout">
+<div class="layout">
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>{{ server.name }}</h2>
+            <h1>{{ server.name }}</h1>
+            <p>Server Management</p>
             <div class="server-info-box">
                 <div class="server-info-item">
                     <span class="server-info-label">Port:</span>
@@ -443,7 +418,7 @@
                     <span class="server-info-value">{{ server.rcon_port }}</span>
                 </div>
                 <div class="server-info-item">
-                    <span class="server-info-label">CPU Cores:</span>
+                    <span class="server-info-label">CPU:</span>
                     <span class="server-info-value">{{ server.cpu_count }}</span>
                 </div>
             </div>
@@ -463,10 +438,10 @@
         <!-- Topbar -->
         <div class="topbar">
             <div class="topbar-left">
-                <h1>Server Dashboard</h1>
+                <h2>Server Dashboard</h2>
             </div>
             <div class="topbar-right">
-                <span class="user-info">👤 {{ username }}</span>
+                <span class="user-badge">👤 {{ username }}</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Main Dashboard</a>
             </div>
         </div>
@@ -476,69 +451,46 @@
             <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">Status</span>
-                        <span class="stat-card-icon">⚡</span>
-                    </div>
-                    <div class="stat-card-value">
-                        <span class="server-status-badge status-{{ server.status }}" id="statusBadge">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value">
+                        <span class="status-badge status-{{ server.status }}" id="statusBadge">
                             {{ server.status|upper }}
                         </span>
                     </div>
                 </div>
-
                 <div class="stat-card">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">Server Port</span>
-                        <span class="stat-card-icon">🌐</span>
-                    </div>
-                    <div class="stat-card-value">{{ server.server_port }}</div>
+                    <div class="stat-label">Server Port</div>
+                    <div class="stat-value">{{ server.server_port }}</div>
                 </div>
-
                 <div class="stat-card">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">RCon Port</span>
-                        <span class="stat-card-icon">🔐</span>
-                    </div>
-                    <div class="stat-card-value">{{ server.rcon_port }}</div>
+                    <div class="stat-label">RCon Port</div>
+                    <div class="stat-value">{{ server.rcon_port }}</div>
                 </div>
-
                 <div class="stat-card">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">CPU Cores</span>
-                        <span class="stat-card-icon">🖥️</span>
-                    </div>
-                    <div class="stat-card-value">{{ server.cpu_count }}</div>
+                    <div class="stat-label">CPU Cores</div>
+                    <div class="stat-value">{{ server.cpu_count }}</div>
                 </div>
             </div>
 
             <!-- Server Controls -->
-            <div class="controls-section">
-                <h2>Server Controls</h2>
-                <div class="server-controls">
-                    <button class="control-btn control-btn-start" onclick="startServer()" id="startBtn">
-                        ▶️ Start
-                    </button>
-                    <button class="control-btn control-btn-stop" onclick="stopServer()" id="stopBtn">
-                        ⏹️ Stop
-                    </button>
-                    <button class="control-btn control-btn-restart" onclick="restartServer()" id="restartBtn">
-                        🔄 Restart
-                    </button>
-                    <button class="control-btn control-btn-update" onclick="updateServer()" id="updateBtn">
-                        ⬇️ Update
-                    </button>
+            <div class="card">
+                <h3>Server Controls</h3>
+                <div class="controls-grid">
+                    <button class="btn btn-success" onclick="startServer()" id="startBtn">▶️ Start</button>
+                    <button class="btn btn-warning" onclick="stopServer()" id="stopBtn">⏹️ Stop</button>
+                    <button class="btn btn-info" onclick="restartServer()" id="restartBtn">🔄 Restart</button>
+                    <button class="btn btn-primary" onclick="updateServer()" id="updateBtn">⬇️ Update</button>
                 </div>
             </div>
 
             <!-- Console -->
-            <div class="console-section">
+            <div class="console-container">
                 <div class="console-header">
-                    <h2>
-                        <span class="console-live-indicator"></span>
+                    <h3>
+                        <span class="live-indicator"></span>
                         Live Console
-                    </h2>
-                    <div class="console-controls">
+                    </h3>
+                    <div style="display: flex; gap: 10px;">
                         <button class="btn btn-secondary btn-sm" onclick="refreshConsole()">🔄 Refresh</button>
                         <button class="btn btn-secondary btn-sm" onclick="clearConsole()">🗑️ Clear</button>
                     </div>
@@ -555,7 +507,7 @@
 <div id="loadingModal" class="modal">
     <div class="modal-content">
         <div class="spinner"></div>
-        <p id="loadingMessage" style="color: #00ff00; font-size: 1.2em; margin: 0;">Processing...</p>
+        <p id="loadingMessage">Processing...</p>
     </div>
 </div>
 
@@ -563,7 +515,6 @@
 const serverId = {{ server.id }};
 let consoleInterval;
 
-// Load console output
 function loadConsole() {
     fetch(`/api/server/${serverId}/console?lines=100`)
         .then(response => response.json())
@@ -572,9 +523,7 @@ function loadConsole() {
             output.textContent = data.content || 'No console output yet...';
             output.scrollTop = output.scrollHeight;
         })
-        .catch(error => {
-            console.error('Error loading console:', error);
-        });
+        .catch(error => console.error('Error loading console:', error));
 }
 
 function refreshConsole() {
@@ -595,7 +544,6 @@ function stopConsoleRefresh() {
     }
 }
 
-// Server controls
 function startServer() {
     showLoading('Starting server...');
     fetch(`/server/${serverId}/start`, {
@@ -606,9 +554,7 @@ function startServer() {
     .then(data => {
         hideLoading();
         alert(data.message);
-        if (data.success) {
-            location.reload();
-        }
+        if (data.success) location.reload();
     })
     .catch(error => {
         hideLoading();
@@ -626,9 +572,7 @@ function stopServer() {
     .then(data => {
         hideLoading();
         alert(data.message);
-        if (data.success) {
-            location.reload();
-        }
+        if (data.success) location.reload();
     })
     .catch(error => {
         hideLoading();
@@ -637,9 +581,7 @@ function stopServer() {
 }
 
 function restartServer() {
-    if (!confirm('Restart the server? This will disconnect all players.')) {
-        return;
-    }
+    if (!confirm('Restart the server? This will disconnect all players.')) return;
     showLoading('Restarting server...');
     fetch(`/api/server/${serverId}/restart`, {
         method: 'POST',
@@ -649,9 +591,7 @@ function restartServer() {
     .then(data => {
         hideLoading();
         alert(data.message);
-        if (data.success) {
-            location.reload();
-        }
+        if (data.success) location.reload();
     })
     .catch(error => {
         hideLoading();
@@ -660,9 +600,7 @@ function restartServer() {
 }
 
 function updateServer() {
-    if (!confirm('Update the server? This may take several minutes.')) {
-        return;
-    }
+    if (!confirm('Update the server? This may take several minutes.')) return;
     showLoading('Updating server...');
     fetch(`/server/${serverId}/install`, {
         method: 'POST',
@@ -672,9 +610,7 @@ function updateServer() {
     .then(data => {
         hideLoading();
         alert(data.message);
-        if (data.success) {
-            location.reload();
-        }
+        if (data.success) location.reload();
     })
     .catch(error => {
         hideLoading();

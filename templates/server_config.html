@@ -4,68 +4,123 @@
 
 {% block content %}
 <style>
-.server-layout {
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0D1117;
+    --bg-secondary: #1A1F29;
+    --accent: #E32345;
+    --text-primary: #ffffff;
+    --text-secondary: #8b949e;
+    --border: rgba(227, 35, 69, 0.2);
+    --hover: rgba(227, 35, 69, 0.1);
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+}
+
+.layout {
     display: flex;
     height: 100vh;
     overflow: hidden;
 }
 
+/* Sidebar */
 .sidebar {
-    width: 250px;
-    background: #1a1a1a;
-    border-right: 1px solid #333;
+    width: 280px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-header {
-    padding: 20px;
-    border-bottom: 1px solid #333;
+    padding: 30px 25px;
+    border-bottom: 1px solid var(--border);
 }
 
-.sidebar-header h2 {
-    margin: 0;
-    font-size: 1.2em;
-    color: #00ff00;
+.sidebar-header h1 {
+    font-size: 1.3em;
+    color: var(--accent);
+    margin-bottom: 5px;
+}
+
+.sidebar-header p {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+}
+
+.server-info-box {
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--hover);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.server-info-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-size: 0.9em;
+}
+
+.server-info-label {
+    color: var(--text-secondary);
+}
+
+.server-info-value {
+    color: var(--accent);
+    font-weight: 600;
 }
 
 .sidebar-nav {
     flex: 1;
     padding: 20px 0;
+    overflow-y: auto;
 }
 
 .sidebar-nav a {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
-    color: #fff;
+    padding: 15px 25px;
+    color: var(--text-secondary);
     text-decoration: none;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    gap: 12px;
 }
 
-.sidebar-nav a:hover, .sidebar-nav a.active {
-    background: #2a2a2a;
-    border-left: 3px solid #00ff00;
+.sidebar-nav a:hover {
+    background: var(--hover);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
 }
 
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+.sidebar-nav a.active {
+    background: var(--hover);
+    color: var(--accent);
+    border-left-color: var(--accent);
 }
 
+/* Topbar */
 .topbar {
-    background: #1a1a1a;
-    border-bottom: 1px solid #333;
-    padding: 15px 30px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.topbar-left h1 {
-    margin: 0;
+.topbar-left h2 {
     font-size: 1.5em;
 }
 
@@ -75,16 +130,33 @@
     gap: 15px;
 }
 
+.user-badge {
+    padding: 8px 16px;
+    background: var(--hover);
+    border-radius: 8px;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .content-area {
     flex: 1;
     padding: 30px;
     overflow-y: auto;
-    background: #0a0a0a;
 }
 
+/* Alert Banner */
 .alert-banner {
-    background: #ff9900;
-    color: #000;
+    background: rgba(158, 106, 3, 0.2);
+    color: #9e6a03;
+    border: 1px solid #9e6a03;
     padding: 15px 20px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -97,37 +169,42 @@
     display: flex;
 }
 
+/* Config Sections */
 .config-section {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     padding: 25px;
     margin-bottom: 20px;
 }
 
 .config-section h3 {
     margin-top: 0;
-    color: #00ff00;
-    border-bottom: 1px solid #333;
-    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: var(--accent);
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
 }
 
+/* Config Fields */
 .config-field {
     margin-bottom: 20px;
 }
 
 .config-field label {
     display: block;
-    margin-bottom: 5px;
-    color: #fff;
-    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.95em;
 }
 
 .config-field .description {
     display: block;
     margin-bottom: 8px;
-    color: #888;
-    font-size: 0.9em;
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    line-height: 1.4;
 }
 
 .config-field input[type="text"],
@@ -135,61 +212,167 @@
 .config-field select,
 .config-field textarea {
     width: 100%;
-    padding: 10px;
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 4px;
-    color: #fff;
-    font-size: 1em;
+    padding: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.95em;
+    transition: all 0.2s;
+}
+
+.config-field input[type="text"]:focus,
+.config-field input[type="number"]:focus,
+.config-field select:focus,
+.config-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
 }
 
 .config-field input[type="checkbox"] {
-    width: auto;
+    width: 18px;
+    height: 18px;
     margin-right: 10px;
+    cursor: pointer;
+    accent-color: var(--accent);
 }
 
+.config-field input[readonly] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Save Indicators */
 .save-indicator {
     display: inline-block;
     margin-left: 10px;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.85em;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: 600;
     opacity: 0;
     transition: opacity 0.3s;
 }
 
 .save-indicator.saving {
-    background: #ff9900;
-    color: #000;
+    background: rgba(158, 106, 3, 0.2);
+    color: #9e6a03;
+    border: 1px solid #9e6a03;
     opacity: 1;
 }
 
 .save-indicator.saved {
-    background: #00ff00;
-    color: #000;
+    background: rgba(46, 160, 67, 0.2);
+    color: #2ea043;
+    border: 1px solid #2ea043;
     opacity: 1;
 }
 
 .save-indicator.error {
-    background: #ff0000;
-    color: #fff;
+    background: rgba(227, 35, 69, 0.2);
+    color: var(--accent);
+    border: 1px solid var(--accent);
     opacity: 1;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #c41d39;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-secondary);
+}
+
+.btn-warning {
+    background: #9e6a03;
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #7c5302;
+    transform: translateY(-1px);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+/* Scrollbar */
+.content-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-area::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+.content-area::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
 }
 </style>
 
-<div class="server-layout">
+<div class="layout">
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>{{ server.name }}</h2>
-            <p style="margin: 5px 0 0 0; font-size: 0.85em; color: #888;">Port: {{ server.server_port }}</p>
+            <h1>{{ server.name }}</h1>
+            <p>Server Configuration</p>
+            <div class="server-info-box">
+                <div class="server-info-item">
+                    <span class="server-info-label">Port:</span>
+                    <span class="server-info-value">{{ server.server_port }}</span>
+                </div>
+                <div class="server-info-item">
+                    <span class="server-info-label">RCon:</span>
+                    <span class="server-info-value">{{ server.rcon_port }}</span>
+                </div>
+                <div class="server-info-item">
+                    <span class="server-info-label">CPU:</span>
+                    <span class="server-info-value">{{ server.cpu_count }}</span>
+                </div>
+            </div>
         </div>
         <nav class="sidebar-nav">
             <a href="{{ url_for('server_dashboard', server_id=server.id) }}">
-                <span>📊 Dashboard</span>
+                <span>📊</span><span>Dashboard</span>
             </a>
             <a href="{{ url_for('server_config', server_id=server.id) }}" class="active">
-                <span>⚙️ Configuration</span>
+                <span>⚙️</span><span>Configuration</span>
             </a>
         </nav>
     </div>
@@ -199,11 +382,11 @@
         <!-- Topbar -->
         <div class="topbar">
             <div class="topbar-left">
-                <h1>Server Configuration</h1>
+                <h2>Server Configuration</h2>
             </div>
             <div class="topbar-right">
-                <span class="user-info">{{ username }}</span>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">Main Dashboard</a>
+                <span class="user-badge">👤 {{ username }}</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">← Main Dashboard</a>
             </div>
         </div>
 

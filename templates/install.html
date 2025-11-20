@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Installation - GameServer Manager{% endblock %}
+
+{% block content %}
+<div class="install-wrapper">
+    <div class="install-container">
+        <div class="install-header">
+            <h1>GameServer Manager</h1>
+            <p>Initial Setup</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="install-steps">
+            <div class="step {% if step == '1' %}active{% elif step|int > 1 %}completed{% endif %}">
+                <div class="step-number">1</div>
+                <div class="step-label">Admin Account</div>
+            </div>
+            <div class="step-line {% if step|int > 1 %}completed{% endif %}"></div>
+            <div class="step {% if step == '2' %}active{% elif step|int > 2 %}completed{% endif %}">
+                <div class="step-number">2</div>
+                <div class="step-label">Steam Account</div>
+            </div>
+            <div class="step-line {% if step|int > 2 %}completed{% endif %}"></div>
+            <div class="step {% if step == '3' %}active{% endif %}">
+                <div class="step-number">3</div>
+                <div class="step-label">Complete</div>
+            </div>
+        </div>
+
+        {% if step == '1' %}
+        <!-- Step 1: Admin Account -->
+        <div class="install-step">
+            <h2>Create Admin Account</h2>
+            <p>Set up your administrator account to manage game servers.</p>
+
+            <form method="POST" action="{{ url_for('install', step='1') }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Continue</button>
+            </form>
+        </div>
+
+        {% elif step == '2' %}
+        <!-- Step 2: Steam Account -->
+        <div class="install-step">
+            <h2>Configure Steam Account</h2>
+            <p>Enter Steam credentials for downloading and updating game servers.</p>
+
+            <div class="alert alert-info">
+                <strong>Important:</strong> Please use an account without 2FA/Steam Guard enabled to simplify server updates and installations.
+                Your credentials are stored securely on your own server and are never shared with third parties.
+            </div>
+
+            <form method="POST" action="{{ url_for('install', step='2') }}" id="steamForm">
+                <div class="form-group">
+                    <label for="steam_username">Steam Username</label>
+                    <input type="text" id="steam_username" name="steam_username"
+                           value="{{ steam_username or '' }}" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="steam_password">Steam Password</label>
+                    <input type="password" id="steam_password" name="steam_password" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Verify & Continue</button>
+                    <a href="{{ url_for('install', step='1') }}" class="btn btn-secondary">Back</a>
+                </div>
+            </form>
+
+            {% if verification_attempted %}
+            <div class="verification-status">
+                <div class="spinner"></div>
+                <p>Verifying Steam credentials...</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% elif step == '3' %}
+        <!-- Step 3: Finalize -->
+        <div class="install-step">
+            <h2>Complete Installation</h2>
+            <p>Click the button below to finalize the installation.</p>
+
+            <form method="POST" action="{{ url_for('install', step='3') }}">
+                <div class="install-summary">
+                    <div class="summary-item">
+                        <span class="summary-icon">✓</span>
+                        <span>Admin account configured</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-icon">✓</span>
+                        <span>Steam credentials verified</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg">Complete Installation</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

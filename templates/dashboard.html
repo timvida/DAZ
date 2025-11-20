@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - GameServer Manager{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>GameServer Manager</h1>
+        </div>
+        <div class="header-right">
+            <span class="user-info">Welcome, {{ username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        <!-- Create Server Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Create New Server</h2>
+            </div>
+            <div class="card">
+                <form method="POST" action="{{ url_for('create_server') }}" class="server-create-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Server Name</label>
+                            <input type="text" id="name" name="name" placeholder="My DayZ Server" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="game_name">Game</label>
+                            <select id="game_name" name="game_name" required onchange="updateAppId(this)">
+                                <option value="">Select a game...</option>
+                                <option value="DayZ" data-appid="223350">DayZ</option>
+                                <option value="Rust" data-appid="258550">Rust</option>
+                                <option value="ARK" data-appid="376030">ARK: Survival Evolved</option>
+                                <option value="Custom" data-appid="">Custom (Enter App ID)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="app_id">Steam App ID</label>
+                            <input type="number" id="app_id" name="app_id" placeholder="223350" required>
+                        </div>
+
+                        <div class="form-group form-group-submit">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary">Create Server</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Servers List -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Your Servers</h2>
+                <span class="server-count">{{ servers|length }} server(s)</span>
+            </div>
+
+            {% if servers %}
+            <div class="servers-grid">
+                {% for server in servers %}
+                <div class="server-card" data-server-id="{{ server.id }}">
+                    <div class="server-card-header">
+                        <div class="server-info">
+                            <h3>{{ server.name }}</h3>
+                            <span class="server-game">{{ server.game_name }}</span>
+                        </div>
+                        <span class="server-status status-{{ server.status }}">
+                            {{ server.status }}
+                        </span>
+                    </div>
+
+                    <div class="server-card-body">
+                        <div class="server-details">
+                            <div class="detail-item">
+                                <span class="detail-label">App ID:</span>
+                                <span class="detail-value">{{ server.app_id }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Installed:</span>
+                                <span class="detail-value">
+                                    {% if server.is_installed %}
+                                        <span class="badge badge-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">No</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if server.port %}
+                            <div class="detail-item">
+                                <span class="detail-label">Port:</span>
+                                <span class="detail-value">{{ server.port }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="server-card-actions">
+                        {% if not server.is_installed %}
+                            <button class="btn btn-primary btn-sm" onclick="installServer({{ server.id }})">
+                                Install Server
+                            </button>
+                        {% else %}
+                            {% if server.status == 'stopped' %}
+                                <button class="btn btn-success btn-sm" onclick="startServer({{ server.id }})">
+                                    Start
+                                </button>
+                            {% elif server.status == 'running' %}
+                                <button class="btn btn-warning btn-sm" onclick="stopServer({{ server.id }})">
+                                    Stop
+                                </button>
+                            {% endif %}
+                            <button class="btn btn-primary btn-sm" onclick="installServer({{ server.id }})">
+                                Update
+                            </button>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('delete_server', server_id=server.id) }}"
+                              style="display: inline;"
+                              onsubmit="return confirm('Are you sure you want to delete this server? All files will be removed!')">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🎮</div>
+                <h3>No servers yet</h3>
+                <p>Create your first game server using the form above</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="modal">
+    <div class="modal-content">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Processing...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateAppId(select) {
+    const selectedOption = select.options[select.selectedIndex];
+    const appId = selectedOption.getAttribute('data-appid');
+    const appIdInput = document.getElementById('app_id');
+
+    if (appId) {
+        appIdInput.value = appId;
+        appIdInput.readOnly = true;
+    } else {
+        appIdInput.value = '';
+        appIdInput.readOnly = false;
+        appIdInput.focus();
+    }
+}
+
+function showLoading(message) {
+    document.getElementById('loadingMessage').textContent = message;
+    document.getElementById('loadingModal').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingModal').style.display = 'none';
+}
+
+function installServer(serverId) {
+    if (!confirm('Install/Update this server? This may take several minutes.')) {
+        return;
+    }
+
+    showLoading('Installing server... This may take a while.');
+
+    fetch(`/server/${serverId}/install`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            alert('Success: ' + data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function startServer(serverId) {
+    showLoading('Starting server...');
+
+    fetch(`/server/${serverId}/start`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            alert('Success: ' + data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+
+function stopServer(serverId) {
+    showLoading('Stopping server...');
+
+    fetch(`/server/${serverId}/stop`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            alert('Success: ' + data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert('Error: ' + error);
+    });
+}
+</script>
+{% endblock %}

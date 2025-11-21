@@ -6,12 +6,24 @@ from steam_utils import SteamCMDManager
 from server_manager import ServerManager
 from update_manager import UpdateManager
 from functools import wraps
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # Initialize database
 db.init_app(app)
+
+# Set SQLite pragmas for better compatibility
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_conn, connection_record):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA journal_mode=DELETE")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.execute("PRAGMA cache_size=10000")
+    cursor.close()
 
 # Initialize managers
 steam_manager = SteamCMDManager()

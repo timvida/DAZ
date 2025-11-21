@@ -18,6 +18,20 @@ steam_manager = SteamCMDManager()
 server_manager = ServerManager()
 update_manager = UpdateManager()
 
+# Context processor to add common data to all templates
+@app.context_processor
+def inject_common_data():
+    """Inject common data into all templates"""
+    data = {}
+    if 'user_id' in session:
+        # Add servers list for sidebar
+        data['servers'] = server_manager.get_all_servers()
+        # Add username
+        user = User.query.get(session['user_id'])
+        if user:
+            data['username'] = user.username
+    return data
+
 # Login required decorator
 def login_required(f):
     @wraps(f)
@@ -357,7 +371,7 @@ def server_dashboard(server_id):
         return redirect(url_for('dashboard'))
 
     username = User.query.get(session['user_id']).username
-    return render_template('server_dashboard.html', server=server, username=username)
+    return render_template('server_dashboard.html', server=server, username=username, server_id=server_id)
 
 
 @app.route('/server/<int:server_id>/config')
@@ -372,7 +386,7 @@ def server_config(server_id):
 
     config_content = server_manager.get_server_config(server_id)
     username = User.query.get(session['user_id']).username
-    return render_template('server_config.html', server=server, config=config_content, username=username)
+    return render_template('server_config.html', server=server, config=config_content, username=username, server_id=server_id)
 
 
 @app.route('/api/server/<int:server_id>/restart', methods=['POST'])

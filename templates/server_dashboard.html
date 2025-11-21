@@ -2,60 +2,17 @@
 
 {% block title %}{{ server.name }} - Dashboard{% endblock %}
 
+{% block page_title %}{{ server.name }}{% endblock %}
+{% block page_subtitle %}Server Management{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('server_config', server_id=server.id) }}" class="flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+    <i class="fas fa-cog"></i>
+    <span class="hidden lg:inline">Configuration</span>
+</a>
+{% endblock %}
+
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body class="bg-[#0D1117] text-white min-h-screen">
-    <!-- Top Navigation -->
-    <nav class="bg-[#1A1F29] border-b border-[#E32345]/20 sticky top-0 z-50 backdrop-blur-sm">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Logo & Brand -->
-                <div class="flex items-center gap-4">
-                    <div class="bg-[#E32345] p-3 rounded-xl shadow-lg shadow-[#E32345]/20">
-                        <i class="fas fa-server text-white text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-white">{{ server.name }}</h1>
-                        <p class="text-sm text-gray-400">Server Management</p>
-                    </div>
-                </div>
-
-                <!-- Navigation Items -->
-                <div class="hidden md:flex items-center gap-6">
-                    <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 text-[#E32345] font-medium px-3 py-2 rounded-lg bg-[#E32345]/10">
-                        <i class="fas fa-gauge-high"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ url_for('server_config', server_id=server.id) }}" class="flex items-center gap-2 text-gray-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-white/5">
-                        <i class="fas fa-cog"></i>
-                        <span>Configuration</span>
-                    </a>
-                </div>
-
-                <!-- User & Actions -->
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-3 px-4 py-2 bg-[#0D1117] rounded-lg border border-[#E32345]/20">
-                        <i class="fas fa-user-circle text-[#E32345]"></i>
-                        <span class="hidden sm:block">{{ username }}</span>
-                    </div>
-                    <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition flex items-center gap-2">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="hidden lg:inline">Main Dashboard</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Server Info Header -->
         <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-8">
             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -201,7 +158,6 @@
                 </div>
             </div>
         </div>
-    </main>
 
     <!-- Loading Modal -->
     <div id="loadingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -338,6 +294,4 @@
             stopConsoleRefresh();
         });
     </script>
-</body>
-</html>
 {% endblock %}

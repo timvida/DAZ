@@ -4,27 +4,160 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}GameServer Manager{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
+    <style>
+        .sidebar {
+            transition: transform 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="bg-[#0D1117] text-white min-h-screen">
     {% block body %}
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash flash-{{ category }}">
-                            {{ message }}
-                            <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
-                        </div>
-                    {% endfor %}
+    <!-- Layout Container -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#1A1F29] border-r border-[#E32345]/20 flex flex-col">
+            <!-- Logo Section -->
+            <div class="p-6 border-b border-[#E32345]/20">
+                <div class="flex items-center gap-3">
+                    <div class="bg-[#E32345] p-3 rounded-xl shadow-lg shadow-[#E32345]/20">
+                        <i class="fas fa-server text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white">DayZ Server</h1>
+                        <p class="text-xs text-gray-400">Manager</p>
+                    </div>
                 </div>
-            {% endif %}
-        {% endwith %}
+            </div>
 
-        {% block content %}{% endblock %}
+            <!-- Navigation Menu -->
+            <nav class="flex-1 overflow-y-auto p-4">
+                <div class="space-y-2">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'dashboard' %}bg-[#E32345] text-white{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
+                        <i class="fas fa-home w-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('system_console') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'system_console' %}bg-[#E32345] text-white{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
+                        <i class="fas fa-terminal w-5"></i>
+                        <span class="font-medium">System Console</span>
+                    </a>
+
+                    <!-- Server List Section -->
+                    {% if servers is defined %}
+                    <div class="pt-4 mt-4 border-t border-[#E32345]/20">
+                        <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Your Servers</p>
+                        {% for server in servers %}
+                        <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition {% if request.endpoint == 'server_dashboard' and server_id|string == server.id|string %}bg-[#E32345]/20 text-white border-l-4 border-[#E32345]{% elif request.endpoint == 'server_config' and server_id|string == server.id|string %}bg-[#E32345]/20 text-white border-l-4 border-[#E32345]{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
+                            <i class="fas fa-server w-5 text-sm"></i>
+                            <span class="font-medium truncate">{{ server.name }}</span>
+                            {% if server.status == 'running' %}
+                            <span class="ml-auto w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </nav>
+
+            <!-- User Section -->
+            <div class="p-4 border-t border-[#E32345]/20">
+                <div class="flex items-center gap-3 px-4 py-3 bg-[#0D1117] rounded-lg">
+                    <i class="fas fa-user-circle text-[#E32345] text-xl"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-white truncate">{{ username if username is defined else 'User' }}</p>
+                        <p class="text-xs text-gray-400">Administrator</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded-lg transition">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="font-medium">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-[#1A1F29] border-b border-[#E32345]/20 sticky top-0 z-40">
+                <div class="px-4 sm:px-6 lg:px-8 py-4">
+                    <div class="flex items-center justify-between">
+                        <!-- Mobile Menu Button -->
+                        <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-[#E32345]/10 transition">
+                            <i class="fas fa-bars text-white text-xl"></i>
+                        </button>
+
+                        <!-- Page Title -->
+                        <div class="flex-1">
+                            <h2 class="text-xl font-bold text-white">{% block page_title %}Dashboard{% endblock %}</h2>
+                            <p class="text-sm text-gray-400">{% block page_subtitle %}Overview{% endblock %}</p>
+                        </div>
+
+                        <!-- Top Bar Actions -->
+                        <div class="flex items-center gap-3">
+                            {% block topbar_actions %}
+                            <button onclick="checkForUpdates()" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+                                <i class="fas fa-sync-alt"></i>
+                                <span class="hidden lg:inline">Check Updates</span>
+                            </button>
+                            {% endblock %}
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="px-4 sm:px-6 lg:px-8 py-8">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="flash-messages mb-6">
+                                {% for category, message in messages %}
+                                    <div class="flash flash-{{ category }} bg-[#1A1F29] border border-[#E32345]/20 rounded-lg p-4 mb-4">
+                                        {{ message }}
+                                        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
     </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden md:hidden"></div>
+
+    <script>
+        // Mobile Menu Toggle
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        mobileMenuBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('hidden');
+        });
+
+        sidebarOverlay.addEventListener('click', function() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.add('hidden');
+        });
+    </script>
     {% endblock %}
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

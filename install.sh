@@ -225,16 +225,220 @@ echo "    sudo firewall-cmd --permanent --add-port=29911/tcp"
 echo "    sudo firewall-cmd --reload"
 echo ""
 
-# 11. Create start script
-info "Creating start script..."
-cat > start.sh << 'EOF'
+# 11. Create management scripts in parent directory
+info "Creating management scripts..."
+
+# Go to parent directory
+cd ..
+PARENT_DIR=$(pwd)
+
+# Create web_start.sh
+cat > web_start.sh << 'EOF'
 #!/bin/bash
-cd "$(dirname "$0")"
+# GameServer Web Interface - Start Script
+# Starts the web interface in the background using nohup
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/gameserver-webinterface"
+
+# Check if already running
+if [ -f "webinterface.pid" ]; then
+    PID=$(cat webinterface.pid)
+    if ps -p $PID > /dev/null 2>&1; then
+        echo "Web interface is already running (PID: $PID)"
+        exit 1
+    else
+        # PID file exists but process doesn't - clean up
+        rm webinterface.pid
+    fi
+fi
+
+# Activate virtual environment
 source venv/bin/activate
-python3 app.py
+
+# Start the web interface in background
+nohup python3 app.py > webinterface.log 2>&1 &
+
+# Save PID
+echo $! > webinterface.pid
+
+echo "Web interface started successfully!"
+echo "PID: $(cat webinterface.pid)"
+echo "Log file: webinterface.log"
+echo ""
+echo "To stop: ./web_stop.sh"
+echo "To restart: ./web_restart.sh"
 EOF
-chmod +x start.sh
-success "Start script created (./start.sh)"
+chmod +x web_start.sh
+
+# Create web_stop.sh
+cat > web_stop.sh << 'EOF'
+#!/bin/bash
+# GameServer Web Interface - Stop Script
+# Stops the running web interface
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/gameserver-webinterface"
+
+# Check if PID file exists
+if [ ! -f "webinterface.pid" ]; then
+    echo "Web interface is not running (no PID file found)"
+    exit 1
+fi
+
+PID=$(cat webinterface.pid)
+
+# Check if process is running
+if ! ps -p $PID > /dev/null 2>&1; then
+    echo "Web interface is not running (PID $PID not found)"
+    rm webinterface.pid
+    exit 1
+fi
+
+# Stop the process
+echo "Stopping web interface (PID: $PID)..."
+kill $PID
+
+# Wait for process to terminate
+sleep 2
+
+# Force kill if still running
+if ps -p $PID > /dev/null 2>&1; then
+    echo "Force killing process..."
+    kill -9 $PID
+    sleep 1
+fi
+
+# Clean up PID file
+rm webinterface.pid
+
+echo "Web interface stopped successfully!"
+EOF
+chmod +x web_stop.sh
+
+# Create web_restart.sh
+cat > web_restart.sh << 'EOF'
+#!/bin/bash
+# GameServer Web Interface - Restart Script
+# Stops and restarts the web interface
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "Restarting web interface..."
+echo ""
+
+# Stop if running
+./web_stop.sh 2>/dev/null
+echo ""
+sleep 2
+
+# Start
+./web_start.sh
+EOF
+chmod +x web_restart.sh
+
+# Create update.sh
+cat > update.sh << 'EOF'
+#!/bin/bash
+# GameServer Web Interface - Update Script
+# Updates the web interface from Git repository
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/gameserver-webinterface"
+
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║   GameServer Web Interface - Update                      ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Check if git repo
+if [ ! -d ".git" ]; then
+    echo -e "${RED}✗${NC} Not a Git repository. Initializing..."
+    git init
+    git remote add origin https://github.com/timvida/DAZ.git
+    git fetch origin
+    git checkout -b main origin/main || git branch -M main && git branch --set-upstream-to=origin/main
+fi
+
+# Check for updates
+echo -e "${YELLOW}→${NC} Checking for updates..."
+git fetch origin
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+COMMITS_BEHIND=$(git rev-list --count HEAD..origin/$CURRENT_BRANCH)
+
+if [ "$COMMITS_BEHIND" -eq 0 ]; then
+    echo -e "${GREEN}✓${NC} Already up to date!"
+    exit 0
+fi
+
+echo -e "${GREEN}✓${NC} $COMMITS_BEHIND update(s) available"
+echo ""
+echo "Changes:"
+git log --oneline HEAD..origin/$CURRENT_BRANCH | head -5
+echo ""
+
+# Confirm update
+read -p "Do you want to update now? (y/N): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Update cancelled."
+    exit 0
+fi
+
+# Stop web interface if running
+echo -e "${YELLOW}→${NC} Stopping web interface..."
+cd "$SCRIPT_DIR"
+./web_stop.sh 2>/dev/null || true
+
+cd "$SCRIPT_DIR/gameserver-webinterface"
+
+# Stash local changes
+echo -e "${YELLOW}→${NC} Saving local changes..."
+git stash push -u -m "Auto-stash before update" 2>/dev/null || true
+
+# Pull updates
+echo -e "${YELLOW}→${NC} Downloading updates..."
+git pull origin $CURRENT_BRANCH
+
+# Update dependencies
+echo -e "${YELLOW}→${NC} Updating dependencies..."
+source venv/bin/activate
+pip install --upgrade pip > /dev/null 2>&1
+pip install -r requirements.txt > /dev/null 2>&1
+
+echo ""
+echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║   Update completed successfully!                         ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Restart web interface
+echo -e "${BLUE}→${NC} Restarting web interface..."
+cd "$SCRIPT_DIR"
+./web_start.sh
+
+echo ""
+echo -e "${GREEN}✓${NC} Update complete and web interface restarted!"
+EOF
+chmod +x update.sh
+
+cd "$INSTALL_PATH"
+success "Management scripts created in parent directory:"
+echo "  - web_start.sh   (Start the web interface)"
+echo "  - web_stop.sh    (Stop the web interface)"
+echo "  - web_restart.sh (Restart the web interface)"
+echo "  - update.sh      (Update from Git)"
 echo ""
 
 # 12. Installation complete
@@ -242,15 +446,20 @@ echo -e "${GREEN}═════════════════════
 echo -e "${GREEN}  Installation completed successfully!${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${BLUE}Starting the server now...${NC}"
+echo -e "${BLUE}Starting the web interface now...${NC}"
 echo ""
 echo -e "Access via: ${GREEN}http://${SERVER_IP}:29911/install${NC}"
 echo ""
 echo -e "${YELLOW}Press CTRL+C to stop the server${NC}"
 echo ""
-echo -e "To start the server later, run:"
-echo -e "  ${GREEN}cd $INSTALL_PATH && ./start.sh${NC}"
+echo -e "Management commands:"
+echo -e "  Start:   ${GREEN}cd $PARENT_DIR && ./web_start.sh${NC}"
+echo -e "  Stop:    ${GREEN}cd $PARENT_DIR && ./web_stop.sh${NC}"
+echo -e "  Restart: ${GREEN}cd $PARENT_DIR && ./web_restart.sh${NC}"
+echo -e "  Update:  ${GREEN}cd $PARENT_DIR && ./update.sh${NC}"
 echo ""
 
-# 13. Start server
+# 13. Start server directly for initial setup
+cd "$INSTALL_PATH"
+source venv/bin/activate
 python3 app.py

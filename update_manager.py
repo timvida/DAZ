@@ -63,16 +63,23 @@ class UpdateManager:
                     check=True
                 )
 
+                # Get the latest commit message for changelog
+                first_line = log_result.stdout.strip().split('\n')[0] if log_result.stdout.strip() else 'Updates available'
+
                 return {
                     'success': True,
+                    'update_available': True,
                     'has_updates': True,
                     'commits_behind': commits_behind,
                     'changes': log_result.stdout.strip(),
+                    'latest_version': f'{commits_behind} commit(s) ahead',
+                    'changelog': first_line,
                     'message': f'{commits_behind} new update(s) available'
                 }
             else:
                 return {
                     'success': True,
+                    'update_available': False,
                     'has_updates': False,
                     'commits_behind': 0,
                     'message': 'System is up to date'
@@ -82,12 +89,14 @@ class UpdateManager:
             return {
                 'success': False,
                 'message': f'Error checking for updates: {str(e)}',
+                'update_available': False,
                 'has_updates': False
             }
         except Exception as e:
             return {
                 'success': False,
                 'message': f'Unexpected error: {str(e)}',
+                'update_available': False,
                 'has_updates': False
             }
 
@@ -174,7 +183,13 @@ class UpdateManager:
         """Restart the web interface using web_restart.sh"""
         try:
             import subprocess
-            restart_script = os.path.join(self.base_dir, 'web_restart.sh')
+            # Look for web_restart.sh in parent directory
+            parent_dir = os.path.dirname(self.base_dir)
+            restart_script = os.path.join(parent_dir, 'web_restart.sh')
+
+            # Fallback to current directory if not found in parent
+            if not os.path.exists(restart_script):
+                restart_script = os.path.join(self.base_dir, 'web_restart.sh')
 
             if os.path.exists(restart_script):
                 # Kill current process and let web_restart.sh handle the restart
@@ -183,7 +198,7 @@ class UpdateManager:
                 # Execute restart script in background
                 subprocess.Popen(
                     ['/bin/bash', restart_script],
-                    cwd=self.base_dir,
+                    cwd=os.path.dirname(restart_script),
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     preexec_fn=os.setsid

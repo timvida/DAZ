@@ -238,8 +238,29 @@ cat > web_start.sh << 'EOF'
 # GameServer Web Interface - Start Script
 # Starts the web interface in the background using nohup
 
+set -e
+
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Check if gameserver-webinterface directory exists
+if [ ! -d "$SCRIPT_DIR/gameserver-webinterface" ]; then
+    echo "Error: gameserver-webinterface directory not found!"
+    echo "Expected location: $SCRIPT_DIR/gameserver-webinterface"
+    echo "Current location: $SCRIPT_DIR"
+    ls -la "$SCRIPT_DIR" | grep gameserver || echo "No gameserver directories found"
+    exit 1
+fi
+
+# Change to webinterface directory
 cd "$SCRIPT_DIR/gameserver-webinterface"
+
+# Check if venv exists
+if [ ! -d "venv" ]; then
+    echo "Error: Python virtual environment not found!"
+    echo "Please run install.sh first to set up the environment."
+    exit 1
+fi
 
 # Check if already running
 if [ -f "webinterface.pid" ]; then
@@ -266,8 +287,8 @@ echo "Web interface started successfully!"
 echo "PID: $(cat webinterface.pid)"
 echo "Log file: webinterface.log"
 echo ""
-echo "To stop: ./web_stop.sh"
-echo "To restart: ./web_restart.sh"
+echo "To stop: cd $SCRIPT_DIR && ./web_stop.sh"
+echo "To restart: cd $SCRIPT_DIR && ./web_restart.sh"
 EOF
 chmod +x web_start.sh
 
@@ -277,7 +298,17 @@ cat > web_stop.sh << 'EOF'
 # GameServer Web Interface - Stop Script
 # Stops the running web interface
 
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Check if gameserver-webinterface directory exists
+if [ ! -d "$SCRIPT_DIR/gameserver-webinterface" ]; then
+    echo "Error: gameserver-webinterface directory not found!"
+    echo "Expected location: $SCRIPT_DIR/gameserver-webinterface"
+    exit 1
+fi
+
+# Change to webinterface directory
 cd "$SCRIPT_DIR/gameserver-webinterface"
 
 # Check if PID file exists

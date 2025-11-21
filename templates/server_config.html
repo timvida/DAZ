@@ -51,9 +51,10 @@
                             <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                                 <i class="fas fa-signature text-[#E32345]"></i>
                                 <span>Server Name (hostname)</span>
+                                <span id="save-hostname" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">The name displayed in the server browser</p>
-                            <input type="text" id="hostname" data-config-key="hostname" oninput="markChanged(this)"
+                            <input type="text" id="hostname" data-config-key="hostname" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
                                 placeholder="My DayZ Server">
                         </div>
@@ -64,7 +65,7 @@
                                 <span>Description</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Server description (max 255 characters)</p>
-                            <textarea id="description" data-config-key="description" rows="2" oninput="markChanged(this)" maxlength="255"
+                            <textarea id="description" data-config-key="description" rows="2" oninput="saveField(this)" maxlength="255"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
                                 placeholder="Welcome to my server"></textarea>
                         </div>
@@ -75,7 +76,7 @@
                                 <span>Server Password</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Leave empty for public server</p>
-                            <input type="text" id="password" data-config-key="password" oninput="markChanged(this)"
+                            <input type="text" id="password" data-config-key="password" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -85,7 +86,7 @@
                                 <span>Admin Password</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Password to become server admin</p>
-                            <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="markChanged(this)"
+                            <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -95,7 +96,7 @@
                                 <span>Max Players</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Maximum number of players (1-127)</p>
-                            <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="markChanged(this)"
+                            <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
                     </div>
@@ -119,12 +120,12 @@
                                 <span>Verify Signatures</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Verifies .pbos against .bisign files (only 2 is supported)</p>
-                            <input type="number" id="verifySignatures" data-config-key="verifySignatures" min="0" max="2" oninput="markChanged(this)"
+                            <input type="number" id="verifySignatures" data-config-key="verifySignatures" min="0" max="2" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="BattlEye" data-config-key="BattlEye" onchange="markChanged(this)"
+                            <input type="checkbox" id="BattlEye" data-config-key="BattlEye" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="BattlEye" class="font-medium text-white cursor-pointer">BattlEye Anti-Cheat</label>
@@ -133,7 +134,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="forceSameBuild" data-config-key="forceSameBuild" onchange="markChanged(this)"
+                            <input type="checkbox" id="forceSameBuild" data-config-key="forceSameBuild" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="forceSameBuild" class="font-medium text-white cursor-pointer">Force Same Build</label>
@@ -142,7 +143,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="enableWhitelist" data-config-key="enableWhitelist" onchange="markChanged(this)"
+                            <input type="checkbox" id="enableWhitelist" data-config-key="enableWhitelist" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="enableWhitelist" class="font-medium text-white cursor-pointer">Enable Whitelist</label>
@@ -151,7 +152,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disableBanlist" data-config-key="disableBanlist" onchange="markChanged(this)"
+                            <input type="checkbox" id="disableBanlist" data-config-key="disableBanlist" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disableBanlist" class="font-medium text-white cursor-pointer">Disable Banlist</label>
@@ -160,7 +161,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disablePrioritylist" data-config-key="disablePrioritylist" onchange="markChanged(this)"
+                            <input type="checkbox" id="disablePrioritylist" data-config-key="disablePrioritylist" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disablePrioritylist" class="font-medium text-white cursor-pointer">Disable Priority List</label>
@@ -183,7 +184,7 @@
                 <div id="section-gameplay" class="hidden p-6 border-t border-[#E32345]/20">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="markChanged(this)"
+                            <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disable3rdPerson" class="font-medium text-white cursor-pointer">Disable 3rd Person</label>
@@ -192,7 +193,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="markChanged(this)"
+                            <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disableCrosshair" class="font-medium text-white cursor-pointer">Disable Crosshair</label>
@@ -201,7 +202,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disableMap" data-config-key="disableMap" onchange="markChanged(this)"
+                            <input type="checkbox" id="disableMap" data-config-key="disableMap" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disableMap" class="font-medium text-white cursor-pointer">Disable Map</label>
@@ -210,7 +211,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disablePersonalLight" data-config-key="disablePersonalLight" onchange="markChanged(this)"
+                            <input type="checkbox" id="disablePersonalLight" data-config-key="disablePersonalLight" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disablePersonalLight" class="font-medium text-white cursor-pointer">Disable Personal Light</label>
@@ -219,7 +220,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="disableVoN" data-config-key="disableVoN" onchange="markChanged(this)"
+                            <input type="checkbox" id="disableVoN" data-config-key="disableVoN" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="disableVoN" class="font-medium text-white cursor-pointer">Disable Voice Chat (VoN)</label>
@@ -233,7 +234,7 @@
                                 <span>Voice Codec Quality</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Voice quality (0-20, higher is better)</p>
-                            <input type="number" id="vonCodecQuality" data-config-key="vonCodecQuality" min="0" max="20" oninput="markChanged(this)"
+                            <input type="number" id="vonCodecQuality" data-config-key="vonCodecQuality" min="0" max="20" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -243,7 +244,7 @@
                                 <span>Respawn Time</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Time in seconds before respawn</p>
-                            <input type="number" id="respawnTime" data-config-key="respawnTime" min="0" oninput="markChanged(this)"
+                            <input type="number" id="respawnTime" data-config-key="respawnTime" min="0" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
                     </div>
@@ -267,7 +268,7 @@
                                 <span>Server Time</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Initial time: "SystemTime" or "YYYY/MM/DD/HH/MM"</p>
-                            <input type="text" id="serverTime" data-config-key="serverTime" oninput="markChanged(this)"
+                            <input type="text" id="serverTime" data-config-key="serverTime" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
                                 placeholder="SystemTime">
                         </div>
@@ -278,7 +279,7 @@
                                 <span>Time Acceleration</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Time multiplier (0.1-64), 24 = 24x faster</p>
-                            <input type="number" id="serverTimeAcceleration" data-config-key="serverTimeAcceleration" min="0.1" max="64" step="0.1" oninput="markChanged(this)"
+                            <input type="number" id="serverTimeAcceleration" data-config-key="serverTimeAcceleration" min="0.1" max="64" step="0.1" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -288,12 +289,12 @@
                                 <span>Night Time Acceleration</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Night multiplier (0.1-64), multiplied by time acceleration</p>
-                            <input type="number" id="serverNightTimeAcceleration" data-config-key="serverNightTimeAcceleration" min="0.1" max="64" step="0.1" oninput="markChanged(this)"
+                            <input type="number" id="serverNightTimeAcceleration" data-config-key="serverNightTimeAcceleration" min="0.1" max="64" step="0.1" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="serverTimePersistent" data-config-key="serverTimePersistent" onchange="markChanged(this)"
+                            <input type="checkbox" id="serverTimePersistent" data-config-key="serverTimePersistent" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="serverTimePersistent" class="font-medium text-white cursor-pointer">Persistent Time</label>
@@ -321,7 +322,7 @@
                                 <span>Game Port</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Main server port</p>
-                            <input type="number" id="port" data-config-key="port" min="1024" max="65535" oninput="markChanged(this)"
+                            <input type="number" id="port" data-config-key="port" min="1024" max="65535" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -331,7 +332,7 @@
                                 <span>Steam Port</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Steam communication port</p>
-                            <input type="number" id="steamPort" data-config-key="steamPort" min="1024" max="65535" oninput="markChanged(this)"
+                            <input type="number" id="steamPort" data-config-key="steamPort" min="1024" max="65535" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -341,7 +342,7 @@
                                 <span>Steam Query Port</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Steam query port</p>
-                            <input type="number" id="steamQueryPort" data-config-key="steamQueryPort" min="1024" max="65535" oninput="markChanged(this)"
+                            <input type="number" id="steamQueryPort" data-config-key="steamQueryPort" min="1024" max="65535" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -351,7 +352,7 @@
                                 <span>Instance ID</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Server instance identifier</p>
-                            <input type="number" id="instanceId" data-config-key="instanceId" min="1" oninput="markChanged(this)"
+                            <input type="number" id="instanceId" data-config-key="instanceId" min="1" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -361,7 +362,7 @@
                                 <span>Login Queue Concurrent</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Players processed concurrently during login</p>
-                            <input type="number" id="loginQueueConcurrentPlayers" data-config-key="loginQueueConcurrentPlayers" min="1" oninput="markChanged(this)"
+                            <input type="number" id="loginQueueConcurrentPlayers" data-config-key="loginQueueConcurrentPlayers" min="1" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -371,7 +372,7 @@
                                 <span>Login Queue Max</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Maximum players in login queue</p>
-                            <input type="number" id="loginQueueMaxPlayers" data-config-key="loginQueueMaxPlayers" min="1" oninput="markChanged(this)"
+                            <input type="number" id="loginQueueMaxPlayers" data-config-key="loginQueueMaxPlayers" min="1" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
 
@@ -405,7 +406,7 @@
                                 <span>Log File</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Server log filename</p>
-                            <input type="text" id="logFile" data-config-key="logFile" oninput="markChanged(this)"
+                            <input type="text" id="logFile" data-config-key="logFile" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
                                 placeholder="server_console.log">
                         </div>
@@ -416,7 +417,7 @@
                                 <span>Admin Log File</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Admin log filename</p>
-                            <input type="text" id="adminLogFile" data-config-key="adminLogFile" oninput="markChanged(this)"
+                            <input type="text" id="adminLogFile" data-config-key="adminLogFile" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
                                 placeholder="admin_console.log">
                         </div>
@@ -427,7 +428,7 @@
                                 <span>Timestamp Format</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Log timestamp format</p>
-                            <select id="timeStampFormat" data-config-key="timeStampFormat" onchange="markChanged(this)"
+                            <select id="timeStampFormat" data-config-key="timeStampFormat" onchange="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                                 <option value="Short">Short</option>
                                 <option value="Full">Full</option>
@@ -436,7 +437,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="storageAutoFix" data-config-key="storageAutoFix" onchange="markChanged(this)"
+                            <input type="checkbox" id="storageAutoFix" data-config-key="storageAutoFix" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="storageAutoFix" class="font-medium text-white cursor-pointer">Storage Auto-Fix</label>
@@ -445,7 +446,7 @@
                         </div>
 
                         <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                            <input type="checkbox" id="storeHouseStateDisabled" data-config-key="storeHouseStateDisabled" onchange="markChanged(this)"
+                            <input type="checkbox" id="storeHouseStateDisabled" data-config-key="storeHouseStateDisabled" onchange="saveField(this)"
                                 class="w-5 h-5 accent-[#E32345] cursor-pointer">
                             <div class="flex-1">
                                 <label for="storeHouseStateDisabled" class="font-medium text-white cursor-pointer">Disable Store House State</label>
@@ -473,7 +474,7 @@
                                 <span>MOTD Messages (one per line)</span>
                             </label>
                             <p class="text-xs text-gray-400 mb-2">Messages shown to players when joining</p>
-                            <textarea id="motd" data-config-key="motd" rows="4" oninput="markChanged(this)"
+                            <textarea id="motd" data-config-key="motd" rows="4" oninput="saveField(this)"
                                 class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition font-mono text-sm"
                                 placeholder="Welcome to My DayZ Server&#10;Enjoy your stay!&#10;Discord: discord.gg/example"></textarea>
                         </div>
@@ -485,7 +486,7 @@
                                     <span>MOTD Interval (minutes)</span>
                                 </label>
                                 <p class="text-xs text-gray-400 mb-2">How often to show MOTD</p>
-                                <input type="number" id="motdInterval" data-config-key="motdInterval" min="1" oninput="markChanged(this)"
+                                <input type="number" id="motdInterval" data-config-key="motdInterval" min="1" oninput="saveField(this)"
                                     class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                             </div>
                         </div>
@@ -509,7 +510,7 @@
                             <span>Map / Mission Template</span>
                         </label>
                         <p class="text-xs text-gray-400 mb-2">Select the map for your server</p>
-                        <select id="missionTemplate" data-config-key="missionTemplate" onchange="markChanged(this)"
+                        <select id="missionTemplate" data-config-key="missionTemplate" onchange="saveField(this)"
                             class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                             <option value="dayzOffline.chernarusplus">Chernarus (Base Game)</option>
                             <option value="dayzOffline.enoch">Livonia (DLC)</option>
@@ -535,7 +536,7 @@
                             <span>Additional Config Lines</span>
                         </label>
                         <p class="text-xs text-gray-400 mb-2">Add custom configuration parameters (one per line, format: key = value;)</p>
-                        <textarea id="customConfig" data-config-key="customConfig" rows="6" oninput="markChanged(this)"
+                        <textarea id="customConfig" data-config-key="customConfig" rows="6" oninput="saveField(this)"
                             class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition font-mono text-sm"
                             placeholder="// Custom settings&#10;myCustomSetting = 1;&#10;anotherSetting = &quot;value&quot;;"></textarea>
                         <div class="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
@@ -571,6 +572,164 @@
         function markChanged(element) {
             configChanged = true;
             document.getElementById('restartAlert').classList.remove('hidden');
+        }
+
+        // Debounce function for auto-save
+        let saveTimers = {};
+
+        function saveField(element) {
+            const key = element.dataset.configKey;
+
+            // Clear existing timer for this field
+            if (saveTimers[key]) {
+                clearTimeout(saveTimers[key]);
+            }
+
+            // Mark as changed
+            markChanged(element);
+
+            // Set new timer (wait 1 second after typing stops)
+            saveTimers[key] = setTimeout(() => {
+                // Get value
+                let value;
+                if (element.type === 'checkbox') {
+                    value = element.checked ? '1' : '0';
+                } else {
+                    value = element.value;
+                }
+
+                // Update config data
+                configData[key] = value;
+
+                // Show saving indicator
+                const indicator = document.getElementById('save-' + key);
+                if (indicator) {
+                    indicator.textContent = 'Saving...';
+                    indicator.className = 'text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400 opacity-100 transition-opacity';
+                }
+
+                // Build and save config
+                saveConfigSilent().then(success => {
+                    if (indicator) {
+                        if (success) {
+                            indicator.textContent = '✓ Saved';
+                            indicator.className = 'text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 opacity-100 transition-opacity';
+                        } else {
+                            indicator.textContent = '✗ Error';
+                            indicator.className = 'text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 opacity-100 transition-opacity';
+                        }
+
+                        // Fade out after 2 seconds
+                        setTimeout(() => {
+                            indicator.style.opacity = '0';
+                        }, 2000);
+                    }
+                });
+            }, 1000); // 1 second debounce
+        }
+
+        async function saveConfigSilent() {
+            // Collect all form data
+            document.querySelectorAll('[data-config-key]').forEach(element => {
+                const key = element.dataset.configKey;
+                if (element.type === 'checkbox') {
+                    configData[key] = element.checked ? '1' : '0';
+                } else {
+                    configData[key] = element.value;
+                }
+            });
+
+            // Build config file (same as saveAllConfig)
+            let configContent = `// ${configData.hostname || 'DayZ Server'} - Server Configuration\n`;
+            configContent += `// Generated by GameServer Manager\n\n`;
+
+            // Basic settings
+            configContent += `hostname = "${configData.hostname || 'My DayZ Server'}";\n`;
+            if (configData.description) configContent += `description = "${configData.description}";\n`;
+            configContent += `password = "${configData.password || ''}";\n`;
+            configContent += `passwordAdmin = "${configData.passwordAdmin || ''}";\n`;
+            configContent += `maxPlayers = ${configData.maxPlayers || 60};\n\n`;
+
+            // Security
+            configContent += `verifySignatures = ${configData.verifySignatures || 2};\n`;
+            configContent += `forceSameBuild = ${configData.forceSameBuild || 0};\n`;
+            configContent += `BattlEye = ${configData.BattlEye || 1};\n`;
+            configContent += `enableWhitelist = ${configData.enableWhitelist || 0};\n`;
+            if (configData.disableBanlist !== undefined) configContent += `disableBanlist = ${configData.disableBanlist == '1' ? 'true' : 'false'};\n`;
+            if (configData.disablePrioritylist !== undefined) configContent += `disablePrioritylist = ${configData.disablePrioritylist == '1' ? 'true' : 'false'};\n`;
+            configContent += `\n`;
+
+            // Gameplay
+            configContent += `disable3rdPerson = ${configData.disable3rdPerson || 0};\n`;
+            configContent += `disableCrosshair = ${configData.disableCrosshair || 0};\n`;
+            if (configData.disableMap !== undefined) configContent += `disableMap = ${configData.disableMap};\n`;
+            if (configData.disablePersonalLight !== undefined) configContent += `disablePersonalLight = ${configData.disablePersonalLight};\n`;
+            configContent += `disableVoN = ${configData.disableVoN || 0};\n`;
+            configContent += `vonCodecQuality = ${configData.vonCodecQuality || 20};\n`;
+            if (configData.respawnTime) configContent += `respawnTime = ${configData.respawnTime};\n`;
+            configContent += `\n`;
+
+            // Time
+            configContent += `serverTime = "${configData.serverTime || 'SystemTime'}";\n`;
+            configContent += `serverTimeAcceleration = ${configData.serverTimeAcceleration || 1};\n`;
+            configContent += `serverNightTimeAcceleration = ${configData.serverNightTimeAcceleration || 1};\n`;
+            configContent += `serverTimePersistent = ${configData.serverTimePersistent || 0};\n\n`;
+
+            // Connection
+            configContent += `port = ${configData.port || 2302};\n`;
+            configContent += `steamPort = ${configData.steamPort || 2304};\n`;
+            configContent += `steamQueryPort = ${configData.steamQueryPort || 2303};\n`;
+            configContent += `instanceId = ${configData.instanceId || 1};\n`;
+            configContent += `guaranteedUpdates = ${configData.guaranteedUpdates || 1};\n`;
+            configContent += `loginQueueConcurrentPlayers = ${configData.loginQueueConcurrentPlayers || 5};\n`;
+            configContent += `loginQueueMaxPlayers = ${configData.loginQueueMaxPlayers || 500};\n\n`;
+
+            // Advanced
+            if (configData.logFile) configContent += `logFile = "${configData.logFile}";\n`;
+            if (configData.adminLogFile) configContent += `adminLogFile = "${configData.adminLogFile}";\n`;
+            if (configData.timeStampFormat) configContent += `timeStampFormat = "${configData.timeStampFormat}";\n`;
+            configContent += `storageAutoFix = ${configData.storageAutoFix || 1};\n`;
+            if (configData.storeHouseStateDisabled !== undefined) configContent += `storeHouseStateDisabled = ${configData.storeHouseStateDisabled == '1' ? 'true' : 'false'};\n`;
+            configContent += `\n`;
+
+            // MOTD
+            if (configData.motd) {
+                const motdLines = configData.motd.split('\n').filter(line => line.trim());
+                if (motdLines.length > 0) {
+                    configContent += `motd[] = {\n`;
+                    motdLines.forEach(line => {
+                        configContent += `    "${line.trim()}",\n`;
+                    });
+                    configContent += `};\n`;
+                    if (configData.motdInterval) configContent += `motdInterval = ${configData.motdInterval};\n`;
+                    configContent += `\n`;
+                }
+            }
+
+            // Custom config
+            if (configData.customConfig) {
+                configContent += `// Custom Configuration\n`;
+                configContent += configData.customConfig.trim() + '\n\n';
+            }
+
+            // Missions
+            configContent += `class Missions\n{\n    class DayZ\n    {\n`;
+            configContent += `        template = "${configData.missionTemplate || 'dayzOffline.chernarusplus'}";\n`;
+            configContent += `    };\n};\n`;
+
+            // Save to server
+            try {
+                const response = await fetch(`/api/server/${serverId}/config`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({config: configContent})
+                });
+                const data = await response.json();
+                return data.success;
+            } catch (error) {
+                console.error('Error saving config:', error);
+                return false;
+            }
         }
 
         function parseConfig(configText) {

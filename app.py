@@ -146,6 +146,19 @@ def install():
                 return redirect(url_for('install', step='1'))
 
             try:
+                # Ensure database is properly initialized with correct permissions
+                db_path = os.path.join(Config.BASE_DIR, 'gameserver.db')
+                old_umask = os.umask(0o002)
+                try:
+                    # Ensure all tables exist
+                    db.create_all()
+
+                    # Set proper permissions on database file
+                    if os.path.exists(db_path):
+                        os.chmod(db_path, 0o664)
+                finally:
+                    os.umask(old_umask)
+
                 # Create admin user
                 user = User(
                     username=admin_data['username'],
@@ -497,7 +510,26 @@ def get_version():
 
 # Initialize database
 with app.app_context():
-    db.create_all()
+    # Ensure database file and directory have proper permissions
+    db_path = os.path.join(Config.BASE_DIR, 'gameserver.db')
+    db_dir = os.path.dirname(db_path)
+
+    # Set umask to ensure database is created with rw-rw-r-- (664) permissions
+    old_umask = os.umask(0o002)
+    try:
+        # Ensure directory is writable
+        if os.path.exists(db_dir):
+            os.chmod(db_dir, 0o755)
+
+        # Create all tables
+        db.create_all()
+
+        # If database file was just created, ensure it has proper permissions
+        if os.path.exists(db_path):
+            os.chmod(db_path, 0o664)
+    finally:
+        # Restore original umask
+        os.umask(old_umask)
 
 
 if __name__ == '__main__':

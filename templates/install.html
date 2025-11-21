@@ -1,196 +1,356 @@
-{% extends "base.html" %}
-
-{% block title %}Installation - GameServer Manager{% endblock %}
-
-{% block content %}
-<div class="install-wrapper">
-    <div class="install-container">
-        <div class="install-header">
-            <h1>GameServer Manager</h1>
-            <p>Initial Setup</p>
-        </div>
-
-        <!-- Progress Steps -->
-        <div class="install-steps">
-            <div class="step {% if step == '1' %}active{% elif step|int > 1 %}completed{% endif %}">
-                <div class="step-number">1</div>
-                <div class="step-label">Admin Account</div>
-            </div>
-            <div class="step-line {% if step|int > 1 %}completed{% endif %}"></div>
-            <div class="step {% if step == '2' %}active{% elif step|int > 2 %}completed{% endif %}">
-                <div class="step-number">2</div>
-                <div class="step-label">Steam Account</div>
-            </div>
-            <div class="step-line {% if step|int > 2 %}completed{% endif %}"></div>
-            <div class="step {% if step == '3' %}active{% endif %}">
-                <div class="step-number">3</div>
-                <div class="step-label">Complete</div>
-            </div>
-        </div>
-
-        {% if step == '1' %}
-        <!-- Step 1: Admin Account -->
-        <div class="install-step">
-            <h2>Create Admin Account</h2>
-            <p>Set up your administrator account to manage game servers.</p>
-
-            <form method="POST" action="{{ url_for('install', step='1') }}">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autofocus>
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required minlength="6">
-                </div>
-
-                <div class="form-group">
-                    <label for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
-                </div>
-
-                <button type="submit" class="btn btn-primary">Continue</button>
-            </form>
-        </div>
-
-        {% elif step == '2' %}
-        <!-- Step 2: Steam Account -->
-        <div class="install-step">
-            <h2>Configure Steam Account</h2>
-            <p>Enter Steam credentials for downloading and updating game servers.</p>
-
-            <div class="alert alert-info">
-                <strong>Important:</strong> Please use an account without 2FA/Steam Guard enabled to simplify server updates and installations.
-                Your credentials are stored securely on your own server and are never shared with third parties.
-            </div>
-
-            <form method="POST" action="{{ url_for('install', step='2') }}" id="steamForm">
-                <div class="form-group">
-                    <label for="steam_username">Steam Username</label>
-                    <input type="text" id="steam_username" name="steam_username"
-                           value="{{ steam_username or '' }}" required autofocus>
-                </div>
-
-                <div class="form-group">
-                    <label for="steam_password">Steam Password</label>
-                    <input type="password" id="steam_password" name="steam_password" required>
-                </div>
-
-                <input type="hidden" name="skip_verification" id="skip_verification" value="">
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-primary" onclick="verifySteam()">Verify & Continue</button>
-                    <button type="button" class="btn btn-secondary" onclick="skipVerification()">Skip Verification</button>
-                    <a href="{{ url_for('install', step='1') }}" class="btn btn-secondary">Back</a>
-                </div>
-            </form>
-
-            <div id="verificationStatus" style="display: none; margin-top: 1rem;">
-                <div class="verification-status">
-                    <div class="spinner"></div>
-                    <p id="verificationMessage">Verifying Steam credentials... This may take up to 3 minutes on first run.</p>
-                </div>
-            </div>
-        </div>
-
-        {% elif step == '3' %}
-        <!-- Step 3: Finalize -->
-        <div class="install-step">
-            <h2>Complete Installation</h2>
-            <p>Click the button below to finalize the installation.</p>
-
-            <form method="POST" action="{{ url_for('install', step='3') }}">
-                <div class="install-summary">
-                    <div class="summary-item">
-                        <span class="summary-icon">✓</span>
-                        <span>Admin account configured</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-icon">✓</span>
-                        <span>Steam credentials verified</span>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg">Complete Installation</button>
-            </form>
-        </div>
-        {% endif %}
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function verifySteam() {
-    const username = document.getElementById('steam_username').value;
-    const password = document.getElementById('steam_password').value;
-
-    if (!username || !password) {
-        alert('Please enter both username and password');
-        return;
-    }
-
-    // Show verification status
-    const statusDiv = document.getElementById('verificationStatus');
-    const messageEl = document.getElementById('verificationMessage');
-    statusDiv.style.display = 'block';
-    messageEl.textContent = 'Verifying Steam credentials... This may take up to 3 minutes on first run.';
-
-    // Disable buttons
-    const buttons = document.querySelectorAll('.form-actions button');
-    buttons.forEach(btn => btn.disabled = true);
-
-    // Start verification
-    fetch('/api/verify-steam', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            username: username,
-            password: password
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            messageEl.textContent = '✓ ' + data.message;
-            messageEl.style.color = '#2ea043';
-
-            // Submit form after successful verification
-            setTimeout(() => {
-                document.getElementById('steamForm').submit();
-            }, 1000);
-        } else {
-            messageEl.textContent = '✗ ' + data.message;
-            messageEl.style.color = '#da3633';
-
-            // Re-enable buttons
-            buttons.forEach(btn => btn.disabled = false);
-
-            // Show skip option
-            alert(data.message + '\n\nYou can skip verification and try later during server installation.');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation - GameServer Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .spinner {
+            border: 3px solid #30363d;
+            border-top: 3px solid #E32345;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
-    })
-    .catch(error => {
-        messageEl.textContent = '✗ Verification failed: ' + error;
-        messageEl.style.color = '#da3633';
-        buttons.forEach(btn => btn.disabled = false);
-        alert('Verification error. You can skip verification and try later.');
-    });
-}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-[#0D1117] text-white min-h-screen overflow-hidden">
+    <div class="flex h-screen">
+        <!-- Left Side - Image -->
+        <div class="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#1A1F29] to-[#0D1117] items-center justify-center p-12">
+            <div class="absolute inset-0 opacity-10">
+                <img src="{{ url_for('static', filename='images/install.png') }}"
+                     alt="DayZ Server Installation"
+                     class="w-full h-full object-cover"
+                     onerror="this.style.display='none'">
+            </div>
+            <div class="relative z-10 text-center">
+                <div class="mb-8">
+                    <i class="fas fa-cogs text-[#E32345] text-8xl mb-6 animate-pulse"></i>
+                </div>
+                <h1 class="text-5xl font-bold mb-4 text-white">GameServer Manager</h1>
+                <p class="text-xl text-gray-400 mb-8">Complete setup in just 3 simple steps</p>
 
-function skipVerification() {
-    if (confirm('Skip Steam verification? You can test credentials later during server installation.')) {
-        document.getElementById('skip_verification').value = '1';
-        document.getElementById('steamForm').submit();
-    }
-}
-</script>
-{% endblock %}
+                <!-- Progress Steps Visual -->
+                <div class="flex items-center justify-center gap-4 mb-8">
+                    <div class="text-center">
+                        <div class="w-12 h-12 rounded-full {% if step == '1' %}bg-[#E32345]{% elif step|int > 1 %}bg-green-500{% else %}bg-gray-600{% endif %} flex items-center justify-center mb-2 mx-auto">
+                            {% if step|int > 1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
+                        </div>
+                        <p class="text-xs text-gray-400">Admin</p>
+                    </div>
+                    <div class="w-16 h-1 {% if step|int > 1 %}bg-green-500{% else %}bg-gray-600{% endif %}"></div>
+                    <div class="text-center">
+                        <div class="w-12 h-12 rounded-full {% if step == '2' %}bg-[#E32345]{% elif step|int > 2 %}bg-green-500{% else %}bg-gray-600{% endif %} flex items-center justify-center mb-2 mx-auto">
+                            {% if step|int > 2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
+                        </div>
+                        <p class="text-xs text-gray-400">Steam</p>
+                    </div>
+                    <div class="w-16 h-1 {% if step|int > 2 %}bg-green-500{% else %}bg-gray-600{% endif %}"></div>
+                    <div class="text-center">
+                        <div class="w-12 h-12 rounded-full {% if step == '3' %}bg-[#E32345]{% else %}bg-gray-600{% endif %} flex items-center justify-center mb-2 mx-auto">
+                            3
+                        </div>
+                        <p class="text-xs text-gray-400">Finish</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-center gap-8 text-gray-400 mt-12">
+                    <div class="text-center">
+                        <i class="fas fa-shield-halved text-3xl text-[#E32345] mb-2"></i>
+                        <p class="text-sm">Secure Setup</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-bolt text-3xl text-[#E32345] mb-2"></i>
+                        <p class="text-sm">Quick Install</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-server text-3xl text-[#E32345] mb-2"></i>
+                        <p class="text-sm">Multi-Server</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Installation Form -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0D1117] overflow-y-auto">
+            <div class="w-full max-w-md">
+                <!-- Logo for mobile -->
+                <div class="lg:hidden text-center mb-8">
+                    <i class="fas fa-cogs text-[#E32345] text-6xl mb-4 animate-pulse"></i>
+                    <h1 class="text-3xl font-bold text-white">GameServer Manager</h1>
+                    <p class="text-gray-400 mt-2">Initial Setup</p>
+                </div>
+
+                <!-- Installation Card -->
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-2xl p-8 shadow-2xl">
+                    <!-- Step Indicator for Mobile -->
+                    <div class="lg:hidden mb-6 flex items-center justify-center gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full {% if step == '1' %}bg-[#E32345]{% elif step|int > 1 %}bg-green-500{% else %}bg-gray-600{% endif %} flex items-center justify-center text-xs">
+                                {% if step|int > 1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
+                            </div>
+                            <div class="w-8 h-1 bg-gray-600"></div>
+                            <div class="w-8 h-8 rounded-full {% if step == '2' %}bg-[#E32345]{% elif step|int > 2 %}bg-green-500{% else %}bg-gray-600{% endif %} flex items-center justify-center text-xs">
+                                {% if step|int > 2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
+                            </div>
+                            <div class="w-8 h-1 bg-gray-600"></div>
+                            <div class="w-8 h-8 rounded-full {% if step == '3' %}bg-[#E32345]{% else %}bg-gray-600{% endif %} flex items-center justify-center text-xs">
+                                3
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="mb-6 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-500/10 border-red-500 text-red-400{% elif category == 'success' %}bg-green-500/10 border-green-500 text-green-400{% else %}bg-blue-500/10 border-blue-500 text-blue-400{% endif %}">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% if step == '1' %}
+                    <!-- Step 1: Admin Account -->
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-white mb-2">Create Admin Account</h2>
+                        <p class="text-gray-400">Set up your administrator credentials</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('install', step='1') }}" class="space-y-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-user text-[#E32345] mr-2"></i>Username
+                            </label>
+                            <input type="text" id="username" name="username" required autofocus
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="admin">
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-envelope text-[#E32345] mr-2"></i>Email Address
+                            </label>
+                            <input type="email" id="email" name="email" required
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="admin@example.com">
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-lock text-[#E32345] mr-2"></i>Password
+                            </label>
+                            <input type="password" id="password" name="password" required minlength="6"
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="Minimum 6 characters">
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-lock text-[#E32345] mr-2"></i>Confirm Password
+                            </label>
+                            <input type="password" id="confirm_password" name="confirm_password" required minlength="6"
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="Repeat password">
+                        </div>
+
+                        <button type="submit"
+                                class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2 mt-6">
+                            <span>Continue</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+
+                    {% elif step == '2' %}
+                    <!-- Step 2: Steam Account -->
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-white mb-2">Configure Steam Account</h2>
+                        <p class="text-gray-400">Required for downloading game servers</p>
+                    </div>
+
+                    <div class="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+                            <div class="text-sm text-blue-400">
+                                <p class="font-medium mb-1">Important Information:</p>
+                                <p>Please use an account without 2FA/Steam Guard enabled. Your credentials are stored securely on your server and never shared.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('install', step='2') }}" id="steamForm" class="space-y-4">
+                        <div>
+                            <label for="steam_username" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fab fa-steam text-[#E32345] mr-2"></i>Steam Username
+                            </label>
+                            <input type="text" id="steam_username" name="steam_username" value="{{ steam_username or '' }}" required autofocus
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="Your Steam username">
+                        </div>
+
+                        <div>
+                            <label for="steam_password" class="block text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-key text-[#E32345] mr-2"></i>Steam Password
+                            </label>
+                            <input type="password" id="steam_password" name="steam_password" required
+                                class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="Your Steam password">
+                        </div>
+
+                        <input type="hidden" name="skip_verification" id="skip_verification" value="">
+
+                        <div id="verificationStatus" style="display: none;" class="p-4 bg-[#0D1117] border border-[#E32345]/30 rounded-lg">
+                            <div class="spinner mb-4"></div>
+                            <p id="verificationMessage" class="text-center text-gray-400">Verifying Steam credentials... This may take up to 3 minutes.</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3 mt-6">
+                            <button type="button" onclick="verifySteam()"
+                                    class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Verify & Continue</span>
+                            </button>
+                            <button type="button" onclick="skipVerification()"
+                                    class="w-full px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-400 rounded-lg font-medium transition flex items-center justify-center gap-2">
+                                <i class="fas fa-forward"></i>
+                                <span>Skip Verification</span>
+                            </button>
+                            <a href="{{ url_for('install', step='1') }}"
+                               class="w-full px-6 py-3 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg font-medium transition flex items-center justify-center gap-2 text-center">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Back</span>
+                            </a>
+                        </div>
+                    </form>
+
+                    {% elif step == '3' %}
+                    <!-- Step 3: Complete -->
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-white mb-2">Complete Installation</h2>
+                        <p class="text-gray-400">Finalize your setup and start managing servers</p>
+                    </div>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                            <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                            <span class="text-green-400 font-medium">Admin account configured</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                            <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                            <span class="text-green-400 font-medium">Steam credentials verified</span>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('install', step='3') }}">
+                        <button type="submit"
+                                class="w-full px-6 py-4 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-bold text-lg transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-rocket"></i>
+                            <span>Complete Installation</span>
+                        </button>
+                    </form>
+
+                    <div class="mt-6 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
+                        <p class="text-sm text-gray-400 text-center">
+                            <i class="fas fa-info-circle text-[#E32345] mr-2"></i>
+                            After completion, you'll be redirected to the dashboard
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Footer -->
+                    <div class="mt-8 pt-6 border-t border-[#E32345]/20 text-center text-sm text-gray-400">
+                        <p>DayZ Server Manager v1.0</p>
+                        <p class="mt-2">
+                            <i class="fas fa-shield-halved text-[#E32345]"></i>
+                            Secure server management platform
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function verifySteam() {
+            const username = document.getElementById('steam_username').value;
+            const password = document.getElementById('steam_password').value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            // Show verification status
+            const statusDiv = document.getElementById('verificationStatus');
+            const messageEl = document.getElementById('verificationMessage');
+            statusDiv.style.display = 'block';
+            messageEl.textContent = 'Verifying Steam credentials... This may take up to 3 minutes on first run.';
+            messageEl.style.color = '#9ca3af';
+
+            // Disable buttons
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            // Start verification
+            fetch('/api/verify-steam', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageEl.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + data.message;
+                    messageEl.style.color = '#2ea043';
+
+                    // Submit form after successful verification
+                    setTimeout(() => {
+                        document.getElementById('steamForm').submit();
+                    }, 1000);
+                } else {
+                    messageEl.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>' + data.message;
+                    messageEl.style.color = '#da3633';
+
+                    // Re-enable buttons
+                    buttons.forEach(btn => btn.disabled = false);
+
+                    // Show skip option
+                    alert(data.message + '\n\nYou can skip verification and try later during server installation.');
+                }
+            })
+            .catch(error => {
+                messageEl.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Verification failed: ' + error;
+                messageEl.style.color = '#da3633';
+                buttons.forEach(btn => btn.disabled = false);
+                alert('Verification error. You can skip verification and try later.');
+            });
+        }
+
+        function skipVerification() {
+            if (confirm('Skip Steam verification? You can test credentials later during server installation.')) {
+                document.getElementById('skip_verification').value = '1';
+                document.getElementById('steamForm').submit();
+            }
+        }
+    </script>
+</body>
+</html>

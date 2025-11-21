@@ -14,154 +14,502 @@
 
 {% block content %}
         <!-- Restart Alert -->
-        <div id="restartAlert" class="hidden bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6 flex items-center justify-between">
+        <div id="restartAlert" class="hidden bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 mb-6 flex items-center justify-between animate-pulse">
             <div class="flex items-center gap-3">
                 <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
                 <span class="text-yellow-500 font-medium">Configuration changed. Restart server to apply changes.</span>
             </div>
-            <button onclick="restartServer()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg transition font-medium">
+            <button onclick="restartServer()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg transition font-medium flex items-center gap-2">
+                <i class="fas fa-rotate-right"></i>
                 Restart Now
+            </button>
+        </div>
+
+        <!-- Save All Button -->
+        <div class="mb-6">
+            <button onclick="saveAllConfig()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
+                <i class="fas fa-save"></i>
+                <span>Save All Changes</span>
             </button>
         </div>
 
         <!-- Config Sections -->
         <div class="space-y-6">
-            <!-- Basic Settings -->
-            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
-                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
-                    <i class="fas fa-info-circle text-[#E32345] text-2xl"></i>
-                    <h2 class="text-2xl font-bold text-white">Basic Server Settings</h2>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Server Name -->
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-signature text-[#E32345]"></i>
-                            <span>Server Name</span>
-                            <span id="save-hostname" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">The name of your server as it appears in the server browser</p>
-                        <input type="text" id="hostname" data-config-key="hostname" oninput="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+            <!-- BASIC SERVER SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('basic')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-info-circle text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Basic Server Settings</h2>
                     </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-basic"></i>
+                </button>
+                <div id="section-basic" class="p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-signature text-[#E32345]"></i>
+                                <span>Server Name (hostname)</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">The name displayed in the server browser</p>
+                            <input type="text" id="hostname" data-config-key="hostname" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="My DayZ Server">
+                        </div>
 
-                    <!-- Server Password -->
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-lock text-[#E32345]"></i>
-                            <span>Server Password</span>
-                            <span id="save-password" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">Password required to join (leave empty for public)</p>
-                        <input type="text" id="password" data-config-key="password" oninput="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
-                    </div>
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-file-lines text-[#E32345]"></i>
+                                <span>Description</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Server description (max 255 characters)</p>
+                            <textarea id="description" data-config-key="description" rows="2" oninput="markChanged(this)" maxlength="255"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="Welcome to my server"></textarea>
+                        </div>
 
-                    <!-- Admin Password -->
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-key text-[#E32345]"></i>
-                            <span>Admin Password</span>
-                            <span id="save-passwordAdmin" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">Password to become a server admin</p>
-                        <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
-                    </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-lock text-[#E32345]"></i>
+                                <span>Server Password</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Leave empty for public server</p>
+                            <input type="text" id="password" data-config-key="password" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
 
-                    <!-- Max Players -->
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-users text-[#E32345]"></i>
-                            <span>Max Players</span>
-                            <span id="save-maxPlayers" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">Maximum number of players (1-127)</p>
-                        <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
-                    </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-key text-[#E32345]"></i>
+                                <span>Admin Password</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Password to become server admin</p>
+                            <input type="text" id="passwordAdmin" data-config-key="passwordAdmin" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
 
-                    <!-- Server Description (full width) -->
-                    <div class="md:col-span-2">
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-file-lines text-[#E32345]"></i>
-                            <span>Server Description</span>
-                            <span id="save-description" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">Description displayed in the server browser</p>
-                        <textarea id="description" data-config-key="description" rows="3" oninput="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"></textarea>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-users text-[#E32345]"></i>
+                                <span>Max Players</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Maximum number of players (1-127)</p>
+                            <input type="number" id="maxPlayers" data-config-key="maxPlayers" min="1" max="127" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Gameplay Settings -->
-            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
-                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
-                    <i class="fas fa-gamepad text-[#E32345] text-2xl"></i>
-                    <h2 class="text-2xl font-bold text-white">Gameplay Settings</h2>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                        <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="saveField(this)"
-                            class="w-5 h-5 accent-[#E32345] cursor-pointer">
-                        <div class="flex-1">
-                            <label for="disable3rdPerson" class="font-medium text-white cursor-pointer flex items-center gap-2">
-                                <i class="fas fa-eye-slash text-[#E32345]"></i>
-                                Disable 3rd Person View
-                                <span id="save-disable3rdPerson" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                            </label>
-                            <p class="text-xs text-gray-400 mt-1">Players can only use first-person view</p>
-                        </div>
+            <!-- SECURITY SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('security')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-shield-halved text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Security Settings</h2>
                     </div>
-
-                    <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
-                        <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="saveField(this)"
-                            class="w-5 h-5 accent-[#E32345] cursor-pointer">
-                        <div class="flex-1">
-                            <label for="disableCrosshair" class="font-medium text-white cursor-pointer flex items-center gap-2">
-                                <i class="fas fa-crosshairs text-[#E32345]"></i>
-                                Disable Crosshair
-                                <span id="save-disableCrosshair" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-security"></i>
+                </button>
+                <div id="section-security" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-certificate text-[#E32345]"></i>
+                                <span>Verify Signatures</span>
                             </label>
-                            <p class="text-xs text-gray-400 mt-1">The crosshair is hidden</p>
+                            <p class="text-xs text-gray-400 mb-2">Verifies .pbos against .bisign files (only 2 is supported)</p>
+                            <input type="number" id="verifySignatures" data-config-key="verifySignatures" min="0" max="2" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                         </div>
-                    </div>
 
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                            <i class="fas fa-lightbulb text-[#E32345]"></i>
-                            <span>Lighting Configuration</span>
-                            <span id="save-lightingConfig" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
-                        </label>
-                        <p class="text-xs text-gray-400 mb-2">0 for brighter nights, 1 for darker nights</p>
-                        <select id="lightingConfig" data-config-key="lightingConfig" onchange="saveField(this)"
-                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
-                            <option value="0">Brighter Nights</option>
-                            <option value="1">Darker Nights</option>
-                        </select>
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="BattlEye" data-config-key="BattlEye" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="BattlEye" class="font-medium text-white cursor-pointer">BattlEye Anti-Cheat</label>
+                                <p class="text-xs text-gray-400 mt-1">Enable BattlEye protection (recommended)</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="forceSameBuild" data-config-key="forceSameBuild" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="forceSameBuild" class="font-medium text-white cursor-pointer">Force Same Build</label>
+                                <p class="text-xs text-gray-400 mt-1">Only allow clients with same version</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="enableWhitelist" data-config-key="enableWhitelist" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="enableWhitelist" class="font-medium text-white cursor-pointer">Enable Whitelist</label>
+                                <p class="text-xs text-gray-400 mt-1">Only whitelisted players can join</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disableBanlist" data-config-key="disableBanlist" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disableBanlist" class="font-medium text-white cursor-pointer">Disable Banlist</label>
+                                <p class="text-xs text-gray-400 mt-1">Disables the usage of ban.txt</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disablePrioritylist" data-config-key="disablePrioritylist" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disablePrioritylist" class="font-medium text-white cursor-pointer">Disable Priority List</label>
+                                <p class="text-xs text-gray-400 mt-1">Disables usage of priority.txt</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Mission Settings -->
-            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
-                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#E32345]/20">
-                    <i class="fas fa-map text-[#E32345] text-2xl"></i>
-                    <h2 class="text-2xl font-bold text-white">Mission Settings</h2>
-                </div>
+            <!-- GAMEPLAY SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('gameplay')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-gamepad text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Gameplay Settings</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-gameplay"></i>
+                </button>
+                <div id="section-gameplay" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disable3rdPerson" data-config-key="disable3rdPerson" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disable3rdPerson" class="font-medium text-white cursor-pointer">Disable 3rd Person</label>
+                                <p class="text-xs text-gray-400 mt-1">Force first-person view only</p>
+                            </div>
+                        </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disableCrosshair" data-config-key="disableCrosshair" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disableCrosshair" class="font-medium text-white cursor-pointer">Disable Crosshair</label>
+                                <p class="text-xs text-gray-400 mt-1">Hide the crosshair</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disableMap" data-config-key="disableMap" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disableMap" class="font-medium text-white cursor-pointer">Disable Map</label>
+                                <p class="text-xs text-gray-400 mt-1">Disable in-game map</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disablePersonalLight" data-config-key="disablePersonalLight" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disablePersonalLight" class="font-medium text-white cursor-pointer">Disable Personal Light</label>
+                                <p class="text-xs text-gray-400 mt-1">Disable player's personal light</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="disableVoN" data-config-key="disableVoN" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="disableVoN" class="font-medium text-white cursor-pointer">Disable Voice Chat (VoN)</label>
+                                <p class="text-xs text-gray-400 mt-1">Disable voice over network</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-microphone text-[#E32345]"></i>
+                                <span>Voice Codec Quality</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Voice quality (0-20, higher is better)</p>
+                            <input type="number" id="vonCodecQuality" data-config-key="vonCodecQuality" min="0" max="20" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-clock-rotate-left text-[#E32345]"></i>
+                                <span>Respawn Time</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Time in seconds before respawn</p>
+                            <input type="number" id="respawnTime" data-config-key="respawnTime" min="0" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TIME SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('time')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-clock text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Time Settings</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-time"></i>
+                </button>
+                <div id="section-time" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-calendar text-[#E32345]"></i>
+                                <span>Server Time</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Initial time: "SystemTime" or "YYYY/MM/DD/HH/MM"</p>
+                            <input type="text" id="serverTime" data-config-key="serverTime" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="SystemTime">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-forward text-[#E32345]"></i>
+                                <span>Time Acceleration</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Time multiplier (0.1-64), 24 = 24x faster</p>
+                            <input type="number" id="serverTimeAcceleration" data-config-key="serverTimeAcceleration" min="0.1" max="64" step="0.1" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-moon text-[#E32345]"></i>
+                                <span>Night Time Acceleration</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Night multiplier (0.1-64), multiplied by time acceleration</p>
+                            <input type="number" id="serverNightTimeAcceleration" data-config-key="serverNightTimeAcceleration" min="0.1" max="64" step="0.1" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="serverTimePersistent" data-config-key="serverTimePersistent" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="serverTimePersistent" class="font-medium text-white cursor-pointer">Persistent Time</label>
+                                <p class="text-xs text-gray-400 mt-1">Save time to disk, continues on restart</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONNECTION & PORTS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('connection')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-network-wired text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Connection & Network</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-connection"></i>
+                </button>
+                <div id="section-connection" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-plug text-[#E32345]"></i>
+                                <span>Game Port</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Main server port</p>
+                            <input type="number" id="port" data-config-key="port" min="1024" max="65535" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-plug text-[#E32345]"></i>
+                                <span>Steam Port</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Steam communication port</p>
+                            <input type="number" id="steamPort" data-config-key="steamPort" min="1024" max="65535" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-plug text-[#E32345]"></i>
+                                <span>Steam Query Port</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Steam query port</p>
+                            <input type="number" id="steamQueryPort" data-config-key="steamQueryPort" min="1024" max="65535" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-hashtag text-[#E32345]"></i>
+                                <span>Instance ID</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Server instance identifier</p>
+                            <input type="number" id="instanceId" data-config-key="instanceId" min="1" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-users-line text-[#E32345]"></i>
+                                <span>Login Queue Concurrent</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Players processed concurrently during login</p>
+                            <input type="number" id="loginQueueConcurrentPlayers" data-config-key="loginQueueConcurrentPlayers" min="1" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-users-line text-[#E32345]"></i>
+                                <span>Login Queue Max</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Maximum players in login queue</p>
+                            <input type="number" id="loginQueueMaxPlayers" data-config-key="loginQueueMaxPlayers" min="1" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-sync text-[#E32345]"></i>
+                                <span>Guaranteed Updates</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Communication protocol (use only 1)</p>
+                            <input type="number" id="guaranteedUpdates" data-config-key="guaranteedUpdates" value="1" readonly
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-gray-500 cursor-not-allowed">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADVANCED SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('advanced')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-sliders text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Advanced Settings</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-advanced"></i>
+                </button>
+                <div id="section-advanced" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-file text-[#E32345]"></i>
+                                <span>Log File</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Server log filename</p>
+                            <input type="text" id="logFile" data-config-key="logFile" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="server_console.log">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-file text-[#E32345]"></i>
+                                <span>Admin Log File</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Admin log filename</p>
+                            <input type="text" id="adminLogFile" data-config-key="adminLogFile" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition"
+                                placeholder="admin_console.log">
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-clock text-[#E32345]"></i>
+                                <span>Timestamp Format</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Log timestamp format</p>
+                            <select id="timeStampFormat" data-config-key="timeStampFormat" onchange="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                                <option value="Short">Short</option>
+                                <option value="Full">Full</option>
+                                <option value="None">None</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="storageAutoFix" data-config-key="storageAutoFix" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="storageAutoFix" class="font-medium text-white cursor-pointer">Storage Auto-Fix</label>
+                                <p class="text-xs text-gray-400 mt-1">Auto-fix corrupted persistence files</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-[#0D1117] rounded-lg border border-[#E32345]/30">
+                            <input type="checkbox" id="storeHouseStateDisabled" data-config-key="storeHouseStateDisabled" onchange="markChanged(this)"
+                                class="w-5 h-5 accent-[#E32345] cursor-pointer">
+                            <div class="flex-1">
+                                <label for="storeHouseStateDisabled" class="font-medium text-white cursor-pointer">Disable Store House State</label>
+                                <p class="text-xs text-gray-400 mt-1">Disable building persistence</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MOTD (Message of the Day) -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('motd')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-message text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Message of the Day (MOTD)</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-motd"></i>
+                </button>
+                <div id="section-motd" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                <i class="fas fa-align-left text-[#E32345]"></i>
+                                <span>MOTD Messages (one per line)</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mb-2">Messages shown to players when joining</p>
+                            <textarea id="motd" data-config-key="motd" rows="4" oninput="markChanged(this)"
+                                class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition font-mono text-sm"
+                                placeholder="Welcome to My DayZ Server&#10;Enjoy your stay!&#10;Discord: discord.gg/example"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                                    <i class="fas fa-hourglass text-[#E32345]"></i>
+                                    <span>MOTD Interval (minutes)</span>
+                                </label>
+                                <p class="text-xs text-gray-400 mb-2">How often to show MOTD</p>
+                                <input type="number" id="motdInterval" data-config-key="motdInterval" min="1" oninput="markChanged(this)"
+                                    class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MISSION SETTINGS -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('mission')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-map text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Mission Settings</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-mission"></i>
+                </button>
+                <div id="section-mission" class="hidden p-6 border-t border-[#E32345]/20">
                     <div>
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                             <i class="fas fa-globe text-[#E32345]"></i>
-                            <span>Map / Mission</span>
-                            <span id="save-missionTemplate" class="text-xs px-2 py-1 rounded opacity-0 transition-opacity"></span>
+                            <span>Map / Mission Template</span>
                         </label>
                         <p class="text-xs text-gray-400 mb-2">Select the map for your server</p>
-                        <select id="missionTemplate" data-config-key="missionTemplate" onchange="saveField(this)"
+                        <select id="missionTemplate" data-config-key="missionTemplate" onchange="markChanged(this)"
                             class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
                             <option value="dayzOffline.chernarusplus">Chernarus (Base Game)</option>
                             <option value="dayzOffline.enoch">Livonia (DLC)</option>
@@ -170,35 +518,129 @@
                     </div>
                 </div>
             </div>
+
+            <!-- CUSTOM CONFIG -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl overflow-hidden">
+                <button onclick="toggleSection('custom')" class="w-full flex items-center justify-between p-6 hover:bg-[#E32345]/5 transition">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-code text-[#E32345] text-2xl"></i>
+                        <h2 class="text-2xl font-bold text-white">Custom Configuration</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-[#E32345] transition-transform" id="chevron-custom"></i>
+                </button>
+                <div id="section-custom" class="hidden p-6 border-t border-[#E32345]/20">
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <i class="fas fa-file-code text-[#E32345]"></i>
+                            <span>Additional Config Lines</span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">Add custom configuration parameters (one per line, format: key = value;)</p>
+                        <textarea id="customConfig" data-config-key="customConfig" rows="6" oninput="markChanged(this)"
+                            class="w-full px-4 py-2.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition font-mono text-sm"
+                            placeholder="// Custom settings&#10;myCustomSetting = 1;&#10;anotherSetting = &quot;value&quot;;"></textarea>
+                        <div class="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                            <p class="text-sm text-blue-400 flex items-center gap-2">
+                                <i class="fas fa-info-circle"></i>
+                                <span>These lines will be added to the end of serverDZ.cfg before the Missions class</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     <script>
         const serverId = {{ server.id }};
         let configData = {};
-        let saveTimeout = null;
         let configChanged = false;
+
+        function toggleSection(sectionName) {
+            const section = document.getElementById('section-' + sectionName);
+            const chevron = document.getElementById('chevron-' + sectionName);
+
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                section.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function markChanged(element) {
+            configChanged = true;
+            document.getElementById('restartAlert').classList.remove('hidden');
+        }
 
         function parseConfig(configText) {
             const config = {};
             const lines = configText.split('\n');
+            let inMotd = false;
+            let motdLines = [];
+            let customLines = [];
+            let inMissions = false;
+
             for (let line of lines) {
                 line = line.trim();
-                if (line.startsWith('//') || !line) continue;
-                if (line.includes('template')) {
+
+                // Skip comments and empty lines
+                if (line.startsWith('//') || !line) {
+                    continue;
+                }
+
+                // Handle Missions class
+                if (line.includes('class Missions')) {
+                    inMissions = true;
+                    continue;
+                }
+
+                if (inMissions && line.includes('template')) {
                     const match = line.match(/template\s*=\s*"([^"]+)"/);
                     if (match) config.missionTemplate = match[1];
                     continue;
                 }
+
+                // Handle MOTD array
+                if (line.includes('motd[]')) {
+                    inMotd = true;
+                    continue;
+                }
+
+                if (inMotd) {
+                    if (line === '};') {
+                        inMotd = false;
+                        config.motd = motdLines.join('\n');
+                        continue;
+                    }
+                    const msgMatch = line.match(/"([^"]+)"/);
+                    if (msgMatch) {
+                        motdLines.push(msgMatch[1]);
+                    }
+                    continue;
+                }
+
+                // Regular key = value pairs
                 const match = line.match(/^(\w+)\s*=\s*(.+?);/);
                 if (match) {
                     let [, key, value] = match;
                     value = value.trim();
+
+                    // Remove inline comments
                     const commentIndex = value.indexOf('//');
-                    if (commentIndex !== -1) value = value.substring(0, commentIndex).trim();
-                    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+                    if (commentIndex !== -1) {
+                        value = value.substring(0, commentIndex).trim();
+                    }
+
+                    // Remove quotes if present
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1);
+                    }
+
                     config[key] = value;
                 }
             }
+
             return config;
         }
 
@@ -219,7 +661,7 @@
                 const element = document.querySelector(`[data-config-key="${key}"]`);
                 if (element) {
                     if (element.type === 'checkbox') {
-                        element.checked = configData[key] == '1';
+                        element.checked = configData[key] == '1' || configData[key] === 'true';
                     } else {
                         element.value = configData[key];
                     }
@@ -227,41 +669,96 @@
             }
         }
 
-        function saveField(element) {
-            const key = element.dataset.configKey;
-            const indicator = document.getElementById(`save-${key}`);
+        function saveAllConfig() {
+            // Collect all form data
+            document.querySelectorAll('[data-config-key]').forEach(element => {
+                const key = element.dataset.configKey;
+                if (element.type === 'checkbox') {
+                    configData[key] = element.checked ? '1' : '0';
+                } else {
+                    configData[key] = element.value;
+                }
+            });
 
-            if (element.type === 'checkbox') {
-                configData[key] = element.checked ? '1' : '0';
-            } else {
-                configData[key] = element.value;
+            // Build config file
+            let configContent = `// ${configData.hostname || 'DayZ Server'} - Server Configuration\n`;
+            configContent += `// Generated by GameServer Manager\n\n`;
+
+            // Basic settings
+            configContent += `hostname = "${configData.hostname || 'My DayZ Server'}";\n`;
+            if (configData.description) configContent += `description = "${configData.description}";\n`;
+            configContent += `password = "${configData.password || ''}";\n`;
+            configContent += `passwordAdmin = "${configData.passwordAdmin || ''}";\n`;
+            configContent += `maxPlayers = ${configData.maxPlayers || 60};\n\n`;
+
+            // Security
+            configContent += `verifySignatures = ${configData.verifySignatures || 2};\n`;
+            configContent += `forceSameBuild = ${configData.forceSameBuild || 0};\n`;
+            configContent += `BattlEye = ${configData.BattlEye || 1};\n`;
+            configContent += `enableWhitelist = ${configData.enableWhitelist || 0};\n`;
+            if (configData.disableBanlist !== undefined) configContent += `disableBanlist = ${configData.disableBanlist == '1' ? 'true' : 'false'};\n`;
+            if (configData.disablePrioritylist !== undefined) configContent += `disablePrioritylist = ${configData.disablePrioritylist == '1' ? 'true' : 'false'};\n`;
+            configContent += `\n`;
+
+            // Gameplay
+            configContent += `disable3rdPerson = ${configData.disable3rdPerson || 0};\n`;
+            configContent += `disableCrosshair = ${configData.disableCrosshair || 0};\n`;
+            if (configData.disableMap !== undefined) configContent += `disableMap = ${configData.disableMap};\n`;
+            if (configData.disablePersonalLight !== undefined) configContent += `disablePersonalLight = ${configData.disablePersonalLight};\n`;
+            configContent += `disableVoN = ${configData.disableVoN || 0};\n`;
+            configContent += `vonCodecQuality = ${configData.vonCodecQuality || 20};\n`;
+            if (configData.respawnTime) configContent += `respawnTime = ${configData.respawnTime};\n`;
+            configContent += `\n`;
+
+            // Time
+            configContent += `serverTime = "${configData.serverTime || 'SystemTime'}";\n`;
+            configContent += `serverTimeAcceleration = ${configData.serverTimeAcceleration || 1};\n`;
+            configContent += `serverNightTimeAcceleration = ${configData.serverNightTimeAcceleration || 1};\n`;
+            configContent += `serverTimePersistent = ${configData.serverTimePersistent || 0};\n\n`;
+
+            // Connection
+            configContent += `port = ${configData.port || 2302};\n`;
+            configContent += `steamPort = ${configData.steamPort || 2304};\n`;
+            configContent += `steamQueryPort = ${configData.steamQueryPort || 2303};\n`;
+            configContent += `instanceId = ${configData.instanceId || 1};\n`;
+            configContent += `guaranteedUpdates = ${configData.guaranteedUpdates || 1};\n`;
+            configContent += `loginQueueConcurrentPlayers = ${configData.loginQueueConcurrentPlayers || 5};\n`;
+            configContent += `loginQueueMaxPlayers = ${configData.loginQueueMaxPlayers || 500};\n\n`;
+
+            // Advanced
+            if (configData.logFile) configContent += `logFile = "${configData.logFile}";\n`;
+            if (configData.adminLogFile) configContent += `adminLogFile = "${configData.adminLogFile}";\n`;
+            if (configData.timeStampFormat) configContent += `timeStampFormat = "${configData.timeStampFormat}";\n`;
+            configContent += `storageAutoFix = ${configData.storageAutoFix || 1};\n`;
+            if (configData.storeHouseStateDisabled !== undefined) configContent += `storeHouseStateDisabled = ${configData.storeHouseStateDisabled == '1' ? 'true' : 'false'};\n`;
+            configContent += `\n`;
+
+            // MOTD
+            if (configData.motd) {
+                const motdLines = configData.motd.split('\n').filter(line => line.trim());
+                if (motdLines.length > 0) {
+                    configContent += `motd[] = {\n`;
+                    motdLines.forEach(line => {
+                        configContent += `    "${line.trim()}",\n`;
+                    });
+                    configContent += `};\n`;
+                    if (configData.motdInterval) configContent += `motdInterval = ${configData.motdInterval};\n`;
+                    configContent += `\n`;
+                }
             }
 
-            indicator.textContent = 'Saving...';
-            indicator.className = 'text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-500 opacity-100 transition-opacity';
-
-            configChanged = true;
-            document.getElementById('restartAlert').classList.remove('hidden');
-
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => saveConfig(indicator), 500);
-        }
-
-        function saveConfig(indicator) {
-            let configContent = `// ${document.getElementById('hostname').value} - DayZ Server Configuration\n`;
-            configContent += `// Auto-generated by GameServer Manager\n\n`;
-
-            for (let key in configData) {
-                if (key === 'missionTemplate') continue;
-                const value = configData[key];
-                const needsQuotes = isNaN(value) && value !== '0' && value !== '1';
-                configContent += needsQuotes ? `${key} = "${value}";\n` : `${key} = ${value};\n`;
+            // Custom config
+            if (configData.customConfig) {
+                configContent += `// Custom Configuration\n`;
+                configContent += configData.customConfig.trim() + '\n\n';
             }
 
-            configContent += `\nclass Missions\n{\n    class DayZ\n    {\n`;
+            // Missions
+            configContent += `class Missions\n{\n    class DayZ\n    {\n`;
             configContent += `        template = "${configData.missionTemplate || 'dayzOffline.chernarusplus'}";\n`;
             configContent += `    };\n};\n`;
 
+            // Save to server
             fetch(`/api/server/${serverId}/config`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -270,18 +767,20 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    indicator.textContent = 'Saved';
-                    indicator.className = 'text-xs px-2 py-1 rounded bg-green-500/20 text-green-500 opacity-100 transition-opacity';
-                    setTimeout(() => indicator.className = 'text-xs px-2 py-1 rounded opacity-0 transition-opacity', 2000);
+                    alert('Configuration saved successfully!');
+                    configChanged = false;
                 } else {
-                    indicator.textContent = 'Error';
-                    indicator.className = 'text-xs px-2 py-1 rounded bg-red-500/20 text-red-500 opacity-100 transition-opacity';
+                    alert('Error saving configuration: ' + data.message);
                 }
+            })
+            .catch(error => {
+                alert('Error saving configuration: ' + error);
             });
         }
 
         function restartServer() {
             if (!confirm('Restart the server now? This will disconnect all players.')) return;
+
             fetch(`/api/server/${serverId}/restart`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}

@@ -208,9 +208,16 @@
 
             if (debug.be_config_found) {
                 debugHtml += `<div class="text-green-400">✓ BattlEye Config gefunden</div>`;
+                debugHtml += `<div>Config-Datei: <span class="text-yellow-400">${debug.config_file || 'Unknown'}</span></div>`;
                 debugHtml += `<div>RCon Port: ${debug.rcon_port}</div>`;
                 debugHtml += `<div>RCon IP: ${debug.rcon_ip}</div>`;
                 debugHtml += `<div>Passwort gesetzt: ${debug.password_set}</div>`;
+                if (debug.password_length) {
+                    debugHtml += `<div>Passwort Länge: ${debug.password_length} Zeichen</div>`;
+                }
+                if (debug.password_preview) {
+                    debugHtml += `<div>Passwort (Preview): <span class="text-yellow-400">${debug.password_preview}</span></div>`;
+                }
             } else {
                 debugHtml += `<div class="text-red-400">✗ BattlEye Config nicht gefunden</div>`;
                 debugHtml += `<div>BE Pfad: ${debug.be_path || 'N/A'}</div>`;

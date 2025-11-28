@@ -349,32 +349,51 @@ class RConManager:
             logger.info(f"Reading BattlEye config from: {config_file}")
 
             config = {}
+            config['_config_file'] = os.path.basename(config_file)  # Store filename for debug
+
             with open(config_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
+                content = f.read()
+                config['_raw_content'] = content  # Store for debug
+
+                for line in content.split('\n'):
+                    line_stripped = line.strip()
+                    if not line_stripped or line_stripped.startswith('#'):
                         continue
 
                     # Parse config lines like "RConPassword mypassword"
-                    if line.startswith('RConPassword'):
-                        parts = line.split(None, 1)
+                    if line_stripped.startswith('RConPassword'):
+                        parts = line_stripped.split(None, 1)
                         if len(parts) > 1:
-                            config['rcon_password'] = parts[1].strip()
+                            password = parts[1].strip()
+                            # Remove any potential trailing comments
+                            if '#' in password:
+                                password = password.split('#')[0].strip()
+                            config['rcon_password'] = password
+                            config['_password_length'] = len(password)
+                            logger.info(f"Found RConPassword: length={len(password)}, starts_with={password[:3] if len(password) > 3 else password}***")
 
-                    elif line.startswith('RConPort'):
-                        parts = line.split(None, 1)
+                    elif line_stripped.startswith('RConPort'):
+                        parts = line_stripped.split(None, 1)
                         if len(parts) > 1:
                             try:
-                                config['rcon_port'] = int(parts[1].strip())
-                            except:
-                                pass
+                                port_str = parts[1].strip()
+                                if '#' in port_str:
+                                    port_str = port_str.split('#')[0].strip()
+                                config['rcon_port'] = int(port_str)
+                                logger.info(f"Found RConPort: {config['rcon_port']}")
+                            except Exception as e:
+                                logger.error(f"Error parsing port: {e}")
 
-                    elif line.startswith('RConIP'):
-                        parts = line.split(None, 1)
+                    elif line_stripped.startswith('RConIP'):
+                        parts = line_stripped.split(None, 1)
                         if len(parts) > 1:
-                            config['rcon_ip'] = parts[1].strip()
+                            ip = parts[1].strip()
+                            if '#' in ip:
+                                ip = ip.split('#')[0].strip()
+                            config['rcon_ip'] = ip
+                            logger.info(f"Found RConIP: {ip}")
 
-            logger.info(f"BattlEye config read: Port={config.get('rcon_port')}, IP={config.get('rcon_ip')}")
+            logger.info(f"BattlEye config read from {config.get('_config_file')}: Port={config.get('rcon_port')}, IP={config.get('rcon_ip')}, PwLen={config.get('_password_length')}")
             return config if config else None
 
         except Exception as e:
@@ -410,16 +429,18 @@ class RConManager:
             rcon_ip = None
 
         # Get server IP
-        if not rcon_ip:
+        if not rcon_ip or rcon_ip == '0.0.0.0':
+            # If IP is 0.0.0.0 in config, it means "listen on all interfaces"
+            # For connecting, we should use localhost
             from server_manager import ServerManager
             server_manager = ServerManager()
             rcon_ip = server_manager._get_server_ip()
 
-        # Default to localhost if no IP detected
-        if not rcon_ip:
-            rcon_ip = '127.0.0.1'
+            # If still no IP or 0.0.0.0, use localhost
+            if not rcon_ip or rcon_ip == '0.0.0.0':
+                rcon_ip = '127.0.0.1'
 
-        logger.info(f"Connecting to RCon at {rcon_ip}:{rcon_port}")
+        logger.info(f"Connecting to RCon at {rcon_ip}:{rcon_port} with password length {len(rcon_password) if rcon_password else 0}")
         return BattlEyeRCon(rcon_ip, rcon_port, rcon_password)
 
     @staticmethod

@@ -825,9 +825,16 @@ def test_rcon_connection(server_id):
 
     if be_config:
         config_debug['be_config_found'] = True
+        config_debug['config_file'] = be_config.get('_config_file', 'Unknown')
         config_debug['rcon_port'] = be_config.get('rcon_port', 'Not set')
         config_debug['rcon_ip'] = be_config.get('rcon_ip', 'Not set')
         config_debug['password_set'] = 'Yes' if be_config.get('rcon_password') else 'No'
+        config_debug['password_length'] = be_config.get('_password_length', 0)
+
+        # Show first few chars of password (for debugging)
+        if be_config.get('rcon_password'):
+            pw = be_config.get('rcon_password')
+            config_debug['password_preview'] = f"{pw[:3]}***{pw[-2:]}" if len(pw) > 5 else f"{pw[0]}***"
     else:
         config_debug['be_config_found'] = False
         config_debug['be_path'] = server.be_path

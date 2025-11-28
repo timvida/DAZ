@@ -1,6 +1,6 @@
 """
-DayZ BattlEye RCon Utility using berconpy
-Handles RCon connections to DayZ servers via BattlEye protocol
+DayZ BattlEye RCon Utility
+Using the proven 'rcon' package (https://github.com/conqp/rcon)
 """
 
 import logging
@@ -8,17 +8,16 @@ from threading import Lock
 
 logger = logging.getLogger(__name__)
 
-# Try to import berconpy
 try:
-    from berconpy import BERConClient
-    BERCON_AVAILABLE = True
+    from rcon.battleye import Client
+    RCON_AVAILABLE = True
 except ImportError:
-    BERCON_AVAILABLE = False
-    logger.error("berconpy not available - install with: pip install berconpy")
+    logger.error("rcon package not available - install with: pip install rcon")
+    RCON_AVAILABLE = False
 
 
 class BattlEyeRCon:
-    """BattlEye RCon client for DayZ servers using berconpy"""
+    """BattlEye RCon client for DayZ servers using proven rcon package"""
 
     def __init__(self, host, port, password):
         """
@@ -46,29 +45,29 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, message: str)
         """
-        if not BERCON_AVAILABLE:
-            return False, "berconpy library not installed"
+        if not RCON_AVAILABLE:
+            return False, "rcon package not installed"
 
         try:
             logger.info(f"Connecting to BattlEye RCon at {self.host}:{self.port}")
 
-            # Create BERCon client
-            self.client = BERConClient(
-                ip=self.host,
-                port=self.port,
-                password=self.password,
-                timeout=timeout
-            )
+            # Create client with context manager
+            self.client = Client(self.host, self.port, passwd=self.password, timeout=timeout)
 
-            # Connect
-            success = self.client.connect()
-
-            if success:
+            # Test connection by sending a simple command
+            try:
+                # The client connects automatically when used
+                response = self.client.run('players')
                 self.authenticated = True
-                logger.info(f"Successfully connected to RCon at {self.host}:{self.port}")
+                logger.info(f"Successfully connected to RCon")
                 return True, "Connected successfully"
-            else:
-                return False, "Connection failed - check password and port"
+            except Exception as e:
+                error_msg = str(e)
+                if 'password' in error_msg.lower() or 'login' in error_msg.lower():
+                    logger.warning("Login failed - invalid password")
+                    return False, "Invalid password"
+                logger.error(f"Connection test failed: {error_msg}")
+                return False, f"Connection failed: {error_msg}"
 
         except Exception as e:
             logger.error(f"Connection error: {str(e)}")
@@ -92,17 +91,25 @@ class BattlEyeRCon:
             try:
                 logger.debug(f"Sending command: {command}")
 
-                # Send command using berconpy
-                response = self.client.send_command(command)
+                # Parse command into parts
+                parts = command.split()
+                if not parts:
+                    return False, "Empty command"
 
-                if response is not None:
-                    logger.debug(f"Received response: {response[:100] if len(response) > 100 else response}")
-                    return True, response
-                else:
-                    return False, "No response from server"
+                # Send command
+                response = self.client.run(*parts)
+
+                # Convert response to string if needed
+                if response is None:
+                    response = ""
+                elif not isinstance(response, str):
+                    response = str(response)
+
+                logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
+                return True, response
 
             except Exception as e:
-                logger.error(f"Error sending command: {str(e)}")
+                logger.error(f"Command error: {str(e)}")
                 return False, f"Command error: {str(e)}"
 
     def send_message(self, message):
@@ -139,10 +146,9 @@ class BattlEyeRCon:
                 if not line or 'Players on server' in line or line.startswith('---'):
                     continue
 
-                # Try to parse player line
-                # Format can vary, but typically: ID, IP:Port, Ping, GUID, Name
-                # Example: "0   192.168.1.1:2304   123   12345678901234567890   PlayerName"
-                parts = line.split(None, 4)  # Split into max 5 parts
+                # Parse player line
+                # Format: ID IP:Port Ping GUID(BE) Name
+                parts = line.split(None, 4)
                 if len(parts) >= 2:
                     try:
                         player = {
@@ -168,22 +174,17 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, message: str)
         """
-        # First get list of players
         success, players = self.get_players()
 
         if not success:
             return False, "Failed to get player list"
 
-        # Kick each player
-        try:
-            kicked = 0
-            for player in players:
-                self.send_command(f'kick {player["id"]}')
-                kicked += 1
+        kicked = 0
+        for player in players:
+            self.send_command(f'kick {player["id"]}')
+            kicked += 1
 
-            return True, f"Kicked {kicked} player(s)"
-        except Exception as e:
-            return False, f"Error kicking players: {str(e)}"
+        return True, f"Kicked {kicked} player(s)"
 
     def kick_player(self, player_id):
         """
@@ -201,7 +202,7 @@ class BattlEyeRCon:
         """Close the RCon connection"""
         if self.client:
             try:
-                self.client.disconnect()
+                self.client.close()
             except:
                 pass
             self.client = None
@@ -234,17 +235,15 @@ class RConManager:
         import glob
 
         try:
-            # BattlEye config is in profiles/BattlEye/beserver_x64*.cfg
             be_path = server.be_path
             if not os.path.exists(be_path):
                 logger.warning(f"BattlEye path does not exist: {be_path}")
                 return None
 
-            # Find beserver_x64*.cfg file (can have hash in name)
+            # Find beserver_x64*.cfg file (with or without hash)
             pattern = os.path.join(be_path, 'beserver_x64*.cfg')
             config_files = glob.glob(pattern)
 
-            # Also check for case variations
             pattern_lower = os.path.join(be_path, 'BEServer_x64*.cfg')
             config_files.extend(glob.glob(pattern_lower))
 
@@ -255,36 +254,31 @@ class RConManager:
                 logger.warning(f"No BattlEye config file found in {be_path}")
                 return None
 
-            # Use the first config file found (usually there's only one)
             config_file = config_files[0]
             logger.info(f"Reading BattlEye config from: {config_file}")
 
             config = {}
-            config['_config_file'] = os.path.basename(config_file)  # Store filename for debug
+            config['_config_file'] = os.path.basename(config_file)
 
             with open(config_file, 'r') as f:
-                content = f.read()
-                config['_raw_content'] = content  # Store for debug
-
-                for line in content.split('\n'):
-                    line_stripped = line.strip()
-                    if not line_stripped or line_stripped.startswith('#'):
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
                         continue
 
-                    # Parse config lines like "RConPassword mypassword"
-                    if line_stripped.startswith('RConPassword'):
-                        parts = line_stripped.split(None, 1)
+                    if line.startswith('RConPassword'):
+                        parts = line.split(None, 1)
                         if len(parts) > 1:
                             password = parts[1].strip()
-                            # Remove any potential trailing comments
+                            # Remove inline comments
                             if '#' in password:
                                 password = password.split('#')[0].strip()
                             config['rcon_password'] = password
                             config['_password_length'] = len(password)
                             logger.info(f"Found RConPassword: length={len(password)}")
 
-                    elif line_stripped.startswith('RConPort'):
-                        parts = line_stripped.split(None, 1)
+                    elif line.startswith('RConPort'):
+                        parts = line.split(None, 1)
                         if len(parts) > 1:
                             try:
                                 port_str = parts[1].strip()
@@ -295,8 +289,8 @@ class RConManager:
                             except Exception as e:
                                 logger.error(f"Error parsing port: {e}")
 
-                    elif line_stripped.startswith('RConIP'):
-                        parts = line_stripped.split(None, 1)
+                    elif line.startswith('RConIP'):
+                        parts = line.split(None, 1)
                         if len(parts) > 1:
                             ip = parts[1].strip()
                             if '#' in ip:
@@ -304,7 +298,7 @@ class RConManager:
                             config['rcon_ip'] = ip
                             logger.info(f"Found RConIP: {ip}")
 
-            logger.info(f"BattlEye config read from {config.get('_config_file')}: Port={config.get('rcon_port')}, IP={config.get('rcon_ip')}, PwLen={config.get('_password_length')}")
+            logger.info(f"BattlEye config read: Port={config.get('rcon_port')}, IP={config.get('rcon_ip')}, PwLen={config.get('_password_length')}")
             return config if config else None
 
         except Exception as e:
@@ -313,41 +307,26 @@ class RConManager:
 
     @staticmethod
     def get_rcon_connection(server):
-        """
-        Get an RCon connection for a server
-
-        Args:
-            server: GameServer instance
-
-        Returns:
-            BattlEyeRCon: RCon connection object
-        """
-        # Try to read actual BattlEye config first
+        """Get an RCon connection for a server"""
         be_config = RConManager.read_battleye_config(server)
 
         if be_config:
-            # Use config from BattlEye file
             rcon_password = be_config.get('rcon_password', server.rcon_password)
             rcon_port = be_config.get('rcon_port', server.rcon_port)
             rcon_ip = be_config.get('rcon_ip', None)
-
             logger.info(f"Using BattlEye config: Port={rcon_port}, IP={rcon_ip}")
         else:
-            # Fallback to database values
             logger.warning("Could not read BattlEye config, using database values")
             rcon_password = server.rcon_password
             rcon_port = server.rcon_port
             rcon_ip = None
 
-        # Get server IP
+        # Convert 0.0.0.0 to actual server IP or localhost
         if not rcon_ip or rcon_ip == '0.0.0.0':
-            # If IP is 0.0.0.0 in config, it means "listen on all interfaces"
-            # For connecting, we should use localhost
             from server_manager import ServerManager
             server_manager = ServerManager()
             rcon_ip = server_manager._get_server_ip()
 
-            # If still no IP or 0.0.0.0, use localhost
             if not rcon_ip or rcon_ip == '0.0.0.0':
                 rcon_ip = '127.0.0.1'
 
@@ -356,21 +335,12 @@ class RConManager:
 
     @staticmethod
     def test_connection(server):
-        """
-        Test RCon connection to a server
-
-        Args:
-            server: GameServer instance
-
-        Returns:
-            tuple: (success: bool, message: str, details: dict)
-        """
+        """Test RCon connection"""
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
 
                 if success:
-                    # Try to get server info
                     cmd_success, response = rcon.send_command('players')
                     details = {
                         'connected': True,
@@ -392,23 +362,12 @@ class RConManager:
 
         except Exception as e:
             logger.error(f"Error testing connection: {str(e)}")
-            details = {
-                'connected': False,
-                'error': str(e)
-            }
+            details = {'connected': False, 'error': str(e)}
             return False, f"Error: {str(e)}", details
 
     @staticmethod
     def get_players(server):
-        """
-        Get list of online players
-
-        Args:
-            server: GameServer instance
-
-        Returns:
-            tuple: (success: bool, players: list, message: str)
-        """
+        """Get list of online players"""
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -427,16 +386,7 @@ class RConManager:
 
     @staticmethod
     def send_server_message(server, message):
-        """
-        Send a message to all players on a server
-
-        Args:
-            server: GameServer instance
-            message: Message to send
-
-        Returns:
-            tuple: (success: bool, message: str)
-        """
+        """Send a message to all players"""
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -455,15 +405,7 @@ class RConManager:
 
     @staticmethod
     def kick_all_players(server):
-        """
-        Kick all players from a server
-
-        Args:
-            server: GameServer instance
-
-        Returns:
-            tuple: (success: bool, message: str)
-        """
+        """Kick all players"""
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -478,16 +420,7 @@ class RConManager:
 
     @staticmethod
     def execute_command(server, command):
-        """
-        Execute a custom RCon command
-
-        Args:
-            server: GameServer instance
-            command: Command to execute
-
-        Returns:
-            tuple: (success: bool, response: str)
-        """
+        """Execute a custom RCon command"""
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()

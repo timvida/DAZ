@@ -222,14 +222,16 @@ class SteamCMDManager:
             dayz_app_id = "221100"
 
             # Build SteamCMD command for workshop download
+            # IMPORTANT: Each +command must be a separate argument
             commands = [
                 self.steamcmd_path,
-                f"+login {username} {password}",
-                f"+workshop_download_item {dayz_app_id} {workshop_id}",
+                "+login", username, password,
+                "+workshop_download_item", dayz_app_id, workshop_id,
                 "+quit"
             ]
 
-            print(f"Downloading workshop mod {workshop_id}...")
+            print(f"Downloading workshop mod {workshop_id} via SteamCMD...")
+            print(f"Command: {' '.join(commands)}")
 
             # Run download
             process = subprocess.Popen(
@@ -249,11 +251,48 @@ class SteamCMDManager:
             # Check for success
             if "Success" in output or "Download complete" in output or f"Downloaded item {workshop_id}" in output:
                 # Find the downloaded mod in steamcmd workshop folder
-                # Default location: steamcmd/steamapps/workshop/content/221100/{workshop_id}
-                steamcmd_dir = os.path.dirname(self.steamcmd_path)
-                workshop_mod_path = os.path.join(steamcmd_dir, "steamapps", "workshop", "content", dayz_app_id, workshop_id)
+                # Try multiple possible locations
+                possible_paths = []
 
-                if os.path.exists(workshop_mod_path):
+                # 1. Based on steamcmd binary location
+                if self.steamcmd_path:
+                    steamcmd_dir = os.path.dirname(self.steamcmd_path)
+                    possible_paths.append(os.path.join(steamcmd_dir, "steamapps", "workshop", "content", dayz_app_id, workshop_id))
+
+                # 2. User home directory (from install.sh)
+                home_dir = os.path.expanduser("~")
+                possible_paths.append(os.path.join(home_dir, "steamcmd", "steamapps", "workshop", "content", dayz_app_id, workshop_id))
+
+                # 3. Common locations
+                possible_paths.append(os.path.join("/home", os.environ.get('USER', 'user'), "steamcmd", "steamapps", "workshop", "content", dayz_app_id, workshop_id))
+                possible_paths.append(os.path.join("/opt", "steamcmd", "steamapps", "workshop", "content", dayz_app_id, workshop_id))
+
+                # 4. Search using find command as fallback
+                workshop_mod_path = None
+                for path in possible_paths:
+                    print(f"Checking path: {path}")
+                    if os.path.exists(path):
+                        workshop_mod_path = path
+                        print(f"Found mod at: {workshop_mod_path}")
+                        break
+
+                # If still not found, use find command
+                if not workshop_mod_path:
+                    print(f"Mod not found in standard locations, searching...")
+                    try:
+                        import subprocess as sp
+                        # Search for the workshop_id directory
+                        find_result = sp.run(
+                            ['find', home_dir, '-type', 'd', '-name', workshop_id, '-path', '*/steamapps/workshop/content/*'],
+                            capture_output=True, text=True, timeout=10
+                        )
+                        if find_result.returncode == 0 and find_result.stdout.strip():
+                            workshop_mod_path = find_result.stdout.strip().split('\n')[0]
+                            print(f"Found mod via search: {workshop_mod_path}")
+                    except Exception as e:
+                        print(f"Search failed: {e}")
+
+                if workshop_mod_path and os.path.exists(workshop_mod_path):
                     # Move/copy to server install directory
                     # We need to find the mod.cpp to get the mod name
                     mod_name = self._get_mod_name_from_path(workshop_mod_path)
@@ -272,7 +311,9 @@ class SteamCMDManager:
 
                     return True, f"Mod downloaded successfully to {mod_folder}", target_path
                 else:
-                    return False, f"Mod downloaded but not found at expected location: {workshop_mod_path}", None
+                    # Show all checked paths in error message
+                    paths_checked = "\n".join(possible_paths)
+                    return False, f"Mod downloaded but not found. Checked locations:\n{paths_checked}", None
 
             # Check for errors
             if "Invalid Password" in output or "Invalid credentials" in output:

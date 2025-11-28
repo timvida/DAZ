@@ -30,23 +30,30 @@ class ModManager:
             existing_mods = {mod.mod_folder: mod for mod in ServerMod.query.filter_by(server_id=server_id).all()}
 
             mods_found = 0
+            mods_updated = 0
             for mod_folder_path in mod_folders:
                 if not os.path.isdir(mod_folder_path):
                     continue
 
                 mod_folder = os.path.basename(mod_folder_path)
 
-                # Skip if mod already exists in database
+                # Calculate folder size
+                folder_size = self._get_folder_size(mod_folder_path)
+
+                # Update existing mod if it exists
                 if mod_folder in existing_mods:
+                    existing_mod = existing_mods[mod_folder]
+                    # Update size if it's missing or changed
+                    if existing_mod.file_size != folder_size:
+                        existing_mod.file_size = folder_size
+                        existing_mod.last_updated = datetime.utcnow()
+                        mods_updated += 1
                     continue
 
                 # Try to get mod name from mod.cpp
                 mod_name = self._get_mod_display_name(mod_folder_path)
                 if not mod_name:
                     mod_name = mod_folder[1:]  # Remove @ prefix
-
-                # Calculate folder size
-                folder_size = self._get_folder_size(mod_folder_path)
 
                 # Create new mod entry
                 new_mod = ServerMod(
@@ -63,7 +70,18 @@ class ModManager:
                 mods_found += 1
 
             db.session.commit()
-            return True, f"Scan complete. Found {mods_found} new mod(s)", mods_found
+
+            # Build message
+            if mods_found > 0 and mods_updated > 0:
+                message = f"Scan complete. Found {mods_found} new mod(s), updated {mods_updated} mod(s)"
+            elif mods_found > 0:
+                message = f"Scan complete. Found {mods_found} new mod(s)"
+            elif mods_updated > 0:
+                message = f"Scan complete. Updated {mods_updated} mod(s)"
+            else:
+                message = "Scan complete. No changes detected"
+
+            return True, message, mods_found
 
         except Exception as e:
             db.session.rollback()

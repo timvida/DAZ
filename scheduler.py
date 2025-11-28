@@ -1,5 +1,10 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.interval import IntervalTrigger
+    APSCHEDULER_AVAILABLE = True
+except ImportError:
+    APSCHEDULER_AVAILABLE = False
+
 from datetime import datetime
 import logging
 
@@ -13,12 +18,22 @@ class ModUpdateScheduler:
     def __init__(self, app, mod_manager):
         self.app = app
         self.mod_manager = mod_manager
-        self.scheduler = BackgroundScheduler()
-        self.scheduler.start()
-        logger.info("Mod Update Scheduler initialized")
+        self.scheduler = None
+
+        if APSCHEDULER_AVAILABLE:
+            self.scheduler = BackgroundScheduler()
+            self.scheduler.start()
+            logger.info("Mod Update Scheduler initialized")
+        else:
+            logger.warning("APScheduler not installed - Auto-update for mods is disabled")
+            logger.warning("Install with: pip install apscheduler")
 
     def start_auto_update_task(self):
         """Start the auto-update task (runs every 60 minutes)"""
+        if not APSCHEDULER_AVAILABLE or not self.scheduler:
+            logger.warning("Cannot start auto-update task - APScheduler not available")
+            return
+
         self.scheduler.add_job(
             func=self._update_mods_task,
             trigger=IntervalTrigger(minutes=60),
@@ -45,6 +60,6 @@ class ModUpdateScheduler:
 
     def shutdown(self):
         """Shutdown the scheduler"""
-        if self.scheduler.running:
+        if self.scheduler and hasattr(self.scheduler, 'running') and self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("Mod Update Scheduler shut down")

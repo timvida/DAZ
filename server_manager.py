@@ -2,6 +2,7 @@ import os
 import subprocess
 import signal
 import multiprocessing
+import glob
 from pathlib import Path
 from config import Config
 from database import db, GameServer
@@ -118,6 +119,9 @@ class ServerManager:
 
             # Make sure executable has execute permissions
             os.chmod(executable, 0o755)
+
+            # Ensure BattlEye config exists before starting server
+            self._ensure_battleye_config(server)
 
             # Prepare DayZ start command with all parameters
             cmd = [
@@ -369,6 +373,42 @@ RConIP 127.0.0.1
             print(f"Created BEServer_x64.cfg at {be_config_path}")
         except Exception as e:
             print(f"Error creating BEServer_x64.cfg: {str(e)}")
+
+    def _ensure_battleye_config(self, server):
+        """Ensure BattlEye config exists before server start"""
+        # Make sure BattlEye directory exists
+        if not os.path.exists(server.be_path):
+            os.makedirs(server.be_path, exist_ok=True)
+            print(f"Created BattlEye directory at {server.be_path}")
+
+        # Search for any BEServer_x64*.cfg file (but exclude .so files)
+        # Pattern: BEServer_x64*.cfg (case-insensitive search)
+        search_pattern = os.path.join(server.be_path, 'BEServer_x64*.cfg')
+        existing_configs = glob.glob(search_pattern)
+
+        # Also check for case variations
+        search_pattern_lower = os.path.join(server.be_path, 'beserver_x64*.cfg')
+        existing_configs.extend(glob.glob(search_pattern_lower))
+
+        # Filter out .so files just in case
+        existing_configs = [f for f in existing_configs if not f.endswith('.so')]
+
+        # If no config file found, create one
+        if not existing_configs:
+            be_config_path = os.path.join(server.be_path, 'BEServer_x64.cfg')
+            be_config_content = f"""RConPassword {server.rcon_password}
+RestrictRCon 0
+RConPort {server.rcon_port}
+RConIP 127.0.0.1
+"""
+            try:
+                with open(be_config_path, 'w') as f:
+                    f.write(be_config_content)
+                print(f"Created BEServer_x64.cfg at {be_config_path} (auto-created on server start)")
+            except Exception as e:
+                print(f"Error creating BEServer_x64.cfg: {str(e)}")
+        else:
+            print(f"BattlEye config already exists: {existing_configs[0]}")
 
     def get_server_config(self, server_id):
         """Read serverDZ.cfg and parse it into a dictionary"""

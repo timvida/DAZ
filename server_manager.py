@@ -67,6 +67,45 @@ class ServerManager:
         except:
             return 2  # Default fallback
 
+    def _get_server_ip(self):
+        """Get the public/external IP address of the server"""
+        try:
+            # Method 1: Try to get from hostname -I (local IP)
+            result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                # Get first IP address
+                ip = result.stdout.strip().split()[0]
+                if ip and not ip.startswith('127.'):
+                    return ip
+
+            # Method 2: Try to get public IP from external service
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(2)
+            try:
+                # Connect to Google DNS to get the outgoing IP
+                s.connect(('8.8.8.8', 80))
+                ip = s.getsockname()[0]
+                s.close()
+                if ip and not ip.startswith('127.'):
+                    return ip
+            except:
+                pass
+
+            # Method 3: Try reading from network interfaces
+            result = subprocess.run(['ip', 'route', 'get', '1.1.1.1'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                # Parse output to get IP
+                import re
+                match = re.search(r'src\s+(\S+)', result.stdout)
+                if match:
+                    return match.group(1)
+
+        except Exception as e:
+            print(f"Warning: Could not detect server IP: {e}")
+
+        return None
+
     def get_server(self, server_id):
         """Get server by ID"""
         return GameServer.query.get(server_id)
@@ -123,6 +162,9 @@ class ServerManager:
             # Ensure BattlEye config exists before starting server
             self._ensure_battleye_config(server)
 
+            # Get server IP for Steam server browser visibility
+            server_ip = self._get_server_ip()
+
             # Prepare DayZ start command with all parameters
             cmd = [
                 executable,
@@ -130,8 +172,16 @@ class ServerManager:
                 f'-port={server.server_port}',
                 f'-profiles={server.profile_path}',
                 f'-BEpath={server.be_path}',
-                f'-cpuCount={server.cpu_count}'
+                f'-cpuCount={server.cpu_count}',
+                f'-doLogs',
+                f'-adminLog',
+                f'-netLog',
+                f'-freezeCheck'
             ]
+
+            # Add IP parameter for server browser visibility
+            if server_ip:
+                cmd.append(f'-ip={server_ip}')
 
             # Add mod parameters if they exist
             if server.mods and server.mods.strip():

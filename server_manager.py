@@ -124,14 +124,12 @@ class ServerManager:
             self._ensure_battleye_config(server)
 
             # Prepare DayZ start command with all parameters
-            # BEpath should include the full path to the config file
-            be_config_file = os.path.join(server.be_path, 'BEServer_x64.cfg')
             cmd = [
                 executable,
                 f'-config=serverDZ.cfg',
                 f'-port={server.server_port}',
                 f'-profiles={server.profile_path}',
-                f'-BEpath={be_config_file}',
+                f'-BEpath={server.be_path}',
                 f'-cpuCount={server.cpu_count}'
             ]
 

@@ -82,16 +82,16 @@ class BattlEyeRCon:
         """
         try:
             # Build login packet
-            # Format: 'BE' + CRC32 + 0xFF + packet_type + password
-            packet = b'BE'
-            packet += b'\x00\x00\x00\x00'  # CRC32 placeholder
-            packet += b'\xFF'  # Login packet identifier
-            packet += self.PACKET_LOGIN.to_bytes(1, 'little')
-            packet += self.password.encode('utf-8')
+            # Format: 'BE' + CRC32 + 0xFF + 0x00 + password
+            payload = b'\xff\x00' + self.password.encode('ascii')
 
-            # Calculate and insert CRC32
-            crc = self._calculate_crc32(packet[6:])
-            packet = packet[:2] + struct.pack('<I', crc) + packet[6:]
+            # Calculate CRC32 for the payload
+            crc = self._calculate_crc32(payload)
+
+            # Build complete packet: 'BE' + CRC32 + payload
+            packet = b'BE' + struct.pack('<I', crc) + payload
+
+            logger.info(f"Sending login packet: {len(packet)} bytes, CRC={crc:08x}")
 
             # Send login packet
             self.socket.sendto(packet, (self.host, self.port))
@@ -99,19 +99,30 @@ class BattlEyeRCon:
             # Wait for response
             data, addr = self.socket.recvfrom(4096)
 
-            if len(data) < 9:
+            logger.info(f"Received login response: {len(data)} bytes")
+
+            if len(data) < 7:
                 return False, "Invalid response from server"
 
-            # Check if login was successful
-            # Response format: 'BE' + CRC32 + 0xFF + 0x01 (login success) or 0x00 (login failed)
-            if data[7] == 0x01:
-                return True, "Login successful"
-            else:
-                return False, "Invalid password"
+            # Check header
+            if data[:2] != b'BE':
+                return False, "Invalid response header"
+
+            # Check response type (byte 6 should be 0xFF, byte 7 should be 0x01 for success)
+            if len(data) >= 8 and data[6] == 0xFF:
+                if data[7] == 0x01:
+                    logger.info("Login successful")
+                    return True, "Login successful"
+                elif data[7] == 0x00:
+                    logger.warning("Login failed: Invalid password")
+                    return False, "Invalid password"
+
+            return False, "Unexpected response from server"
 
         except socket.timeout:
             return False, "Login timeout"
         except Exception as e:
+            logger.error(f"Login error: {str(e)}")
             return False, f"Login error: {str(e)}"
 
     def send_command(self, command, timeout=5):
@@ -133,38 +144,58 @@ class BattlEyeRCon:
                 self.sequence = (self.sequence + 1) % 256
 
                 # Build command packet
-                # Format: 'BE' + CRC32 + 0xFF + packet_type + sequence + command
-                packet = b'BE'
-                packet += b'\x00\x00\x00\x00'  # CRC32 placeholder
-                packet += b'\xFF'  # Command packet identifier
-                packet += self.PACKET_COMMAND.to_bytes(1, 'little')
-                packet += self.sequence.to_bytes(1, 'little')
-                packet += command.encode('utf-8')
+                # Format: 'BE' + CRC32 + 0xFF + 0x01 + sequence + command
+                payload = b'\xff\x01' + self.sequence.to_bytes(1, 'little') + command.encode('ascii')
 
-                # Calculate and insert CRC32
-                crc = self._calculate_crc32(packet[6:])
-                packet = packet[:2] + struct.pack('<I', crc) + packet[6:]
+                # Calculate CRC32
+                crc = self._calculate_crc32(payload)
+
+                # Build complete packet
+                packet = b'BE' + struct.pack('<I', crc) + payload
+
+                logger.debug(f"Sending command '{command}': {len(packet)} bytes, seq={self.sequence}")
 
                 # Send command packet
                 self.socket.sendto(packet, (self.host, self.port))
 
-                # Wait for acknowledgment
+                # Wait for response(s)
                 old_timeout = self.socket.gettimeout()
                 self.socket.settimeout(timeout)
 
+                responses = []
                 try:
-                    data, addr = self.socket.recvfrom(4096)
+                    # BattlEye may send multiple response packets
+                    while True:
+                        try:
+                            data, addr = self.socket.recvfrom(4096)
 
-                    if len(data) >= 9:
-                        # Parse response
-                        # Multi-packet responses are handled here
-                        response = data[9:].decode('utf-8', errors='ignore')
-                        return True, response
+                            if len(data) < 7:
+                                break
+
+                            # Check header
+                            if data[:2] != b'BE':
+                                break
+
+                            # Response format: 'BE' + CRC32 + 0xFF + 0x01 + sequence + data
+                            if len(data) >= 9 and data[6] == 0xFF and data[7] == 0x01:
+                                # Extract response data
+                                response_data = data[9:].decode('ascii', errors='ignore')
+                                responses.append(response_data)
+
+                                # If this is a single-packet response, break
+                                # Multi-packet responses are rare for most commands
+                                break
+                        except socket.timeout:
+                            break
+
+                    if responses:
+                        return True, '\n'.join(responses)
                     else:
                         return True, ""
 
-                except socket.timeout:
-                    return False, "Command timeout"
+                except Exception as e:
+                    logger.error(f"Error receiving response: {str(e)}")
+                    return False, f"Response error: {str(e)}"
                 finally:
                     self.socket.settimeout(old_timeout)
 
@@ -284,16 +315,10 @@ class BattlEyeRCon:
         Returns:
             int: CRC32 checksum
         """
+        import zlib
+        # Use Python's built-in CRC32 (which is the standard implementation)
         # BattlEye uses standard CRC32
-        crc = 0xFFFFFFFF
-        for byte in data:
-            crc ^= byte
-            for _ in range(8):
-                if crc & 1:
-                    crc = (crc >> 1) ^ 0xEDB88320
-                else:
-                    crc >>= 1
-        return crc ^ 0xFFFFFFFF
+        return zlib.crc32(data) & 0xFFFFFFFF
 
     def __enter__(self):
         """Context manager entry"""

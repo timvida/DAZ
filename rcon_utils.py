@@ -31,7 +31,6 @@ class BattlEyeRCon:
         self.host = host
         self.port = int(port)
         self.password = password
-        self.client = None
         self.authenticated = False
         self.lock = Lock()
 
@@ -51,16 +50,13 @@ class BattlEyeRCon:
         try:
             logger.info(f"Connecting to BattlEye RCon at {self.host}:{self.port}")
 
-            # Create client with context manager
-            self.client = Client(self.host, self.port, passwd=self.password, timeout=timeout)
-
-            # Test connection by sending a simple command
+            # Test connection by sending a simple command using context manager
             try:
-                # The client connects automatically when used
-                response = self.client.run('players')
-                self.authenticated = True
-                logger.info(f"Successfully connected to RCon")
-                return True, "Connected successfully"
+                with Client(self.host, self.port, passwd=self.password, timeout=timeout) as client:
+                    response = client.run('players')
+                    self.authenticated = True
+                    logger.info(f"Successfully connected to RCon")
+                    return True, "Connected successfully"
             except Exception as e:
                 error_msg = str(e)
                 if 'password' in error_msg.lower() or 'login' in error_msg.lower():
@@ -84,7 +80,7 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, response: str)
         """
-        if not self.authenticated or not self.client:
+        if not self.authenticated:
             return False, "Not authenticated"
 
         with self.lock:
@@ -96,17 +92,18 @@ class BattlEyeRCon:
                 if not parts:
                     return False, "Empty command"
 
-                # Send command
-                response = self.client.run(*parts)
+                # Send command using context manager
+                with Client(self.host, self.port, passwd=self.password, timeout=timeout) as client:
+                    response = client.run(*parts)
 
-                # Convert response to string if needed
-                if response is None:
-                    response = ""
-                elif not isinstance(response, str):
-                    response = str(response)
+                    # Convert response to string if needed
+                    if response is None:
+                        response = ""
+                    elif not isinstance(response, str):
+                        response = str(response)
 
-                logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
-                return True, response
+                    logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
+                    return True, response
 
             except Exception as e:
                 logger.error(f"Command error: {str(e)}")
@@ -200,12 +197,7 @@ class BattlEyeRCon:
 
     def disconnect(self):
         """Close the RCon connection"""
-        if self.client:
-            try:
-                self.client.close()
-            except:
-                pass
-            self.client = None
+        # Client is managed by context managers, just reset auth state
         self.authenticated = False
 
     def __enter__(self):

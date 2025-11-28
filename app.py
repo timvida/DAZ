@@ -812,12 +812,38 @@ def server_rcon(server_id):
 def test_rcon_connection(server_id):
     """Test RCon connection"""
     from rcon_utils import RConManager
+    import glob
+    import os
 
     server = server_manager.get_server(server_id)
     if not server:
         return jsonify({'success': False, 'message': 'Server not found'}), 404
 
+    # Add debug info about BattlEye config
+    be_config = RConManager.read_battleye_config(server)
+    config_debug = {}
+
+    if be_config:
+        config_debug['be_config_found'] = True
+        config_debug['rcon_port'] = be_config.get('rcon_port', 'Not set')
+        config_debug['rcon_ip'] = be_config.get('rcon_ip', 'Not set')
+        config_debug['password_set'] = 'Yes' if be_config.get('rcon_password') else 'No'
+    else:
+        config_debug['be_config_found'] = False
+        config_debug['be_path'] = server.be_path
+        # Check what files exist
+        if os.path.exists(server.be_path):
+            pattern = os.path.join(server.be_path, 'beserver_x64*.cfg')
+            files = glob.glob(pattern)
+            pattern2 = os.path.join(server.be_path, 'BEServer_x64*.cfg')
+            files.extend(glob.glob(pattern2))
+            config_debug['config_files_found'] = [os.path.basename(f) for f in files if not f.endswith('.so')]
+        else:
+            config_debug['be_path_exists'] = False
+
     success, message, details = RConManager.test_connection(server)
+    details['config_debug'] = config_debug
+
     return jsonify({'success': success, 'message': message, 'details': details})
 
 

@@ -308,6 +308,80 @@ class RConManager:
     """Manager for RCon operations on game servers"""
 
     @staticmethod
+    def read_battleye_config(server):
+        """
+        Read BattlEye configuration from the actual config file
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            dict: Config values (rcon_password, rcon_port, rcon_ip) or None
+        """
+        import os
+        import glob
+        import re
+
+        try:
+            # BattlEye config is in profiles/BattlEye/beserver_x64*.cfg
+            be_path = server.be_path
+            if not os.path.exists(be_path):
+                logger.warning(f"BattlEye path does not exist: {be_path}")
+                return None
+
+            # Find beserver_x64*.cfg file (can have hash in name)
+            pattern = os.path.join(be_path, 'beserver_x64*.cfg')
+            config_files = glob.glob(pattern)
+
+            # Also check for case variations
+            pattern_lower = os.path.join(be_path, 'BEServer_x64*.cfg')
+            config_files.extend(glob.glob(pattern_lower))
+
+            # Filter out .so files
+            config_files = [f for f in config_files if not f.endswith('.so')]
+
+            if not config_files:
+                logger.warning(f"No BattlEye config file found in {be_path}")
+                return None
+
+            # Use the first config file found (usually there's only one)
+            config_file = config_files[0]
+            logger.info(f"Reading BattlEye config from: {config_file}")
+
+            config = {}
+            with open(config_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+
+                    # Parse config lines like "RConPassword mypassword"
+                    if line.startswith('RConPassword'):
+                        parts = line.split(None, 1)
+                        if len(parts) > 1:
+                            config['rcon_password'] = parts[1].strip()
+
+                    elif line.startswith('RConPort'):
+                        parts = line.split(None, 1)
+                        if len(parts) > 1:
+                            try:
+                                config['rcon_port'] = int(parts[1].strip())
+                            except:
+                                pass
+
+                    elif line.startswith('RConIP'):
+                        parts = line.split(None, 1)
+                        if len(parts) > 1:
+                            config['rcon_ip'] = parts[1].strip()
+
+            logger.info(f"BattlEye config read: Port={config.get('rcon_port')}, IP={config.get('rcon_ip')}")
+            return config if config else None
+
+        except Exception as e:
+            logger.error(f"Error reading BattlEye config: {str(e)}")
+            return None
+
+    @staticmethod
     def get_rcon_connection(server):
         """
         Get an RCon connection for a server
@@ -318,16 +392,35 @@ class RConManager:
         Returns:
             BattlEyeRCon: RCon connection object
         """
+        # Try to read actual BattlEye config first
+        be_config = RConManager.read_battleye_config(server)
+
+        if be_config:
+            # Use config from BattlEye file
+            rcon_password = be_config.get('rcon_password', server.rcon_password)
+            rcon_port = be_config.get('rcon_port', server.rcon_port)
+            rcon_ip = be_config.get('rcon_ip', None)
+
+            logger.info(f"Using BattlEye config: Password={'***' if rcon_password else 'NONE'}, Port={rcon_port}, IP={rcon_ip}")
+        else:
+            # Fallback to database values
+            logger.warning("Could not read BattlEye config, using database values")
+            rcon_password = server.rcon_password
+            rcon_port = server.rcon_port
+            rcon_ip = None
+
         # Get server IP
-        from server_manager import ServerManager
-        server_manager = ServerManager()
-        server_ip = server_manager._get_server_ip()
+        if not rcon_ip:
+            from server_manager import ServerManager
+            server_manager = ServerManager()
+            rcon_ip = server_manager._get_server_ip()
 
         # Default to localhost if no IP detected
-        if not server_ip:
-            server_ip = '127.0.0.1'
+        if not rcon_ip:
+            rcon_ip = '127.0.0.1'
 
-        return BattlEyeRCon(server_ip, server.rcon_port, server.rcon_password)
+        logger.info(f"Connecting to RCon at {rcon_ip}:{rcon_port}")
+        return BattlEyeRCon(rcon_ip, rcon_port, rcon_password)
 
     @staticmethod
     def test_connection(server):

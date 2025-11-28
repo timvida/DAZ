@@ -28,6 +28,10 @@
                         <span class="mr-4"><strong>IP:</strong> <span id="serverIP">-</span></span>
                         <span><strong>Port:</strong> <span id="serverPort">-</span></span>
                     </div>
+                    <div id="configDebug" class="mt-3 p-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-xs hidden">
+                        <div class="font-bold text-white mb-2">BattlEye Config Debug:</div>
+                        <div id="configDebugContent" class="text-gray-400 space-y-1"></div>
+                    </div>
                 </div>
             </div>
             <button onclick="testConnection()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 flex items-center gap-2">
@@ -170,6 +174,8 @@
         const icon = document.getElementById('connectionStatusIcon');
         const text = document.getElementById('connectionStatusText');
         const detailsDiv = document.getElementById('connectionDetails');
+        const debugDiv = document.getElementById('configDebug');
+        const debugContent = document.getElementById('configDebugContent');
 
         if (success) {
             icon.className = 'w-12 h-12 bg-green-500 rounded-full flex items-center justify-center';
@@ -193,6 +199,37 @@
                 document.getElementById('serverIP').textContent = details.server_ip || '-';
                 document.getElementById('serverPort').textContent = details.rcon_port || '-';
             }
+        }
+
+        // Show debug info
+        if (details && details.config_debug) {
+            const debug = details.config_debug;
+            let debugHtml = '';
+
+            if (debug.be_config_found) {
+                debugHtml += `<div class="text-green-400">✓ BattlEye Config gefunden</div>`;
+                debugHtml += `<div>RCon Port: ${debug.rcon_port}</div>`;
+                debugHtml += `<div>RCon IP: ${debug.rcon_ip}</div>`;
+                debugHtml += `<div>Passwort gesetzt: ${debug.password_set}</div>`;
+            } else {
+                debugHtml += `<div class="text-red-400">✗ BattlEye Config nicht gefunden</div>`;
+                debugHtml += `<div>BE Pfad: ${debug.be_path || 'N/A'}</div>`;
+                if (debug.be_path_exists === false) {
+                    debugHtml += `<div class="text-red-400">✗ BattlEye Verzeichnis existiert nicht!</div>`;
+                } else if (debug.config_files_found) {
+                    if (debug.config_files_found.length > 0) {
+                        debugHtml += `<div class="text-yellow-400">Gefundene Dateien:</div>`;
+                        debug.config_files_found.forEach(file => {
+                            debugHtml += `<div class="ml-4">• ${file}</div>`;
+                        });
+                    } else {
+                        debugHtml += `<div class="text-red-400">Keine beserver_x64*.cfg Dateien gefunden</div>`;
+                    }
+                }
+            }
+
+            debugContent.innerHTML = debugHtml;
+            debugDiv.classList.remove('hidden');
         }
     }
 

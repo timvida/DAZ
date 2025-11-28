@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} - Scheduler{% endblock %}
+
+{% block page_title %}{{ server.name }}{% endblock %}
+{% block page_subtitle %}Automated Scheduler{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+    <i class="fas fa-arrow-left"></i>
+    <span class="hidden lg:inline">Back to Dashboard</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-6">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-2">Scheduler Verwaltung</h2>
+                <p class="text-gray-400">Automatisiere Server-Neustarts und Nachrichten</p>
+            </div>
+            <button onclick="openCreateScheduler()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
+                <i class="fas fa-plus"></i>
+                <span>Neuer Scheduler</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Schedulers Count -->
+    <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-clock text-[#E32345] text-xl"></i>
+            <span class="text-white font-medium">Aktive Scheduler: <strong id="activeCount">0</strong></span>
+        </div>
+    </div>
+
+    <!-- Schedulers List -->
+    <div id="schedulersList" class="space-y-4">
+        <!-- Scheduler items will be inserted here -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-12 text-center hidden">
+        <i class="fas fa-calendar-xmark text-gray-600 text-5xl mb-4"></i>
+        <h3 class="text-xl font-bold text-white mb-2">Keine Scheduler erstellt</h3>
+        <p class="text-gray-400 mb-6">Erstelle deinen ersten Scheduler, um Server-Aufgaben zu automatisieren</p>
+        <button onclick="openCreateScheduler()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition inline-flex items-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>Ersten Scheduler erstellen</span>
+        </button>
+    </div>
+</div>
+
+<!-- Create/Edit Scheduler Modal -->
+<div id="schedulerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto p-4">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-3xl w-full p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white" id="modalTitle">Neuer Scheduler</h3>
+                <button onclick="closeSchedulerModal()" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+
+            <form id="schedulerForm" class="space-y-6">
+                <input type="hidden" id="schedulerId" value="">
+
+                <!-- Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        Name <span class="text-[#E32345]">*</span>
+                    </label>
+                    <input type="text" id="schedulerName" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="z.B. Täglicher Neustart">
+                </div>
+
+                <!-- Time Selection -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Stunde <span class="text-[#E32345]">*</span>
+                        </label>
+                        <select id="schedulerHour" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            <option value="">Wählen...</option>
+                            <script>
+                                for (let i = 0; i < 24; i++) {
+                                    document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Minute <span class="text-[#E32345]">*</span>
+                        </label>
+                        <select id="schedulerMinute" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            <option value="">Wählen...</option>
+                            <script>
+                                for (let i = 0; i < 60; i += 5) {
+                                    document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Weekdays -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-3">
+                        Wochentage <span class="text-[#E32345]">*</span>
+                    </label>
+                    <div class="grid grid-cols-7 gap-2">
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
+                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
+                    </div>
+                </div>
+
+                <!-- Action Type -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        Aktion <span class="text-[#E32345]">*</span>
+                    </label>
+                    <select id="actionType" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                        <option value="">Wählen...</option>
+                        <option value="restart">Server neustarten</option>
+                        <option value="message">Server-Nachricht senden</option>
+                    </select>
+                </div>
+
+                <!-- Restart Options -->
+                <div id="restartOptions" class="hidden space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
+                    <h4 class="font-medium text-white mb-3">Neustart-Einstellungen</h4>
+
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="kickAllPlayers" checked class="w-5 h-5 bg-[#0D1117] border border-[#E32345]/30 rounded text-[#E32345] focus:ring-[#E32345]">
+                        <label for="kickAllPlayers" class="text-gray-300">Alle Spieler kicken</label>
+                    </div>
+
+                    <div id="kickOptions">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Minuten vor Neustart für Kick
+                        </label>
+                        <input type="number" id="kickMinutes" value="1" min="0" max="60" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Warnungs-Zeiten (Minuten vor Neustart)
+                        </label>
+                        <div id="warningMinutesContainer" class="flex flex-wrap gap-2 mb-2">
+                            <!-- Warning tags will be inserted here -->
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" id="newWarningMinute" min="1" max="120" placeholder="Minuten..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            <button type="button" onclick="addWarningMinute()" class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Options -->
+                <div id="messageOptions" class="hidden space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
+                    <h4 class="font-medium text-white mb-3">Nachrichten-Einstellungen</h4>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Nachricht
+                        </label>
+                        <textarea id="customMessage" rows="3" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="Deine Nachricht an alle Spieler..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
+                        <i class="fas fa-save mr-2"></i>Speichern
+                    </button>
+                    <button type="button" onclick="closeSchedulerModal()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition">
+                        Abbrechen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-[#E32345]/30 border-t-[#E32345] rounded-full animate-spin mx-auto mb-4"></div>
+            <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Lädt...</h3>
+        </div>
+    </div>
+</div>
+
+<script>
+    const serverId = {{ server.id }};
+    let selectedWeekdays = new Set();
+    let warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
+    let editingSchedulerId = null;
+
+    // Load schedulers on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSchedulers();
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        // Weekday buttons
+        document.querySelectorAll('.weekday-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const day = parseInt(this.dataset.day);
+                if (selectedWeekdays.has(day)) {
+                    selectedWeekdays.delete(day);
+                    this.classList.remove('bg-[#E32345]', 'border-[#E32345]');
+                    this.classList.add('bg-[#0D1117]', 'border-[#E32345]/30');
+                } else {
+                    selectedWeekdays.add(day);
+                    this.classList.add('bg-[#E32345]', 'border-[#E32345]');
+                    this.classList.remove('bg-[#0D1117]', 'border-[#E32345]/30');
+                }
+            });
+        });
+
+        // Action type change
+        document.getElementById('actionType').addEventListener('change', function() {
+            const restartOptions = document.getElementById('restartOptions');
+            const messageOptions = document.getElementById('messageOptions');
+
+            if (this.value === 'restart') {
+                restartOptions.classList.remove('hidden');
+                messageOptions.classList.add('hidden');
+            } else if (this.value === 'message') {
+                restartOptions.classList.add('hidden');
+                messageOptions.classList.remove('hidden');
+            } else {
+                restartOptions.classList.add('hidden');
+                messageOptions.classList.add('hidden');
+            }
+        });
+
+        // Kick players checkbox
+        document.getElementById('kickAllPlayers').addEventListener('change', function() {
+            const kickOptions = document.getElementById('kickOptions');
+            if (this.checked) {
+                kickOptions.classList.remove('hidden');
+            } else {
+                kickOptions.classList.add('hidden');
+            }
+        });
+
+        // Form submission
+        document.getElementById('schedulerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveScheduler();
+        });
+    }
+
+    function loadSchedulers() {
+        showLoading('Lade Scheduler...');
+        fetch(`/api/server/${serverId}/schedulers`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    displaySchedulers(data.schedulers);
+                } else {
+                    alert('Fehler beim Laden der Scheduler');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('Fehler beim Laden der Scheduler');
+            });
+    }
+
+    function displaySchedulers(schedulers) {
+        const container = document.getElementById('schedulersList');
+        const emptyState = document.getElementById('emptyState');
+        const activeCount = schedulers.filter(s => s.is_active).length;
+
+        document.getElementById('activeCount').textContent = activeCount;
+
+        if (schedulers.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        container.innerHTML = schedulers.map(scheduler => createSchedulerCard(scheduler)).join('');
+    }
+
+    function createSchedulerCard(scheduler) {
+        const weekdayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+        const weekdaysStr = scheduler.weekdays.map(d => weekdayNames[d]).join(', ');
+        const timeStr = `${String(scheduler.hour).padStart(2, '0')}:${String(scheduler.minute).padStart(2, '0')}`;
+        const actionIcon = scheduler.action_type === 'restart' ? 'fa-rotate-right' : 'fa-message';
+        const actionText = scheduler.action_type === 'restart' ? 'Server neustarten' : 'Nachricht senden';
+        const statusColor = scheduler.is_active ? 'green' : 'gray';
+        const statusText = scheduler.is_active ? 'Aktiv' : 'Inaktiv';
+
+        return `
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h3 class="text-xl font-bold text-white">${scheduler.name}</h3>
+                            <span class="px-3 py-1 bg-${statusColor}-500/20 border border-${statusColor}-500 text-${statusColor}-500 rounded-lg text-xs font-bold">
+                                ${statusText}
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-400">
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-clock text-[#E32345]"></i>
+                                <strong class="text-white">${timeStr} Uhr</strong>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-calendar text-[#E32345]"></i>
+                                <strong class="text-white">${weekdaysStr}</strong>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i class="fas ${actionIcon} text-[#E32345]"></i>
+                                <strong class="text-white">${actionText}</strong>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${scheduler.is_active ? 'checked' : ''} onchange="toggleScheduler(${scheduler.id}, this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E32345]"></div>
+                        </label>
+                        <button onclick="editScheduler(${scheduler.id})" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteScheduler(${scheduler.id})" class="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function openCreateScheduler() {
+        editingSchedulerId = null;
+        document.getElementById('modalTitle').textContent = 'Neuer Scheduler';
+        document.getElementById('schedulerForm').reset();
+        selectedWeekdays.clear();
+        warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
+        updateWarningMinutesDisplay();
+
+        // Reset weekday buttons
+        document.querySelectorAll('.weekday-btn').forEach(btn => {
+            btn.classList.remove('bg-[#E32345]', 'border-[#E32345]');
+            btn.classList.add('bg-[#0D1117]', 'border-[#E32345]/30');
+        });
+
+        document.getElementById('schedulerModal').classList.remove('hidden');
+    }
+
+    function editScheduler(schedulerId) {
+        showLoading('Lade Scheduler...');
+        fetch(`/api/scheduler/${schedulerId}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    populateForm(data.scheduler);
+                    document.getElementById('schedulerModal').classList.remove('hidden');
+                } else {
+                    alert('Fehler beim Laden des Schedulers');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('Fehler beim Laden des Schedulers');
+            });
+    }
+
+    function populateForm(scheduler) {
+        editingSchedulerId = scheduler.id;
+        document.getElementById('modalTitle').textContent = 'Scheduler bearbeiten';
+        document.getElementById('schedulerId').value = scheduler.id;
+        document.getElementById('schedulerName').value = scheduler.name;
+        document.getElementById('schedulerHour').value = scheduler.hour;
+        document.getElementById('schedulerMinute').value = scheduler.minute;
+        document.getElementById('actionType').value = scheduler.action_type;
+
+        // Trigger action type change
+        document.getElementById('actionType').dispatchEvent(new Event('change'));
+
+        // Set weekdays
+        selectedWeekdays = new Set(scheduler.weekdays);
+        document.querySelectorAll('.weekday-btn').forEach(btn => {
+            const day = parseInt(btn.dataset.day);
+            if (selectedWeekdays.has(day)) {
+                btn.classList.add('bg-[#E32345]', 'border-[#E32345]');
+                btn.classList.remove('bg-[#0D1117]', 'border-[#E32345]/30');
+            } else {
+                btn.classList.remove('bg-[#E32345]', 'border-[#E32345]');
+                btn.classList.add('bg-[#0D1117]', 'border-[#E32345]/30');
+            }
+        });
+
+        if (scheduler.action_type === 'restart') {
+            document.getElementById('kickAllPlayers').checked = scheduler.kick_all_players;
+            document.getElementById('kickMinutes').value = scheduler.kick_minutes_before;
+            warningMinutes = scheduler.warning_minutes || [60, 30, 15, 10, 5, 3, 2, 1];
+            updateWarningMinutesDisplay();
+        } else if (scheduler.action_type === 'message') {
+            document.getElementById('customMessage').value = scheduler.custom_message || '';
+        }
+    }
+
+    function closeSchedulerModal() {
+        document.getElementById('schedulerModal').classList.add('hidden');
+    }
+
+    function saveScheduler() {
+        if (selectedWeekdays.size === 0) {
+            alert('Bitte wähle mindestens einen Wochentag aus');
+            return;
+        }
+
+        const data = {
+            name: document.getElementById('schedulerName').value,
+            hour: parseInt(document.getElementById('schedulerHour').value),
+            minute: parseInt(document.getElementById('schedulerMinute').value),
+            weekdays: Array.from(selectedWeekdays),
+            action_type: document.getElementById('actionType').value
+        };
+
+        if (data.action_type === 'restart') {
+            data.kick_all_players = document.getElementById('kickAllPlayers').checked;
+            data.kick_minutes_before = parseInt(document.getElementById('kickMinutes').value);
+            data.warning_minutes = warningMinutes;
+        } else if (data.action_type === 'message') {
+            data.custom_message = document.getElementById('customMessage').value;
+        }
+
+        showLoading(editingSchedulerId ? 'Aktualisiere...' : 'Erstelle...');
+
+        const url = editingSchedulerId
+            ? `/api/scheduler/${editingSchedulerId}`
+            : `/api/server/${serverId}/schedulers`;
+
+        const method = editingSchedulerId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading();
+            if (result.success) {
+                closeSchedulerModal();
+                loadSchedulers();
+            } else {
+                alert('Fehler: ' + result.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Speichern');
+        });
+    }
+
+    function toggleScheduler(schedulerId, isActive) {
+        fetch(`/api/scheduler/${schedulerId}/toggle`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({is_active: isActive})
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                loadSchedulers();
+            } else {
+                alert('Fehler: ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Fehler beim Umschalten');
+        });
+    }
+
+    function deleteScheduler(schedulerId) {
+        if (!confirm('Möchtest du diesen Scheduler wirklich löschen?')) return;
+
+        showLoading('Lösche...');
+        fetch(`/api/scheduler/${schedulerId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading();
+            if (result.success) {
+                loadSchedulers();
+            } else {
+                alert('Fehler: ' + result.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Löschen');
+        });
+    }
+
+    function addWarningMinute() {
+        const input = document.getElementById('newWarningMinute');
+        const value = parseInt(input.value);
+
+        if (!value || value < 1) {
+            alert('Bitte gib eine gültige Minutenzahl ein');
+            return;
+        }
+
+        if (warningMinutes.includes(value)) {
+            alert('Diese Warnung existiert bereits');
+            return;
+        }
+
+        warningMinutes.push(value);
+        warningMinutes.sort((a, b) => b - a);
+        updateWarningMinutesDisplay();
+        input.value = '';
+    }
+
+    function removeWarningMinute(minute) {
+        warningMinutes = warningMinutes.filter(m => m !== minute);
+        updateWarningMinutesDisplay();
+    }
+
+    function updateWarningMinutesDisplay() {
+        const container = document.getElementById('warningMinutesContainer');
+        container.innerHTML = warningMinutes.map(minute => `
+            <span class="px-3 py-1 bg-[#E32345] rounded-lg text-white text-sm flex items-center gap-2">
+                ${minute} Min
+                <button type="button" onclick="removeWarningMinute(${minute})" class="hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </span>
+        `).join('');
+    }
+
+    function showLoading(message) {
+        document.getElementById('loadingMessage').textContent = message;
+        document.getElementById('loadingModal').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import os
 from config import Config
-from database import db, User, SteamAccount, GameServer, ServerMod
+from database import db, User, SteamAccount, GameServer, ServerMod, ServerScheduler
 from steam_utils import SteamCMDManager
 from server_manager import ServerManager
 from update_manager import UpdateManager
@@ -33,8 +33,9 @@ server_manager = ServerManager()
 update_manager = UpdateManager()
 mod_manager = ModManager()
 
-# Initialize scheduler (will be set up after app context is available)
+# Initialize schedulers (will be set up after app context is available)
 mod_update_scheduler = None
+server_scheduler_manager = None
 
 # Context processor to add common data to all templates
 @app.context_processor
@@ -660,6 +661,133 @@ def toggle_auto_update(mod_id):
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
+# ============================================
+# SCHEDULER MANAGEMENT ROUTES
+# ============================================
+
+@app.route('/server/<int:server_id>/schedulers')
+@installation_check
+@login_required
+def server_schedulers(server_id):
+    """Server schedulers management page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Get all schedulers for this server
+    schedulers = server_scheduler_manager.get_server_schedulers(server_id)
+
+    username = User.query.get(session['user_id']).username
+    return render_template('server_schedulers.html', server=server, schedulers=schedulers, username=username, server_id=server_id)
+
+
+@app.route('/api/server/<int:server_id>/schedulers', methods=['GET', 'POST'])
+@installation_check
+@login_required
+def api_server_schedulers(server_id):
+    """Get or create schedulers for a server"""
+    if request.method == 'GET':
+        schedulers = server_scheduler_manager.get_server_schedulers(server_id)
+        schedulers_data = []
+        for sched in schedulers:
+            import json
+            schedulers_data.append({
+                'id': sched.id,
+                'name': sched.name,
+                'hour': sched.hour,
+                'minute': sched.minute,
+                'weekdays': [int(d) for d in sched.weekdays.split(',')],
+                'action_type': sched.action_type,
+                'kick_all_players': sched.kick_all_players,
+                'kick_minutes_before': sched.kick_minutes_before,
+                'warning_minutes': json.loads(sched.warning_minutes) if sched.warning_minutes else [],
+                'custom_message': sched.custom_message,
+                'is_active': sched.is_active,
+                'last_run': sched.last_run.isoformat() if sched.last_run else None,
+                'created_at': sched.created_at.isoformat()
+            })
+        return jsonify({'success': True, 'schedulers': schedulers_data})
+
+    elif request.method == 'POST':
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['name', 'hour', 'minute', 'weekdays', 'action_type']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
+
+        # Create scheduler
+        success, message, scheduler_id = server_scheduler_manager.add_scheduler(
+            server_id=server_id,
+            name=data['name'],
+            hour=data['hour'],
+            minute=data['minute'],
+            weekdays=data['weekdays'],
+            action_type=data['action_type'],
+            kick_all_players=data.get('kick_all_players', True),
+            kick_minutes_before=data.get('kick_minutes_before', 1),
+            warning_minutes=data.get('warning_minutes', [60, 30, 15, 10, 5, 3, 2, 1]),
+            custom_message=data.get('custom_message', ''),
+            is_active=data.get('is_active', True)
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': message, 'scheduler_id': scheduler_id})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+
+@app.route('/api/scheduler/<int:scheduler_id>', methods=['GET', 'PUT', 'DELETE'])
+@installation_check
+@login_required
+def api_scheduler(scheduler_id):
+    """Get, update, or delete a scheduler"""
+    if request.method == 'GET':
+        scheduler = server_scheduler_manager.get_scheduler(scheduler_id)
+        if not scheduler:
+            return jsonify({'success': False, 'message': 'Scheduler not found'}), 404
+
+        import json
+        scheduler_data = {
+            'id': scheduler.id,
+            'server_id': scheduler.server_id,
+            'name': scheduler.name,
+            'hour': scheduler.hour,
+            'minute': scheduler.minute,
+            'weekdays': [int(d) for d in scheduler.weekdays.split(',')],
+            'action_type': scheduler.action_type,
+            'kick_all_players': scheduler.kick_all_players,
+            'kick_minutes_before': scheduler.kick_minutes_before,
+            'warning_minutes': json.loads(scheduler.warning_minutes) if scheduler.warning_minutes else [],
+            'custom_message': scheduler.custom_message,
+            'is_active': scheduler.is_active,
+            'last_run': scheduler.last_run.isoformat() if scheduler.last_run else None
+        }
+        return jsonify({'success': True, 'scheduler': scheduler_data})
+
+    elif request.method == 'PUT':
+        data = request.get_json()
+        success, message = server_scheduler_manager.update_scheduler(scheduler_id, **data)
+        return jsonify({'success': success, 'message': message})
+
+    elif request.method == 'DELETE':
+        success, message = server_scheduler_manager.delete_scheduler(scheduler_id)
+        return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/scheduler/<int:scheduler_id>/toggle', methods=['POST'])
+@installation_check
+@login_required
+def toggle_scheduler(scheduler_id):
+    """Toggle scheduler active status"""
+    data = request.get_json()
+    is_active = data.get('is_active', False)
+    success, message = server_scheduler_manager.toggle_scheduler(scheduler_id, is_active)
+    return jsonify({'success': success, 'message': message})
+
+
 # Initialize database
 with app.app_context():
     # Ensure database file and directory have proper permissions
@@ -688,11 +816,18 @@ with app.app_context():
     mod_update_scheduler = ModUpdateScheduler(app, mod_manager)
     mod_update_scheduler.start_auto_update_task()
 
+    # Initialize and start the server scheduler manager
+    from server_scheduler import ServerSchedulerManager
+    server_scheduler_manager = ServerSchedulerManager(app)
+    server_scheduler_manager.load_all_schedulers()
+
     # Register cleanup on shutdown
-    def shutdown_scheduler():
+    def shutdown_schedulers():
         if mod_update_scheduler:
             mod_update_scheduler.shutdown()
-    atexit.register(shutdown_scheduler)
+        if server_scheduler_manager:
+            server_scheduler_manager.shutdown()
+    atexit.register(shutdown_schedulers)
 
 
 if __name__ == '__main__':

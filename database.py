@@ -101,3 +101,40 @@ class ServerMod(db.Model):
 
     def __repr__(self):
         return f'<ServerMod {self.mod_name} ({self.mod_folder})>'
+
+
+class ServerScheduler(db.Model):
+    """Server scheduler for automated tasks"""
+    __tablename__ = 'server_schedulers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    server_id = db.Column(db.Integer, db.ForeignKey('game_servers.id'), nullable=False)
+
+    # Schedule configuration
+    name = db.Column(db.String(120), nullable=False)  # User-friendly name
+    hour = db.Column(db.Integer, nullable=False)  # Hour (0-23)
+    minute = db.Column(db.Integer, nullable=False)  # Minute (0-59)
+    weekdays = db.Column(db.String(50), nullable=False)  # Comma-separated: "0,1,2,3,4,5,6" (Mon=0, Sun=6)
+
+    # Action configuration
+    action_type = db.Column(db.String(50), nullable=False)  # "restart" or "message"
+
+    # Restart action settings
+    kick_all_players = db.Column(db.Boolean, default=True)  # Kick all players before restart
+    kick_minutes_before = db.Column(db.Integer, default=1)  # Minutes before restart to kick
+    warning_minutes = db.Column(db.Text)  # JSON array of warning times: "[60,30,15,10,5,3,2,1]"
+
+    # Message action settings
+    custom_message = db.Column(db.Text)  # Custom message to send
+
+    # Scheduler status
+    is_active = db.Column(db.Boolean, default=True)  # Is scheduler enabled?
+    last_run = db.Column(db.DateTime)  # Last execution time
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    server = db.relationship('GameServer', backref=db.backref('schedulers', lazy=True, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<ServerScheduler {self.name} ({self.action_type})>'

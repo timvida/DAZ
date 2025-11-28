@@ -185,6 +185,49 @@ class BattlEyeRCon:
         command = f'say -1 {message}'
         return self.send_command(command)
 
+    def get_players(self):
+        """
+        Get list of online players
+
+        Returns:
+            tuple: (success: bool, players: list)
+        """
+        success, response = self.send_command('players')
+
+        if not success:
+            return False, []
+
+        # Parse player list
+        players = []
+        try:
+            lines = response.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line or 'Players on server' in line or line.startswith('---'):
+                    continue
+
+                # Try to parse player line
+                # Format can vary, but typically: ID, IP:Port, Ping, GUID, Name
+                # Example: "0   192.168.1.1:2304   123   12345678901234567890   PlayerName"
+                parts = line.split(None, 4)  # Split into max 5 parts
+                if len(parts) >= 2:
+                    try:
+                        player = {
+                            'id': parts[0],
+                            'ip': parts[1] if len(parts) > 1 else 'Unknown',
+                            'ping': parts[2] if len(parts) > 2 else 'N/A',
+                            'guid': parts[3] if len(parts) > 3 else 'N/A',
+                            'name': parts[4] if len(parts) > 4 else 'Unknown'
+                        }
+                        players.append(player)
+                    except:
+                        continue
+
+            return True, players
+        except Exception as e:
+            logger.error(f"Error parsing players: {str(e)}")
+            return False, []
+
     def kick_all_players(self):
         """
         Kick all players from the server
@@ -193,30 +236,33 @@ class BattlEyeRCon:
             tuple: (success: bool, message: str)
         """
         # First get list of players
-        success, response = self.send_command('players')
+        success, players = self.get_players()
 
         if not success:
             return False, "Failed to get player list"
 
-        # Parse player IDs and kick them
-        # Note: This is a simplified implementation
-        # You may need to adjust based on actual server response format
+        # Kick each player
         try:
-            lines = response.split('\n')
             kicked = 0
-            for line in lines:
-                if line.strip() and not line.startswith('Players'):
-                    # Try to extract player number/ID
-                    # Format varies, but usually starts with a number
-                    parts = line.strip().split()
-                    if parts and parts[0].isdigit():
-                        player_id = parts[0]
-                        self.send_command(f'kick {player_id}')
-                        kicked += 1
+            for player in players:
+                self.send_command(f'kick {player["id"]}')
+                kicked += 1
 
-            return True, f"Kicked {kicked} players"
+            return True, f"Kicked {kicked} player(s)"
         except Exception as e:
             return False, f"Error kicking players: {str(e)}"
+
+    def kick_player(self, player_id):
+        """
+        Kick a specific player
+
+        Args:
+            player_id: Player ID to kick
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        return self.send_command(f'kick {player_id}')
 
     def disconnect(self):
         """Close the RCon connection"""
@@ -282,6 +328,77 @@ class RConManager:
             server_ip = '127.0.0.1'
 
         return BattlEyeRCon(server_ip, server.rcon_port, server.rcon_password)
+
+    @staticmethod
+    def test_connection(server):
+        """
+        Test RCon connection to a server
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, message: str, details: dict)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+
+                if success:
+                    # Try to get server info
+                    cmd_success, response = rcon.send_command('players')
+                    details = {
+                        'connected': True,
+                        'authenticated': True,
+                        'response_time': 'OK',
+                        'server_ip': rcon.host,
+                        'rcon_port': rcon.port
+                    }
+                    return True, "RCon connection successful", details
+                else:
+                    details = {
+                        'connected': False,
+                        'authenticated': False,
+                        'error': msg,
+                        'server_ip': rcon.host,
+                        'rcon_port': rcon.port
+                    }
+                    return False, f"Connection failed: {msg}", details
+
+        except Exception as e:
+            logger.error(f"Error testing connection: {str(e)}")
+            details = {
+                'connected': False,
+                'error': str(e)
+            }
+            return False, f"Error: {str(e)}", details
+
+    @staticmethod
+    def get_players(server):
+        """
+        Get list of online players
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, players: list, message: str)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+                if not success:
+                    return False, [], f"Failed to connect: {msg}"
+
+                success, players = rcon.get_players()
+                if success:
+                    return True, players, f"Found {len(players)} player(s)"
+                else:
+                    return False, [], "Failed to get players"
+
+        except Exception as e:
+            logger.error(f"Error getting players: {str(e)}")
+            return False, [], f"Error: {str(e)}"
 
     @staticmethod
     def send_server_message(server, message):

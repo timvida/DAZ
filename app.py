@@ -788,6 +788,120 @@ def toggle_scheduler(scheduler_id):
     return jsonify({'success': success, 'message': message})
 
 
+# ============================================
+# RCON MANAGEMENT ROUTES
+# ============================================
+
+@app.route('/server/<int:server_id>/rcon')
+@installation_check
+@login_required
+def server_rcon(server_id):
+    """Server RCon console page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    username = User.query.get(session['user_id']).username
+    return render_template('server_rcon.html', server=server, username=username, server_id=server_id)
+
+
+@app.route('/api/server/<int:server_id>/rcon/test', methods=['POST'])
+@installation_check
+@login_required
+def test_rcon_connection(server_id):
+    """Test RCon connection"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    success, message, details = RConManager.test_connection(server)
+    return jsonify({'success': success, 'message': message, 'details': details})
+
+
+@app.route('/api/server/<int:server_id>/rcon/players', methods=['GET'])
+@installation_check
+@login_required
+def get_rcon_players(server_id):
+    """Get online players via RCon"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    success, players, message = RConManager.get_players(server)
+    return jsonify({'success': success, 'players': players, 'message': message})
+
+
+@app.route('/api/server/<int:server_id>/rcon/command', methods=['POST'])
+@installation_check
+@login_required
+def send_rcon_command(server_id):
+    """Send custom RCon command"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    data = request.get_json()
+    command = data.get('command', '')
+
+    if not command:
+        return jsonify({'success': False, 'message': 'Command is required'}), 400
+
+    success, response = RConManager.execute_command(server, command)
+    return jsonify({'success': success, 'response': response})
+
+
+@app.route('/api/server/<int:server_id>/rcon/message', methods=['POST'])
+@installation_check
+@login_required
+def send_rcon_message(server_id):
+    """Send message to all players"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    data = request.get_json()
+    message = data.get('message', '')
+
+    if not message:
+        return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+    success, response = RConManager.send_server_message(server, message)
+    return jsonify({'success': success, 'message': response})
+
+
+@app.route('/api/server/<int:server_id>/rcon/kick/<player_id>', methods=['POST'])
+@installation_check
+@login_required
+def kick_rcon_player(server_id, player_id):
+    """Kick a specific player"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    try:
+        with RConManager.get_rcon_connection(server) as rcon:
+            success, msg = rcon.connect()
+            if not success:
+                return jsonify({'success': False, 'message': f'Failed to connect: {msg}'})
+
+            success, response = rcon.kick_player(player_id)
+            return jsonify({'success': success, 'message': 'Player kicked' if success else response})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+
 # Initialize database
 with app.app_context():
     # Ensure database file and directory have proper permissions

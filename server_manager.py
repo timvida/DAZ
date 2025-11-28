@@ -354,8 +354,8 @@ class Missions
         self._create_battleye_config(server)
 
     def _create_battleye_config(self, server):
-        """Create BEServer_x64.cfg file for BattlEye RCon"""
-        be_config_path = os.path.join(server.be_path, 'BEServer_x64.cfg')
+        """Create beserver_x64.cfg file for BattlEye RCon"""
+        be_config_path = os.path.join(server.be_path, 'beserver_x64.cfg')
 
         # Don't overwrite existing config
         if os.path.exists(be_config_path):
@@ -370,9 +370,9 @@ RConIP 127.0.0.1
         try:
             with open(be_config_path, 'w') as f:
                 f.write(be_config_content)
-            print(f"Created BEServer_x64.cfg at {be_config_path}")
+            print(f"Created beserver_x64.cfg at {be_config_path}")
         except Exception as e:
-            print(f"Error creating BEServer_x64.cfg: {str(e)}")
+            print(f"Error creating beserver_x64.cfg: {str(e)}")
 
     def _ensure_battleye_config(self, server):
         """Ensure BattlEye config exists before server start"""
@@ -395,7 +395,7 @@ RConIP 127.0.0.1
 
         # If no config file found, create one
         if not existing_configs:
-            be_config_path = os.path.join(server.be_path, 'BEServer_x64.cfg')
+            be_config_path = os.path.join(server.be_path, 'beserver_x64.cfg')
             be_config_content = f"""RConPassword {server.rcon_password}
 RestrictRCon 0
 RConPort {server.rcon_port}
@@ -404,9 +404,9 @@ RConIP 127.0.0.1
             try:
                 with open(be_config_path, 'w') as f:
                     f.write(be_config_content)
-                print(f"Created BEServer_x64.cfg at {be_config_path} (auto-created on server start)")
+                print(f"Created beserver_x64.cfg at {be_config_path} (auto-created on server start)")
             except Exception as e:
-                print(f"Error creating BEServer_x64.cfg: {str(e)}")
+                print(f"Error creating beserver_x64.cfg: {str(e)}")
         else:
             print(f"BattlEye config already exists: {existing_configs[0]}")
 

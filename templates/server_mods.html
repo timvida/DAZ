@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} - Mods{% endblock %}
+
+{% block page_title %}{{ server.name }} - Mods{% endblock %}
+{% block page_subtitle %}Mod Management{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+    <i class="fas fa-arrow-left"></i>
+    <span class="hidden lg:inline">Back to Dashboard</span>
+</a>
+{% endblock %}
+
+{% block content %}
+        <!-- Workshop Browser Section -->
+        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <i class="fas fa-steam text-[#E32345] text-2xl"></i>
+                <h2 class="text-xl font-bold text-white">Steam Workshop</h2>
+            </div>
+
+            <div class="flex gap-3">
+                <div class="flex-1">
+                    <input type="text" id="workshopId" placeholder="Enter Workshop ID or URL"
+                        class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] focus:ring-2 focus:ring-[#E32345]/20 transition">
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle"></i>
+                        Find mods at <a href="https://steamcommunity.com/app/221100/workshop/" target="_blank" class="text-[#E32345] hover:underline">DayZ Workshop</a>
+                    </p>
+                </div>
+                <button onclick="addWorkshopMod()"
+                    class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
+                    <i class="fas fa-download"></i>
+                    <span>Download Mod</span>
+                </button>
+                <button onclick="scanMods()"
+                    class="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Scan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mods List -->
+        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-puzzle-piece text-[#E32345] text-2xl"></i>
+                    <h2 class="text-xl font-bold text-white">Installed Mods</h2>
+                </div>
+                <span class="text-sm text-gray-400 bg-[#0D1117] px-3 py-1.5 rounded-lg border border-[#E32345]/20">
+                    {{ mods|length }} mod(s)
+                </span>
+            </div>
+
+            {% if mods %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-[#E32345]/20">
+                            <th class="text-left py-3 px-4 text-gray-400 font-medium">Mod Name</th>
+                            <th class="text-left py-3 px-4 text-gray-400 font-medium">Folder</th>
+                            <th class="text-center py-3 px-4 text-gray-400 font-medium">Type</th>
+                            <th class="text-center py-3 px-4 text-gray-400 font-medium">Status</th>
+                            <th class="text-center py-3 px-4 text-gray-400 font-medium">Auto-Update</th>
+                            <th class="text-center py-3 px-4 text-gray-400 font-medium">Size</th>
+                            <th class="text-right py-3 px-4 text-gray-400 font-medium">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mod in mods %}
+                        <tr class="border-b border-[#E32345]/10 hover:bg-[#E32345]/5 transition">
+                            <td class="py-4 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-[#E32345]/10 p-2 rounded-lg">
+                                        <i class="fas fa-puzzle-piece text-[#E32345]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-white font-medium">{{ mod.mod_name }}</p>
+                                        {% if mod.workshop_id %}
+                                        <p class="text-xs text-gray-500">Workshop: {{ mod.workshop_id }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <code class="text-sm text-gray-400 bg-[#0D1117] px-2 py-1 rounded">{{ mod.mod_folder }}</code>
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                <select onchange="updateModType({{ mod.id }}, this.value)"
+                                    class="px-3 py-1.5 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white text-sm focus:outline-none focus:border-[#E32345]">
+                                    <option value="client" {% if mod.mod_type == 'client' %}selected{% endif %}>Client</option>
+                                    <option value="server" {% if mod.mod_type == 'server' %}selected{% endif %}>Server</option>
+                                </select>
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" {% if mod.is_active %}checked{% endif %}
+                                        onchange="toggleMod({{ mod.id }}, this.checked)"
+                                        class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#E32345] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E32345]"></div>
+                                </label>
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                {% if mod.workshop_id %}
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" {% if mod.auto_update %}checked{% endif %}
+                                        onchange="toggleAutoUpdate({{ mod.id }}, this.checked)"
+                                        class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                </label>
+                                {% else %}
+                                <span class="text-gray-600 text-sm">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-4 text-center text-gray-400 text-sm">
+                                {% if mod.file_size %}
+                                    {{ "%.2f"|format(mod.file_size / (1024**3)) }} GB
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    {% if mod.workshop_id %}
+                                    <button onclick="updateMod({{ mod.id }})"
+                                        class="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-400 rounded-lg transition text-sm"
+                                        title="Update Mod">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button onclick="deleteMod({{ mod.id }}, '{{ mod.mod_name }}')"
+                                        class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded-lg transition text-sm"
+                                        title="Delete Mod">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="bg-[#E32345]/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-puzzle-piece text-[#E32345] text-5xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-300 mb-2">No Mods Installed</h3>
+                <p class="text-gray-500">Add mods from Steam Workshop or upload custom mods</p>
+            </div>
+            {% endif %}
+        </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
+            <div class="text-center">
+                <div class="w-16 h-16 border-4 border-[#E32345]/30 border-t-[#E32345] rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Processing...</h3>
+                <p class="text-gray-400 text-sm" id="loadingSubtext">This may take a few moments</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const serverId = {{ server.id }};
+
+        function showLoading(message, subtext) {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingSubtext').textContent = subtext || 'This may take a few moments';
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        function addWorkshopMod() {
+            const input = document.getElementById('workshopId').value.trim();
+            if (!input) {
+                alert('Please enter a Workshop ID or URL');
+                return;
+            }
+
+            // Extract workshop ID from URL or use as-is
+            let workshopId = input;
+            const urlMatch = input.match(/\?id=(\d+)/);
+            if (urlMatch) {
+                workshopId = urlMatch[1];
+            }
+
+            showLoading('Downloading Mod...', 'This may take several minutes depending on mod size');
+
+            fetch(`/api/server/${serverId}/mods/workshop`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({workshop_id: workshopId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function scanMods() {
+            showLoading('Scanning for Mods...', 'Checking server directory for mod folders');
+
+            fetch(`/api/server/${serverId}/mods/scan`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success && data.count > 0) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function toggleMod(modId, active) {
+            fetch(`/api/mod/${modId}/toggle`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({active: active})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                location.reload();
+            });
+        }
+
+        function updateModType(modId, type) {
+            fetch(`/api/mod/${modId}/type`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: type})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                location.reload();
+            });
+        }
+
+        function toggleAutoUpdate(modId, autoUpdate) {
+            fetch(`/api/mod/${modId}/auto-update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({auto_update: autoUpdate})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                location.reload();
+            });
+        }
+
+        function updateMod(modId) {
+            if (!confirm('Update this mod? This will re-download from Steam Workshop.')) return;
+
+            showLoading('Updating Mod...', 'Downloading latest version from Steam Workshop');
+
+            fetch(`/api/mod/${modId}/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function deleteMod(modId, modName) {
+            if (!confirm(`Delete mod "${modName}"? This will remove all mod files.`)) return;
+
+            showLoading('Deleting Mod...', 'Removing mod files from server');
+
+            fetch(`/api/mod/${modId}/delete`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+    </script>
+{% endblock %}

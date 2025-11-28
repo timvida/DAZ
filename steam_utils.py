@@ -208,3 +208,162 @@ class SteamCMDManager:
             "size": round(size_gb, 2),
             "path": install_dir
         }
+
+    def download_workshop_mod(self, workshop_id, install_dir, username, password):
+        """
+        Download a mod from Steam Workshop
+        Returns: (success: bool, message: str, mod_path: str)
+        """
+        if not self.is_available():
+            return False, "SteamCMD not found on system", None
+
+        try:
+            # DayZ Workshop App ID is 221100
+            dayz_app_id = "221100"
+
+            # Build SteamCMD command for workshop download
+            commands = [
+                self.steamcmd_path,
+                f"+login {username} {password}",
+                f"+workshop_download_item {dayz_app_id} {workshop_id}",
+                "+quit"
+            ]
+
+            print(f"Downloading workshop mod {workshop_id}...")
+
+            # Run download
+            process = subprocess.Popen(
+                commands,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            stdout, stderr = process.communicate(timeout=1800)  # 30 minute timeout
+            output = stdout + stderr
+
+            print(f"=== SteamCMD Workshop Download Output ===")
+            print(output)
+            print("=========================================")
+
+            # Check for success
+            if "Success" in output or "Download complete" in output or f"Downloaded item {workshop_id}" in output:
+                # Find the downloaded mod in steamcmd workshop folder
+                # Default location: steamcmd/steamapps/workshop/content/221100/{workshop_id}
+                steamcmd_dir = os.path.dirname(self.steamcmd_path)
+                workshop_mod_path = os.path.join(steamcmd_dir, "steamapps", "workshop", "content", dayz_app_id, workshop_id)
+
+                if os.path.exists(workshop_mod_path):
+                    # Move/copy to server install directory
+                    # We need to find the mod.cpp to get the mod name
+                    mod_name = self._get_mod_name_from_path(workshop_mod_path)
+                    if not mod_name:
+                        mod_name = f"mod_{workshop_id}"
+
+                    # Create @ModName folder in server directory
+                    mod_folder = f"@{mod_name}"
+                    target_path = os.path.join(install_dir, mod_folder)
+
+                    # Copy mod files to server directory
+                    import shutil
+                    if os.path.exists(target_path):
+                        shutil.rmtree(target_path)
+                    shutil.copytree(workshop_mod_path, target_path)
+
+                    return True, f"Mod downloaded successfully to {mod_folder}", target_path
+                else:
+                    return False, f"Mod downloaded but not found at expected location: {workshop_mod_path}", None
+
+            # Check for errors
+            if "Invalid Password" in output or "Invalid credentials" in output:
+                return False, "Invalid Steam credentials", None
+
+            if "No subscription" in output:
+                return False, "Item not found or not subscribed", None
+
+            if "ERROR" in output or "failed" in output.lower():
+                # Extract error message
+                error_lines = [line for line in output.split('\n') if 'error' in line.lower() or 'failed' in line.lower()]
+                if error_lines:
+                    return False, f"Download failed: {error_lines[0][:100]}", None
+
+            return False, "Download failed. Check logs for details.", None
+
+        except subprocess.TimeoutExpired:
+            return False, "Download timeout after 30 minutes.", None
+        except Exception as e:
+            return False, f"Download error: {str(e)}", None
+
+    def _get_mod_name_from_path(self, mod_path):
+        """Extract mod name from mod.cpp file"""
+        mod_cpp_path = os.path.join(mod_path, "mod.cpp")
+        if not os.path.exists(mod_cpp_path):
+            return None
+
+        try:
+            with open(mod_cpp_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                # Look for name = "ModName";
+                match = re.search(r'name\s*=\s*"([^"]+)"', content, re.IGNORECASE)
+                if match:
+                    mod_name = match.group(1).strip()
+                    # Remove special characters
+                    mod_name = re.sub(r'[^\w\s-]', '', mod_name).strip()
+                    mod_name = re.sub(r'[\s]+', '_', mod_name)
+                    return mod_name
+        except Exception as e:
+            print(f"Error reading mod.cpp: {e}")
+
+        return None
+
+    def update_workshop_mod(self, workshop_id, mod_path, username, password):
+        """
+        Update a workshop mod (re-download)
+        Returns: (success: bool, message: str, updated: bool)
+        """
+        # Get the server install dir from mod path
+        # mod_path is like /servers/MyServer/@ModName
+        install_dir = os.path.dirname(mod_path)
+
+        success, message, new_path = self.download_workshop_mod(workshop_id, install_dir, username, password)
+
+        if success:
+            return True, "Mod updated successfully", True
+        else:
+            return False, message, False
+
+    def copy_mod_keys(self, mod_path, server_keys_path):
+        """
+        Copy mod keys from @ModName/Keys to server/keys directory
+        Returns: (success: bool, message: str, keys_copied: int)
+        """
+        try:
+            # Find keys directory in mod
+            mod_keys_path = os.path.join(mod_path, "Keys")
+            if not os.path.exists(mod_keys_path):
+                mod_keys_path = os.path.join(mod_path, "keys")
+
+            if not os.path.exists(mod_keys_path):
+                return True, "No keys directory found in mod (not required)", 0
+
+            # Create server keys directory if it doesn't exist
+            os.makedirs(server_keys_path, exist_ok=True)
+
+            # Copy all .bikey files
+            import shutil
+            keys_copied = 0
+            for filename in os.listdir(mod_keys_path):
+                if filename.endswith('.bikey'):
+                    src = os.path.join(mod_keys_path, filename)
+                    dst = os.path.join(server_keys_path, filename)
+                    shutil.copy2(src, dst)
+                    keys_copied += 1
+                    print(f"Copied key: {filename}")
+
+            if keys_copied > 0:
+                return True, f"Copied {keys_copied} key(s) successfully", keys_copied
+            else:
+                return True, "No .bikey files found in mod keys directory", 0
+
+        except Exception as e:
+            return False, f"Error copying keys: {str(e)}", 0

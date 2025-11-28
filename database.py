@@ -69,5 +69,35 @@ class GameServer(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Relationship to mods
+    server_mods_rel = db.relationship('ServerMod', backref='server', lazy=True, cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<GameServer {self.name} ({self.game_name})>'
+
+
+class ServerMod(db.Model):
+    """Server mod instances"""
+    __tablename__ = 'server_mods'
+
+    id = db.Column(db.Integer, primary_key=True)
+    server_id = db.Column(db.Integer, db.ForeignKey('game_servers.id'), nullable=False)
+
+    # Mod identification
+    mod_name = db.Column(db.String(120), nullable=False)  # Display name
+    mod_folder = db.Column(db.String(120), nullable=False)  # @ModName
+    workshop_id = db.Column(db.String(50))  # Steam Workshop ID (optional)
+
+    # Mod configuration
+    mod_type = db.Column(db.String(20), default='client')  # client, server, or both
+    is_active = db.Column(db.Boolean, default=False)  # Is mod enabled?
+    auto_update = db.Column(db.Boolean, default=False)  # Auto-update via Steam?
+
+    # Mod management
+    keys_copied = db.Column(db.Boolean, default=False)  # Keys copied to server/keys?
+    file_size = db.Column(db.BigInteger)  # Size in bytes
+    last_updated = db.Column(db.DateTime)  # Last update timestamp
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ServerMod {self.mod_name} ({self.mod_folder})>'

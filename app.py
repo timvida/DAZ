@@ -1,13 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import os
 from config import Config
-from database import db, User, SteamAccount, GameServer
+from database import db, User, SteamAccount, GameServer, ServerMod
 from steam_utils import SteamCMDManager
 from server_manager import ServerManager
 from update_manager import UpdateManager
+from mod_manager import ModManager
 from functools import wraps
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+import atexit
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -29,6 +31,10 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
 steam_manager = SteamCMDManager()
 server_manager = ServerManager()
 update_manager = UpdateManager()
+mod_manager = ModManager()
+
+# Initialize scheduler (will be set up after app context is available)
+mod_update_scheduler = None
 
 # Context processor to add common data to all templates
 @app.context_processor
@@ -520,6 +526,140 @@ def get_version():
     return jsonify({'version': version})
 
 
+# ============================================
+# MOD MANAGEMENT ROUTES
+# ============================================
+
+@app.route('/server/<int:server_id>/mods')
+@installation_check
+@login_required
+def server_mods(server_id):
+    """Server mods management page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Scan for new mods
+    mod_manager.scan_server_mods(server_id)
+
+    # Get all mods
+    mods = mod_manager.get_server_mods(server_id)
+
+    username = User.query.get(session['user_id']).username
+    return render_template('server_mods.html', server=server, mods=mods, username=username, server_id=server_id)
+
+
+@app.route('/api/server/<int:server_id>/mods/scan', methods=['POST'])
+@installation_check
+@login_required
+def scan_mods(server_id):
+    """Scan server for mods"""
+    success, message, count = mod_manager.scan_server_mods(server_id)
+    return jsonify({'success': success, 'message': message, 'count': count})
+
+
+@app.route('/api/server/<int:server_id>/mods', methods=['GET'])
+@installation_check
+@login_required
+def get_mods(server_id):
+    """Get all mods for a server"""
+    mods = mod_manager.get_server_mods(server_id)
+    mods_data = [{
+        'id': mod.id,
+        'name': mod.mod_name,
+        'folder': mod.mod_folder,
+        'workshop_id': mod.workshop_id,
+        'type': mod.mod_type,
+        'is_active': mod.is_active,
+        'auto_update': mod.auto_update,
+        'keys_copied': mod.keys_copied,
+        'file_size': mod.file_size,
+        'last_updated': mod.last_updated.isoformat() if mod.last_updated else None
+    } for mod in mods]
+    return jsonify({'success': True, 'mods': mods_data})
+
+
+@app.route('/api/mod/<int:mod_id>/toggle', methods=['POST'])
+@installation_check
+@login_required
+def toggle_mod(mod_id):
+    """Toggle mod active status"""
+    data = request.get_json()
+    active = data.get('active', False)
+    success, message = mod_manager.toggle_mod(mod_id, active)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/mod/<int:mod_id>/type', methods=['POST'])
+@installation_check
+@login_required
+def update_mod_type(mod_id):
+    """Update mod type (client/server)"""
+    data = request.get_json()
+    mod_type = data.get('type')
+    success, message = mod_manager.update_mod_type(mod_id, mod_type)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/server/<int:server_id>/mods/workshop', methods=['POST'])
+@installation_check
+@login_required
+def add_workshop_mod(server_id):
+    """Add a mod from Steam Workshop"""
+    data = request.get_json()
+    workshop_id = data.get('workshop_id')
+
+    if not workshop_id:
+        return jsonify({'success': False, 'message': 'Workshop ID is required'}), 400
+
+    success, message = mod_manager.add_workshop_mod(server_id, workshop_id)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/mod/<int:mod_id>/update', methods=['POST'])
+@installation_check
+@login_required
+def update_mod_route(mod_id):
+    """Update a workshop mod"""
+    success, message = mod_manager.update_mod(mod_id)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/mod/<int:mod_id>/delete', methods=['POST'])
+@installation_check
+@login_required
+def delete_mod(mod_id):
+    """Delete a mod"""
+    success, message = mod_manager.remove_mod(mod_id, delete_files=True)
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/mod/<int:mod_id>/auto-update', methods=['POST'])
+@installation_check
+@login_required
+def toggle_auto_update(mod_id):
+    """Toggle auto-update for a mod"""
+    data = request.get_json()
+    auto_update = data.get('auto_update', False)
+
+    mod = ServerMod.query.get(mod_id)
+    if not mod:
+        return jsonify({'success': False, 'message': 'Mod not found'}), 404
+
+    if not mod.workshop_id:
+        return jsonify({'success': False, 'message': 'Auto-update only available for Workshop mods'}), 400
+
+    try:
+        mod.auto_update = auto_update
+        db.session.commit()
+        status = "enabled" if auto_update else "disabled"
+        return jsonify({'success': True, 'message': f'Auto-update {status}'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
 # Initialize database
 with app.app_context():
     # Ensure database file and directory have proper permissions
@@ -542,6 +682,17 @@ with app.app_context():
     finally:
         # Restore original umask
         os.umask(old_umask)
+
+    # Initialize and start the mod update scheduler
+    from scheduler import ModUpdateScheduler
+    mod_update_scheduler = ModUpdateScheduler(app, mod_manager)
+    mod_update_scheduler.start_auto_update_task()
+
+    # Register cleanup on shutdown
+    def shutdown_scheduler():
+        if mod_update_scheduler:
+            mod_update_scheduler.shutdown()
+    atexit.register(shutdown_scheduler)
 
 
 if __name__ == '__main__':

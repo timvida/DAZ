@@ -1,23 +1,21 @@
 """
 DayZ BattlEye RCon Utility
-Using the proven 'rcon' package (https://github.com/conqp/rcon)
+Robust implementation with async receiving and keep-alive
+Based on proven BattlEye protocol implementation
 """
 
+import socket
+import struct
+import binascii
+import time
+import threading
 import logging
-from threading import Lock
 
 logger = logging.getLogger(__name__)
 
-try:
-    from rcon.battleye import Client
-    RCON_AVAILABLE = True
-except ImportError:
-    logger.error("rcon package not available - install with: pip install rcon")
-    RCON_AVAILABLE = False
-
 
 class BattlEyeRCon:
-    """BattlEye RCon client for DayZ servers using proven rcon package"""
+    """BattlEye RCon client for DayZ servers - robust async implementation"""
 
     def __init__(self, host, port, password):
         """
@@ -31,10 +29,18 @@ class BattlEyeRCon:
         self.host = host
         self.port = int(port)
         self.password = password
+        self.sock = None
+        self.sequence = 0
         self.authenticated = False
-        self.lock = Lock()
+        self.running = False
 
-    def connect(self, timeout=5):
+        # Threads and synchronization
+        self.listener_thread = None
+        self.last_response = ""
+        self.response_event = threading.Event()
+        self.lock = threading.Lock()
+
+    def connect(self, timeout=10):
         """
         Connect to the BattlEye RCon server
 
@@ -44,38 +50,132 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, message: str)
         """
-        if not RCON_AVAILABLE:
-            return False, "rcon package not installed"
-
         try:
             logger.info(f"Connecting to BattlEye RCon at {self.host}:{self.port}")
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.settimeout(timeout)
 
-            # Test connection by sending a simple command using context manager
-            try:
-                with Client(self.host, self.port, passwd=self.password, timeout=timeout) as client:
-                    response = client.run('players')
-                    self.authenticated = True
-                    logger.info(f"Successfully connected to RCon")
-                    return True, "Connected successfully"
-            except Exception as e:
-                error_msg = str(e)
-                if 'password' in error_msg.lower() or 'login' in error_msg.lower():
-                    logger.warning("Login failed - invalid password")
-                    return False, "Invalid password"
-                logger.error(f"Connection test failed: {error_msg}")
-                return False, f"Connection failed: {error_msg}"
+            # Send login packet
+            payload = b'\x00' + self.password.encode('utf-8')
+            packet = self._create_packet(payload)
+            self.sock.sendto(packet, (self.host, self.port))
 
+            # Wait for login confirmation
+            data, _ = self.sock.recvfrom(4096)
+
+            if len(data) >= 8:
+                # Check login response
+                # Response format: BE + CRC32 + 0xFF + 0x00 + (0x01 success | 0x00 failed)
+                if data[6] == 0xFF and data[7] == 0x00:
+                    if len(data) > 8 and data[8] == 0x01:
+                        self.authenticated = True
+                        self.running = True
+                        logger.info("Login successful! Connection established.")
+
+                        # Start background thread (Keep-Alive + Listener)
+                        self.listener_thread = threading.Thread(target=self._listener_loop, daemon=True)
+                        self.listener_thread.start()
+                        return True, "Connected successfully"
+                    else:
+                        logger.warning("Login failed - invalid password")
+                        return False, "Invalid password"
+
+            return False, "Unexpected login response"
+
+        except socket.timeout:
+            logger.error("Login timeout. Server unreachable or wrong port.")
+            return False, "Connection timeout"
         except Exception as e:
             logger.error(f"Connection error: {str(e)}")
             return False, f"Connection error: {str(e)}"
 
-    def send_command(self, command, timeout=5):
+    def disconnect(self):
+        """Close the RCon connection"""
+        self.running = False
+        self.authenticated = False
+        if self.sock:
+            try:
+                self.sock.close()
+            except:
+                pass
+        logger.info("Connection closed.")
+
+    def _create_packet(self, payload):
+        """
+        Create BattlEye packet with header and CRC32
+
+        Args:
+            payload: Packet payload (without 0xFF header)
+
+        Returns:
+            bytes: Complete packet
+        """
+        # BattlEye Packet Structure: 'BE' + CRC32 + 0xFF + Payload
+        head = b'\xFF'
+        data_to_checksum = head + payload
+
+        # Calculate CRC32 checksum (unsigned int)
+        crc = binascii.crc32(data_to_checksum) & 0xffffffff
+
+        # Pack: BE, CRC (Little Endian), Payload (with 0xFF header)
+        return b'BE' + struct.pack('<I', crc) + data_to_checksum
+
+    def _listener_loop(self):
+        """
+        Background process:
+        1. Receives data from server
+        2. Sends keep-alive packets
+        """
+        last_keep_alive = time.time()
+
+        while self.running:
+            try:
+                # A. Keep Alive (Every 30 seconds)
+                if time.time() - last_keep_alive > 30:
+                    # Send empty command packet to keep connection alive
+                    ka_payload = b'\x01' + struct.pack('B', self.sequence) + b''
+                    self.sock.sendto(self._create_packet(ka_payload), (self.host, self.port))
+                    last_keep_alive = time.time()
+                    logger.debug("Keep-alive packet sent")
+
+                # B. Receive data (non-blocking check via socket timeout)
+                try:
+                    self.sock.settimeout(0.5)  # Short timeout for responsive keep-alive
+                    data, _ = self.sock.recvfrom(4096)
+                except socket.timeout:
+                    continue  # Just continue looping
+                except OSError:
+                    break  # Socket closed
+
+                if len(data) < 7:
+                    continue  # Too short for header
+
+                # Parse header (first 2 'BE', then 4 CRC, then 1 flag)
+                flag = data[6]
+                payload = data[7:]
+
+                if flag == 0x02:  # Command Response
+                    # Remove sequence byte (first byte of payload with flag 0x02)
+                    text_response = payload[1:].decode('utf-8', errors='ignore')
+
+                    # Store for retrieving function
+                    with self.lock:
+                        self.last_response += text_response
+
+                elif flag == 0x00:  # Login Response (shouldn't happen in loop)
+                    pass
+
+            except Exception as e:
+                logger.error(f"Error in listener thread: {e}")
+                break
+
+    def send_command(self, command, timeout=2.0):
         """
         Send a command to the server
 
         Args:
             command: Command string to execute
-            timeout: Command timeout in seconds
+            timeout: Time to wait for response in seconds
 
         Returns:
             tuple: (success: bool, response: str)
@@ -85,29 +185,28 @@ class BattlEyeRCon:
 
         with self.lock:
             try:
+                self.sequence = (self.sequence + 1) % 256
+                payload = b'\x01' + struct.pack('B', self.sequence) + command.encode('utf-8')
+                packet = self._create_packet(payload)
+
+                # Clear buffer before new command
+                self.last_response = ""
+
+                # Send packet
+                self.sock.sendto(packet, (self.host, self.port))
                 logger.debug(f"Sending command: {command}")
 
-                # Parse command into parts
-                parts = command.split()
-                if not parts:
-                    return False, "Empty command"
-
-                # Send command using context manager
-                with Client(self.host, self.port, passwd=self.password, timeout=timeout) as client:
-                    response = client.run(*parts)
-
-                    # Convert response to string if needed
-                    if response is None:
-                        response = ""
-                    elif not isinstance(response, str):
-                        response = str(response)
-
-                    logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
-                    return True, response
-
             except Exception as e:
-                logger.error(f"Command error: {str(e)}")
-                return False, f"Command error: {str(e)}"
+                logger.error(f"Send error: {e}")
+                return False, f"Send error: {str(e)}"
+
+        # Wait for response (UDP has no clear "end of message", so time-based)
+        time.sleep(timeout)
+
+        with self.lock:
+            response = self.last_response.strip()
+            logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
+            return True, response
 
     def send_message(self, message):
         """
@@ -129,7 +228,7 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, players: list)
         """
-        success, response = self.send_command('players')
+        success, response = self.send_command('players', timeout=2.0)
 
         if not success:
             return False, []
@@ -147,17 +246,17 @@ class BattlEyeRCon:
                 # Format: ID IP:Port Ping GUID(BE) Name
                 parts = line.split(None, 4)
                 if len(parts) >= 2:
-                    try:
+                    p_id = parts[0]
+                    # Only process if ID is a digit (actual player line)
+                    if p_id.isdigit():
                         player = {
-                            'id': parts[0],
+                            'id': p_id,
                             'ip': parts[1] if len(parts) > 1 else 'Unknown',
                             'ping': parts[2] if len(parts) > 2 else 'N/A',
                             'guid': parts[3] if len(parts) > 3 else 'N/A',
                             'name': parts[4] if len(parts) > 4 else 'Unknown'
                         }
                         players.append(player)
-                    except:
-                        continue
 
             return True, players
         except Exception as e:
@@ -194,11 +293,6 @@ class BattlEyeRCon:
             tuple: (success: bool, response: str)
         """
         return self.send_command(f'kick {player_id}')
-
-    def disconnect(self):
-        """Close the RCon connection"""
-        # Client is managed by context managers, just reset auth state
-        self.authenticated = False
 
     def __enter__(self):
         """Context manager entry"""

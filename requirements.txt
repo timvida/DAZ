@@ -6,4 +6,3 @@ steam==1.4.4
 cryptography==41.0.7
 APScheduler==3.10.4
 pytz==2024.1
-rcon>=2.4.9

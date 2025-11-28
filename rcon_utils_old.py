@@ -1,24 +1,25 @@
 """
-DayZ BattlEye RCon Utility using berconpy
+DayZ BattlEye RCon Utility
 Handles RCon connections to DayZ servers via BattlEye protocol
 """
 
+import socket
+import struct
+import hashlib
+import time
 import logging
 from threading import Lock
 
 logger = logging.getLogger(__name__)
 
-# Try to import berconpy
-try:
-    from berconpy import BERConClient
-    BERCON_AVAILABLE = True
-except ImportError:
-    BERCON_AVAILABLE = False
-    logger.error("berconpy not available - install with: pip install berconpy")
-
 
 class BattlEyeRCon:
-    """BattlEye RCon client for DayZ servers using berconpy"""
+    """BattlEye RCon client for DayZ servers"""
+
+    # BattlEye packet types
+    PACKET_LOGIN = 0x00
+    PACKET_COMMAND = 0x01
+    PACKET_MESSAGE = 0x02
 
     def __init__(self, host, port, password):
         """
@@ -32,9 +33,10 @@ class BattlEyeRCon:
         self.host = host
         self.port = int(port)
         self.password = password
-        self.client = None
-        self.authenticated = False
+        self.socket = None
+        self.sequence = 0
         self.lock = Lock()
+        self.authenticated = False
 
     def connect(self, timeout=5):
         """
@@ -46,33 +48,82 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, message: str)
         """
-        if not BERCON_AVAILABLE:
-            return False, "berconpy library not installed"
-
         try:
-            logger.info(f"Connecting to BattlEye RCon at {self.host}:{self.port}")
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket.settimeout(timeout)
 
-            # Create BERCon client
-            self.client = BERConClient(
-                ip=self.host,
-                port=self.port,
-                password=self.password,
-                timeout=timeout
-            )
-
-            # Connect
-            success = self.client.connect()
+            # Send login packet
+            success, message = self._login()
 
             if success:
                 self.authenticated = True
                 logger.info(f"Successfully connected to RCon at {self.host}:{self.port}")
                 return True, "Connected successfully"
             else:
-                return False, "Connection failed - check password and port"
+                self.disconnect()
+                return False, f"Login failed: {message}"
 
+        except socket.timeout:
+            self.disconnect()
+            return False, "Connection timeout - server not responding"
+        except ConnectionRefusedError:
+            self.disconnect()
+            return False, "Connection refused - check if server is running"
         except Exception as e:
-            logger.error(f"Connection error: {str(e)}")
+            self.disconnect()
             return False, f"Connection error: {str(e)}"
+
+    def _login(self):
+        """
+        Authenticate with the RCon server
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            # Build login packet
+            # Format: 'BE' + CRC32 + 0xFF + 0x00 + password
+            payload = b'\xff\x00' + self.password.encode('ascii')
+
+            # Calculate CRC32 for the payload
+            crc = self._calculate_crc32(payload)
+
+            # Build complete packet: 'BE' + CRC32 + payload
+            packet = b'BE' + struct.pack('<I', crc) + payload
+
+            logger.info(f"Sending login packet: {len(packet)} bytes, CRC={crc:08x}")
+
+            # Send login packet
+            self.socket.sendto(packet, (self.host, self.port))
+
+            # Wait for response
+            data, addr = self.socket.recvfrom(4096)
+
+            logger.info(f"Received login response: {len(data)} bytes")
+
+            if len(data) < 7:
+                return False, "Invalid response from server"
+
+            # Check header
+            if data[:2] != b'BE':
+                return False, "Invalid response header"
+
+            # Check response type (byte 6 should be 0xFF, byte 7 should be 0x01 for success)
+            if len(data) >= 8 and data[6] == 0xFF:
+                if data[7] == 0x01:
+                    logger.info("Login successful")
+                    return True, "Login successful"
+                elif data[7] == 0x00:
+                    logger.warning("Login failed: Invalid password")
+                    return False, "Invalid password"
+
+            return False, "Unexpected response from server"
+
+        except socket.timeout:
+            return False, "Login timeout"
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}")
+            return False, f"Login error: {str(e)}"
 
     def send_command(self, command, timeout=5):
         """
@@ -85,21 +136,68 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, response: str)
         """
-        if not self.authenticated or not self.client:
+        if not self.authenticated:
             return False, "Not authenticated"
 
         with self.lock:
             try:
-                logger.debug(f"Sending command: {command}")
+                self.sequence = (self.sequence + 1) % 256
 
-                # Send command using berconpy
-                response = self.client.send_command(command)
+                # Build command packet
+                # Format: 'BE' + CRC32 + 0xFF + 0x01 + sequence + command
+                payload = b'\xff\x01' + self.sequence.to_bytes(1, 'little') + command.encode('ascii')
 
-                if response is not None:
-                    logger.debug(f"Received response: {response[:100] if len(response) > 100 else response}")
-                    return True, response
-                else:
-                    return False, "No response from server"
+                # Calculate CRC32
+                crc = self._calculate_crc32(payload)
+
+                # Build complete packet
+                packet = b'BE' + struct.pack('<I', crc) + payload
+
+                logger.debug(f"Sending command '{command}': {len(packet)} bytes, seq={self.sequence}")
+
+                # Send command packet
+                self.socket.sendto(packet, (self.host, self.port))
+
+                # Wait for response(s)
+                old_timeout = self.socket.gettimeout()
+                self.socket.settimeout(timeout)
+
+                responses = []
+                try:
+                    # BattlEye may send multiple response packets
+                    while True:
+                        try:
+                            data, addr = self.socket.recvfrom(4096)
+
+                            if len(data) < 7:
+                                break
+
+                            # Check header
+                            if data[:2] != b'BE':
+                                break
+
+                            # Response format: 'BE' + CRC32 + 0xFF + 0x01 + sequence + data
+                            if len(data) >= 9 and data[6] == 0xFF and data[7] == 0x01:
+                                # Extract response data
+                                response_data = data[9:].decode('ascii', errors='ignore')
+                                responses.append(response_data)
+
+                                # If this is a single-packet response, break
+                                # Multi-packet responses are rare for most commands
+                                break
+                        except socket.timeout:
+                            break
+
+                    if responses:
+                        return True, '\n'.join(responses)
+                    else:
+                        return True, ""
+
+                except Exception as e:
+                    logger.error(f"Error receiving response: {str(e)}")
+                    return False, f"Response error: {str(e)}"
+                finally:
+                    self.socket.settimeout(old_timeout)
 
             except Exception as e:
                 logger.error(f"Error sending command: {str(e)}")
@@ -199,13 +297,28 @@ class BattlEyeRCon:
 
     def disconnect(self):
         """Close the RCon connection"""
-        if self.client:
+        if self.socket:
             try:
-                self.client.disconnect()
+                self.socket.close()
             except:
                 pass
-            self.client = None
+            self.socket = None
         self.authenticated = False
+
+    def _calculate_crc32(self, data):
+        """
+        Calculate CRC32 checksum for BattlEye packet
+
+        Args:
+            data: Data bytes to checksum
+
+        Returns:
+            int: CRC32 checksum
+        """
+        import zlib
+        # Use Python's built-in CRC32 (which is the standard implementation)
+        # BattlEye uses standard CRC32
+        return zlib.crc32(data) & 0xFFFFFFFF
 
     def __enter__(self):
         """Context manager entry"""
@@ -232,6 +345,7 @@ class RConManager:
         """
         import os
         import glob
+        import re
 
         try:
             # BattlEye config is in profiles/BattlEye/beserver_x64*.cfg
@@ -281,7 +395,7 @@ class RConManager:
                                 password = password.split('#')[0].strip()
                             config['rcon_password'] = password
                             config['_password_length'] = len(password)
-                            logger.info(f"Found RConPassword: length={len(password)}")
+                            logger.info(f"Found RConPassword: length={len(password)}, starts_with={password[:3] if len(password) > 3 else password}***")
 
                     elif line_stripped.startswith('RConPort'):
                         parts = line_stripped.split(None, 1)
@@ -331,7 +445,7 @@ class RConManager:
             rcon_port = be_config.get('rcon_port', server.rcon_port)
             rcon_ip = be_config.get('rcon_ip', None)
 
-            logger.info(f"Using BattlEye config: Port={rcon_port}, IP={rcon_ip}")
+            logger.info(f"Using BattlEye config: Password={'***' if rcon_password else 'NONE'}, Port={rcon_port}, IP={rcon_ip}")
         else:
             # Fallback to database values
             logger.warning("Could not read BattlEye config, using database values")
@@ -351,7 +465,7 @@ class RConManager:
             if not rcon_ip or rcon_ip == '0.0.0.0':
                 rcon_ip = '127.0.0.1'
 
-        logger.info(f"Connecting to RCon at {rcon_ip}:{rcon_port}")
+        logger.info(f"Connecting to RCon at {rcon_ip}:{rcon_port} with password length {len(rcon_password) if rcon_password else 0}")
         return BattlEyeRCon(rcon_ip, rcon_port, rcon_password)
 
     @staticmethod

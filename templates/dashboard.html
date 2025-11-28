@@ -174,6 +174,13 @@
 
                                     <!-- Action Buttons -->
                                     <div class="flex items-center gap-2">
+                                        {% if not server.is_installed %}
+                                            <button onclick="installServer({{ server.id }}, '{{ server.name }}')"
+                                                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center gap-2">
+                                                <i class="fas fa-download"></i>
+                                                <span class="hidden xl:inline">Install</span>
+                                            </button>
+                                        {% endif %}
                                         <a href="{{ url_for('server_dashboard', server_id=server.id) }}"
                                             class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
                                             <i class="fas fa-gauge-high"></i>
@@ -311,6 +318,37 @@
 
         function closeDeleteModal() {
             document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        // Install Server Function
+        function installServer(serverId, serverName) {
+            if (!confirm(`Install server "${serverName}"? This may take several minutes.`)) return;
+
+            // Show loading indicator
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="hidden xl:inline">Installing...</span>';
+
+            fetch(`/server/${serverId}/install`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                } else {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
         }
 
         // Auto-generate RCon password on page load

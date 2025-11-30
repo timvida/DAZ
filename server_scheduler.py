@@ -228,9 +228,11 @@ class ServerSchedulerManager:
                         time.sleep((last_warning - kick_minutes) * 60)
 
                 logger.info(f"Kicking all players from {server.name}")
-                success, msg = RConManager.kick_all_players(server)
+                success, msg = RConManager.kick_all_players(server, reason="Server Restart")
                 if not success:
                     logger.error(f"Failed to kick players: {msg}")
+                else:
+                    logger.info(f"Successfully kicked all players: {msg}")
 
                 # Wait remaining time until restart
                 time.sleep(kick_minutes * 60)

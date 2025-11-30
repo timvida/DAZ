@@ -1,7 +1,7 @@
 """
-DayZ BattlEye RCon Utility
-Robust implementation with async receiving and keep-alive
-Based on proven BattlEye protocol implementation
+DayZ BattlEye RCon Utility - Enhanced Version
+Robust implementation with auto-reconnect, async receiving and keep-alive
+Based on proven BattlEye protocol implementation with decorator pattern
 """
 
 import socket
@@ -9,13 +9,48 @@ import struct
 import binascii
 import time
 import threading
+import functools
 import logging
+import glob
+import os
 
 logger = logging.getLogger(__name__)
 
 
+# --- DECORATOR: CONNECTION GUARD ---
+def ensure_connection(func):
+    """
+    Decorator that ensures RCon connection is active before executing commands.
+    Automatically attempts to reconnect if connection is lost.
+
+    Args:
+        func: Function to wrap
+
+    Returns:
+        Wrapped function with connection check
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self.authenticated or not self.running:
+            # Attempt reconnection
+            logger.warning(f"Connection lost. Attempting reconnect for '{func.__name__}'...")
+            success, msg = self.connect()
+            if not success:
+                logger.error(f"ABORT: Command '{func.__name__}' could not be sent (server offline).")
+                return False, f"Connection failed: {msg}"
+
+        try:
+            # Execute the actual function
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error executing '{func.__name__}': {e}")
+            self.disconnect()  # Close socket on error to force reconnect next time
+            return False, f"Error: {str(e)}"
+    return wrapper
+
+
 class BattlEyeRCon:
-    """BattlEye RCon client for DayZ servers - robust async implementation"""
+    """Enhanced BattlEye RCon client for DayZ servers with auto-reconnect"""
 
     def __init__(self, host, port, password):
         """
@@ -37,8 +72,8 @@ class BattlEyeRCon:
         # Threads and synchronization
         self.listener_thread = None
         self.last_response = ""
-        self.response_event = threading.Event()
-        self.lock = threading.Lock()
+        self.response_lock = threading.Lock()
+        self.response_buffer = []
 
     def connect(self, timeout=10):
         """
@@ -51,6 +86,9 @@ class BattlEyeRCon:
             tuple: (success: bool, message: str)
         """
         try:
+            # Clean up any existing connection
+            self.disconnect(silent=True)
+
             logger.info(f"Connecting to BattlEye RCon at {self.host}:{self.port}")
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.settimeout(timeout)
@@ -70,7 +108,7 @@ class BattlEyeRCon:
                     if len(data) > 8 and data[8] == 0x01:
                         self.authenticated = True
                         self.running = True
-                        logger.info("Login successful! Connection established.")
+                        logger.info("✅ Login successful! Connection established.")
 
                         # Start background thread (Keep-Alive + Listener)
                         self.listener_thread = threading.Thread(target=self._listener_loop, daemon=True)
@@ -89,8 +127,13 @@ class BattlEyeRCon:
             logger.error(f"Connection error: {str(e)}")
             return False, f"Connection error: {str(e)}"
 
-    def disconnect(self):
-        """Close the RCon connection"""
+    def disconnect(self, silent=False):
+        """
+        Close the RCon connection
+
+        Args:
+            silent: If True, don't log the disconnection
+        """
         self.running = False
         self.authenticated = False
         if self.sock:
@@ -98,7 +141,9 @@ class BattlEyeRCon:
                 self.sock.close()
             except:
                 pass
-        logger.info("Connection closed.")
+            self.sock = None
+        if not silent:
+            logger.info("Connection closed.")
 
     def _create_packet(self, payload):
         """
@@ -159,8 +204,9 @@ class BattlEyeRCon:
                     text_response = payload[1:].decode('utf-8', errors='ignore')
 
                     # Store for retrieving function
-                    with self.lock:
+                    with self.response_lock:
                         self.last_response += text_response
+                        self.response_buffer.append(text_response)
 
                 elif flag == 0x00:  # Login Response (shouldn't happen in loop)
                     pass
@@ -183,7 +229,7 @@ class BattlEyeRCon:
         if not self.authenticated:
             return False, "Not authenticated"
 
-        with self.lock:
+        with self.response_lock:
             try:
                 self.sequence = (self.sequence + 1) % 256
                 payload = b'\x01' + struct.pack('B', self.sequence) + command.encode('utf-8')
@@ -191,6 +237,7 @@ class BattlEyeRCon:
 
                 # Clear buffer before new command
                 self.last_response = ""
+                self.response_buffer.clear()
 
                 # Send packet
                 self.sock.sendto(packet, (self.host, self.port))
@@ -203,11 +250,16 @@ class BattlEyeRCon:
         # Wait for response (UDP has no clear "end of message", so time-based)
         time.sleep(timeout)
 
-        with self.lock:
+        with self.response_lock:
             response = self.last_response.strip()
             logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
             return True, response
 
+    # =========================================================================
+    #                       ENHANCED API COMMANDS
+    # =========================================================================
+
+    @ensure_connection
     def send_message(self, message):
         """
         Send a global message to all players
@@ -218,9 +270,91 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, response: str)
         """
+        logger.info(f"Sending global message: '{message}'")
         command = f'say -1 {message}'
         return self.send_command(command)
 
+    @ensure_connection
+    def send_private_message(self, player_id, message):
+        """
+        Send a private message to a specific player
+
+        Args:
+            player_id: Player ID
+            message: Message to send
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.info(f"Sending PM to player ID {player_id}: '{message}'")
+        command = f'say {player_id} {message}'
+        return self.send_command(command)
+
+    @ensure_connection
+    def lock_server(self):
+        """
+        Lock the server - no one can join
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.warning("🔒 Locking server (#lock)")
+        return self.send_command("#lock")
+
+    @ensure_connection
+    def unlock_server(self):
+        """
+        Unlock the server
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.warning("🔓 Unlocking server (#unlock)")
+        return self.send_command("#unlock")
+
+    @ensure_connection
+    def kick_player(self, player_id, reason="Admin Kick"):
+        """
+        Kick a player from the server
+
+        Args:
+            player_id: Player ID to kick
+            reason: Kick reason
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.info(f"🥾 Kicking player ID {player_id}. Reason: {reason}")
+        return self.send_command(f'kick {player_id} {reason}')
+
+    @ensure_connection
+    def ban_player(self, player_id, minutes=0, reason="Banned"):
+        """
+        Ban a player
+
+        Args:
+            player_id: Player ID to ban
+            minutes: Ban duration (0 = permanent)
+            reason: Ban reason
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.info(f"⛔ Banning player ID {player_id} for {minutes} min. Reason: {reason}")
+        return self.send_command(f'ban {player_id} {minutes} {reason}')
+
+    @ensure_connection
+    def shutdown_server(self):
+        """
+        Shutdown/restart the server via RCon
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
+        logger.critical("⚠️ SHUTDOWN COMMAND SENT!")
+        return self.send_command("#shutdown")
+
+    @ensure_connection
     def get_players(self):
         """
         Get list of online players
@@ -263,9 +397,13 @@ class BattlEyeRCon:
             logger.error(f"Error parsing players: {str(e)}")
             return False, []
 
-    def kick_all_players(self):
+    @ensure_connection
+    def kick_all_players(self, reason="Server Restart"):
         """
         Kick all players from the server
+
+        Args:
+            reason: Kick reason
 
         Returns:
             tuple: (success: bool, message: str)
@@ -277,22 +415,12 @@ class BattlEyeRCon:
 
         kicked = 0
         for player in players:
-            self.send_command(f'kick {player["id"]}')
-            kicked += 1
+            kick_success, _ = self.kick_player(player["id"], reason)
+            if kick_success:
+                kicked += 1
+            time.sleep(0.2)  # Small delay between kicks
 
         return True, f"Kicked {kicked} player(s)"
-
-    def kick_player(self, player_id):
-        """
-        Kick a specific player
-
-        Args:
-            player_id: Player ID to kick
-
-        Returns:
-            tuple: (success: bool, response: str)
-        """
-        return self.send_command(f'kick {player_id}')
 
     def __enter__(self):
         """Context manager entry"""
@@ -317,9 +445,6 @@ class RConManager:
         Returns:
             dict: Config values (rcon_password, rcon_port, rcon_ip) or None
         """
-        import os
-        import glob
-
         try:
             be_path = server.be_path
             if not os.path.exists(be_path):
@@ -393,7 +518,15 @@ class RConManager:
 
     @staticmethod
     def get_rcon_connection(server):
-        """Get an RCon connection for a server"""
+        """
+        Get an RCon connection for a server
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            BattlEyeRCon: RCon connection instance
+        """
         be_config = RConManager.read_battleye_config(server)
 
         if be_config:
@@ -421,7 +554,15 @@ class RConManager:
 
     @staticmethod
     def test_connection(server):
-        """Test RCon connection"""
+        """
+        Test RCon connection
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, message: str, details: dict)
+        """
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -453,7 +594,15 @@ class RConManager:
 
     @staticmethod
     def get_players(server):
-        """Get list of online players"""
+        """
+        Get list of online players
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, players: list, message: str)
+        """
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -472,7 +621,16 @@ class RConManager:
 
     @staticmethod
     def send_server_message(server, message):
-        """Send a message to all players"""
+        """
+        Send a message to all players
+
+        Args:
+            server: GameServer instance
+            message: Message to send
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
@@ -490,23 +648,138 @@ class RConManager:
             return False, f"Error: {str(e)}"
 
     @staticmethod
-    def kick_all_players(server):
-        """Kick all players"""
+    def kick_all_players(server, reason="Server Restart"):
+        """
+        Kick all players
+
+        Args:
+            server: GameServer instance
+            reason: Kick reason
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()
                 if not success:
                     return False, f"Failed to connect: {msg}"
 
-                return rcon.kick_all_players()
+                return rcon.kick_all_players(reason)
 
         except Exception as e:
             logger.error(f"Error kicking players: {str(e)}")
             return False, f"Error: {str(e)}"
 
     @staticmethod
+    def kick_player(server, player_id, reason="Admin Kick"):
+        """
+        Kick a specific player
+
+        Args:
+            server: GameServer instance
+            player_id: Player ID to kick
+            reason: Kick reason
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+                if not success:
+                    return False, f"Failed to connect: {msg}"
+
+                return rcon.kick_player(player_id, reason)
+
+        except Exception as e:
+            logger.error(f"Error kicking player: {str(e)}")
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
+    def ban_player(server, player_id, minutes=0, reason="Banned"):
+        """
+        Ban a player
+
+        Args:
+            server: GameServer instance
+            player_id: Player ID to ban
+            minutes: Ban duration (0 = permanent)
+            reason: Ban reason
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+                if not success:
+                    return False, f"Failed to connect: {msg}"
+
+                return rcon.ban_player(player_id, minutes, reason)
+
+        except Exception as e:
+            logger.error(f"Error banning player: {str(e)}")
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
+    def lock_server(server):
+        """
+        Lock the server
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+                if not success:
+                    return False, f"Failed to connect: {msg}"
+
+                return rcon.lock_server()
+
+        except Exception as e:
+            logger.error(f"Error locking server: {str(e)}")
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
+    def unlock_server(server):
+        """
+        Unlock the server
+
+        Args:
+            server: GameServer instance
+
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            with RConManager.get_rcon_connection(server) as rcon:
+                success, msg = rcon.connect()
+                if not success:
+                    return False, f"Failed to connect: {msg}"
+
+                return rcon.unlock_server()
+
+        except Exception as e:
+            logger.error(f"Error unlocking server: {str(e)}")
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
     def execute_command(server, command):
-        """Execute a custom RCon command"""
+        """
+        Execute a custom RCon command
+
+        Args:
+            server: GameServer instance
+            command: Command to execute
+
+        Returns:
+            tuple: (success: bool, response: str)
+        """
         try:
             with RConManager.get_rcon_connection(server) as rcon:
                 success, msg = rcon.connect()

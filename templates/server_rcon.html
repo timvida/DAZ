@@ -85,6 +85,14 @@
                     <button onclick="kickAllPlayers()" class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-medium transition text-sm">
                         <i class="fas fa-user-slash mr-2"></i>Alle Spieler kicken
                     </button>
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <button id="lockBtn" onclick="lockServer()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg font-medium transition text-sm">
+                            <i class="fas fa-lock mr-2"></i>Sperren
+                        </button>
+                        <button id="unlockBtn" onclick="unlockServer()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition text-sm">
+                            <i class="fas fa-unlock mr-2"></i>Entsperren
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -274,9 +282,14 @@
                         <div class="font-medium text-white truncate">${escapeHtml(player.name)}</div>
                         <div class="text-xs text-gray-500">ID: ${player.id} | Ping: ${player.ping}</div>
                     </div>
-                    <button onclick="kickPlayer('${player.id}', '${escapeHtml(player.name)}')" class="ml-2 px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-xs transition">
-                        <i class="fas fa-ban"></i>
-                    </button>
+                    <div class="flex gap-1">
+                        <button onclick="kickPlayer('${player.id}', '${escapeHtml(player.name)}')" class="px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-xs transition" title="Kick">
+                            <i class="fas fa-shoe-prints"></i>
+                        </button>
+                        <button onclick="banPlayer('${player.id}', '${escapeHtml(player.name)}')" class="px-2 py-1 bg-purple-500 hover:bg-purple-600 rounded text-xs transition" title="Ban">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -314,29 +327,110 @@
     function kickAllPlayers() {
         if (!confirm('Möchtest du wirklich ALLE Spieler kicken?')) return;
 
-        const command = 'kick';
-        fetch(`/api/server/${serverId}/rcon/players`)
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success || data.players.length === 0) {
-                    alert('Keine Spieler zum Kicken gefunden');
-                    return;
-                }
+        showLoading('Kicke alle Spieler...');
+        fetch(`/api/server/${serverId}/rcon/kickall`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({reason: 'Admin action'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                addToConsole(`✓ ${data.message}`);
+                setTimeout(loadPlayers, 1000);
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Kicken aller Spieler');
+        });
+    }
 
-                showLoading('Kicke alle Spieler...');
-                let promises = data.players.map(player =>
-                    fetch(`/api/server/${serverId}/rcon/kick/${player.id}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'}
-                    })
-                );
+    function banPlayer(playerId, playerName) {
+        const minutes = prompt(`Wie lange möchtest du ${playerName} bannen?\n\n0 = Permanent\n1-999999 = Minuten`, '0');
+        if (minutes === null) return;
 
-                Promise.all(promises).then(() => {
-                    hideLoading();
-                    addToConsole(`✓ Alle Spieler wurden gekickt (${data.players.length} Spieler)`);
-                    setTimeout(loadPlayers, 1000);
-                });
-            });
+        const reason = prompt('Ban-Grund:', 'Verstoß gegen Serverregeln');
+        if (reason === null) return;
+
+        showLoading('Banne Spieler...');
+        fetch(`/api/server/${serverId}/rcon/ban/${playerId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                minutes: parseInt(minutes) || 0,
+                reason: reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                addToConsole(`✓ Spieler ${playerName} (ID: ${playerId}) wurde gebannt`);
+                setTimeout(loadPlayers, 1000);
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Bannen des Spielers');
+        });
+    }
+
+    function lockServer() {
+        if (!confirm('Möchtest du den Server wirklich sperren?\n\nKeine neuen Spieler können mehr joinen.')) return;
+
+        showLoading('Sperre Server...');
+        fetch(`/api/server/${serverId}/rcon/lock`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                addToConsole('🔒 Server wurde gesperrt');
+                alert('Server gesperrt! Keine neuen Spieler können mehr joinen.');
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Sperren des Servers');
+        });
+    }
+
+    function unlockServer() {
+        if (!confirm('Möchtest du den Server entsperren?')) return;
+
+        showLoading('Entsperre Server...');
+        fetch(`/api/server/${serverId}/rcon/unlock`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                addToConsole('🔓 Server wurde entsperrt');
+                alert('Server entsperrt! Spieler können wieder joinen.');
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Fehler beim Entsperren des Servers');
+        });
     }
 
     function sendCommand() {

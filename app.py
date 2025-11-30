@@ -922,17 +922,75 @@ def kick_rcon_player(server_id, player_id):
     if not server:
         return jsonify({'success': False, 'message': 'Server not found'}), 404
 
-    try:
-        with RConManager.get_rcon_connection(server) as rcon:
-            success, msg = rcon.connect()
-            if not success:
-                return jsonify({'success': False, 'message': f'Failed to connect: {msg}'})
+    success, response = RConManager.kick_player(server, player_id)
+    return jsonify({'success': success, 'message': 'Player kicked' if success else response})
 
-            success, response = rcon.kick_player(player_id)
-            return jsonify({'success': success, 'message': 'Player kicked' if success else response})
 
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+@app.route('/api/server/<int:server_id>/rcon/ban/<player_id>', methods=['POST'])
+@installation_check
+@login_required
+def ban_rcon_player(server_id, player_id):
+    """Ban a specific player"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    data = request.get_json() or {}
+    minutes = data.get('minutes', 0)  # 0 = permanent ban
+    reason = data.get('reason', 'Banned by admin')
+
+    success, response = RConManager.ban_player(server, player_id, minutes, reason)
+    return jsonify({'success': success, 'message': 'Player banned' if success else response})
+
+
+@app.route('/api/server/<int:server_id>/rcon/lock', methods=['POST'])
+@installation_check
+@login_required
+def lock_rcon_server(server_id):
+    """Lock the server - no one can join"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    success, response = RConManager.lock_server(server)
+    return jsonify({'success': success, 'message': 'Server locked' if success else response})
+
+
+@app.route('/api/server/<int:server_id>/rcon/unlock', methods=['POST'])
+@installation_check
+@login_required
+def unlock_rcon_server(server_id):
+    """Unlock the server"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    success, response = RConManager.unlock_server(server)
+    return jsonify({'success': success, 'message': 'Server unlocked' if success else response})
+
+
+@app.route('/api/server/<int:server_id>/rcon/kickall', methods=['POST'])
+@installation_check
+@login_required
+def kickall_rcon_players(server_id):
+    """Kick all players from the server"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    data = request.get_json() or {}
+    reason = data.get('reason', 'Server Restart')
+
+    success, response = RConManager.kick_all_players(server, reason)
+    return jsonify({'success': success, 'message': response})
 
 
 # Initialize database

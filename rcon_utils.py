@@ -65,7 +65,8 @@ class BattlEyeRCon:
         self.port = int(port)
         self.password = password
         self.sock = None
-        self.sequence = 0
+        # IMPORTANT: Start at -1 so the first command has sequence number 0
+        self.sequence = -1
         self.authenticated = False
         self.running = False
 
@@ -136,6 +137,8 @@ class BattlEyeRCon:
         """
         self.running = False
         self.authenticated = False
+        # Reset sequence on disconnect (important for reconnect)
+        self.sequence = -1
         if self.sock:
             try:
                 self.sock.close()
@@ -178,6 +181,8 @@ class BattlEyeRCon:
                 # A. Keep Alive (Every 30 seconds)
                 if time.time() - last_keep_alive > 30:
                     # Send empty command packet to keep connection alive
+                    # Must increment sequence to avoid conflicts with real commands
+                    self.sequence = (self.sequence + 1) % 256
                     ka_payload = b'\x01' + struct.pack('B', self.sequence) + b''
                     self.sock.sendto(self._create_packet(ka_payload), (self.host, self.port))
                     last_keep_alive = time.time()

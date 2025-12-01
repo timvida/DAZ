@@ -372,6 +372,11 @@ class ServerSchedulerManager:
 
                 scheduler_obj.interval_minutes = interval_minutes
 
+                # Set dummy values for NOT NULL fields (SQLite compatibility)
+                scheduler_obj.hour = 0
+                scheduler_obj.minute = 0
+                scheduler_obj.weekdays = '0'
+
             else:
                 # Cron scheduler: fixed time
                 hour = kwargs.get('hour')
@@ -398,8 +403,13 @@ class ServerSchedulerManager:
                 scheduler_obj.kick_minutes_before = kwargs.get('kick_minutes_before', 1)
                 warning_minutes = kwargs.get('warning_minutes', [60, 30, 15, 10, 5, 3, 2, 1])
                 scheduler_obj.warning_minutes = json.dumps(warning_minutes)
+                scheduler_obj.custom_message = ''  # Default empty for restart
             elif action_type == 'message':
                 scheduler_obj.custom_message = kwargs.get('custom_message', '')
+                # Set dummy values for restart-only fields (NOT NULL compatibility)
+                scheduler_obj.kick_all_players = False
+                scheduler_obj.kick_minutes_before = 0
+                scheduler_obj.warning_minutes = json.dumps([])
 
             db.session.add(scheduler_obj)
             db.session.commit()

@@ -112,9 +112,11 @@ class ServerScheduler(db.Model):
 
     # Schedule configuration
     name = db.Column(db.String(120), nullable=False)  # User-friendly name
-    hour = db.Column(db.Integer, nullable=False)  # Hour (0-23)
-    minute = db.Column(db.Integer, nullable=False)  # Minute (0-59)
-    weekdays = db.Column(db.String(50), nullable=False)  # Comma-separated: "0,1,2,3,4,5,6" (Mon=0, Sun=6)
+    schedule_type = db.Column(db.String(20), default='cron')  # "cron" (fixed time) or "interval" (every X minutes)
+    hour = db.Column(db.Integer, nullable=True)  # Hour (0-23) - only for cron
+    minute = db.Column(db.Integer, nullable=True)  # Minute (0-59) - only for cron
+    weekdays = db.Column(db.String(50), nullable=True)  # Comma-separated: "0,1,2,3,4,5,6" - only for cron
+    interval_minutes = db.Column(db.Integer, nullable=True)  # Interval in minutes - only for interval
 
     # Action configuration
     action_type = db.Column(db.String(50), nullable=False)  # "restart" or "message"

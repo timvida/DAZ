@@ -74,24 +74,43 @@ class ServerSchedulerManager:
             return
 
         try:
-            # Parse weekdays (comma-separated string to list of ints)
-            weekdays = [int(d.strip()) for d in scheduler_obj.weekdays.split(',')]
-
-            # Create cron trigger
-            # In APScheduler: mon=0, tue=1, ..., sun=6
-            trigger = CronTrigger(
-                hour=scheduler_obj.hour,
-                minute=scheduler_obj.minute,
-                day_of_week=','.join(str(d) for d in weekdays),
-                timezone=self.timezone
-            )
-
             # Create job ID
             job_id = f'scheduler_{scheduler_obj.id}'
 
             # Remove existing job if it exists
             if self.scheduler.get_job(job_id):
                 self.scheduler.remove_job(job_id)
+
+            # Determine trigger type based on schedule_type
+            schedule_type = scheduler_obj.schedule_type or 'cron'  # Default to cron for backwards compatibility
+
+            if schedule_type == 'interval':
+                # === INTERVAL SCHEDULER (Every X minutes) ===
+                from apscheduler.triggers.interval import IntervalTrigger
+
+                interval_minutes = scheduler_obj.interval_minutes or 60
+                trigger = IntervalTrigger(
+                    minutes=interval_minutes,
+                    timezone=self.timezone
+                )
+
+                logger.info(f"Creating INTERVAL scheduler: {scheduler_obj.name} (every {interval_minutes} minutes)")
+
+            else:
+                # === CRON SCHEDULER (Fixed time) ===
+                # Parse weekdays (comma-separated string to list of ints)
+                weekdays = [int(d.strip()) for d in scheduler_obj.weekdays.split(',')]
+
+                # Create cron trigger
+                # In APScheduler: mon=0, tue=1, ..., sun=6
+                trigger = CronTrigger(
+                    hour=scheduler_obj.hour,
+                    minute=scheduler_obj.minute,
+                    day_of_week=','.join(str(d) for d in weekdays),
+                    timezone=self.timezone
+                )
+
+                logger.info(f"Creating CRON scheduler: {scheduler_obj.name} (at {scheduler_obj.hour}:{scheduler_obj.minute:02d})")
 
             # Add new job
             self.scheduler.add_job(
@@ -103,10 +122,10 @@ class ServerSchedulerManager:
                 replace_existing=True
             )
 
-            logger.info(f"Scheduled task: {scheduler_obj.name} (ID: {scheduler_obj.id})")
+            logger.info(f"✓ Scheduled task: {scheduler_obj.name} (ID: {scheduler_obj.id})")
 
         except Exception as e:
-            logger.error(f"Error scheduling task {scheduler_obj.id}: {str(e)}")
+            logger.error(f"✗ Error scheduling task {scheduler_obj.id}: {str(e)}")
 
     def _execute_scheduler_task(self, scheduler_id):
         """
@@ -320,45 +339,60 @@ class ServerSchedulerManager:
         except Exception as e:
             logger.error(f"Error sending scheduled message: {str(e)}")
 
-    def add_scheduler(self, server_id, name, hour, minute, weekdays, action_type, **kwargs):
+    def add_scheduler(self, server_id, name, action_type, schedule_type='cron', **kwargs):
         """
         Add a new scheduler
 
         Args:
             server_id: Server ID
             name: Scheduler name
-            hour: Hour (0-23)
-            minute: Minute (0-59)
-            weekdays: List of weekdays (0=Monday, 6=Sunday)
             action_type: 'restart' or 'message'
-            **kwargs: Additional action-specific parameters
+            schedule_type: 'cron' (fixed time) or 'interval' (every X minutes)
+            **kwargs: Additional schedule and action-specific parameters
 
         Returns:
             tuple: (success: bool, message: str, scheduler_id: int)
         """
         try:
-            # Validate inputs
-            if not (0 <= hour <= 23):
-                return False, "Hour must be between 0 and 23", None
-
-            if not (0 <= minute <= 59):
-                return False, "Minute must be between 0 and 59", None
-
-            if not weekdays or not all(0 <= d <= 6 for d in weekdays):
-                return False, "Invalid weekdays", None
-
             # Create scheduler
             scheduler_obj = ServerScheduler(
                 server_id=server_id,
                 name=name,
-                hour=hour,
-                minute=minute,
-                weekdays=','.join(str(d) for d in sorted(weekdays)),
                 action_type=action_type,
+                schedule_type=schedule_type,
                 is_active=kwargs.get('is_active', True)
             )
 
-            # Set action-specific parameters
+            # === Schedule Configuration ===
+            if schedule_type == 'interval':
+                # Interval scheduler: every X minutes
+                interval_minutes = kwargs.get('interval_minutes', 60)
+                if not isinstance(interval_minutes, int) or interval_minutes < 1:
+                    return False, "Interval must be at least 1 minute", None
+
+                scheduler_obj.interval_minutes = interval_minutes
+
+            else:
+                # Cron scheduler: fixed time
+                hour = kwargs.get('hour')
+                minute = kwargs.get('minute')
+                weekdays = kwargs.get('weekdays', [])
+
+                # Validate cron inputs
+                if hour is None or not (0 <= hour <= 23):
+                    return False, "Hour must be between 0 and 23", None
+
+                if minute is None or not (0 <= minute <= 59):
+                    return False, "Minute must be between 0 and 59", None
+
+                if not weekdays or not all(0 <= d <= 6 for d in weekdays):
+                    return False, "Invalid weekdays", None
+
+                scheduler_obj.hour = hour
+                scheduler_obj.minute = minute
+                scheduler_obj.weekdays = ','.join(str(d) for d in sorted(weekdays))
+
+            # === Action Configuration ===
             if action_type == 'restart':
                 scheduler_obj.kick_all_players = kwargs.get('kick_all_players', True)
                 scheduler_obj.kick_minutes_before = kwargs.get('kick_minutes_before', 1)
@@ -374,12 +408,12 @@ class ServerSchedulerManager:
             if scheduler_obj.is_active:
                 self._schedule_task(scheduler_obj)
 
-            logger.info(f"Created scheduler: {name} (ID: {scheduler_obj.id})")
+            logger.info(f"✓ Created scheduler: {name} (ID: {scheduler_obj.id}, Type: {schedule_type})")
             return True, "Scheduler created successfully", scheduler_obj.id
 
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error creating scheduler: {str(e)}")
+            logger.error(f"✗ Error creating scheduler: {str(e)}")
             return False, f"Error: {str(e)}", None
 
     def update_scheduler(self, scheduler_id, **kwargs):

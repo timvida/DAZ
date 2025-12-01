@@ -692,40 +692,52 @@ def api_server_schedulers(server_id):
         schedulers_data = []
         for sched in schedulers:
             import json
-            schedulers_data.append({
+            sched_data = {
                 'id': sched.id,
                 'name': sched.name,
-                'hour': sched.hour,
-                'minute': sched.minute,
-                'weekdays': [int(d) for d in sched.weekdays.split(',')],
+                'schedule_type': sched.schedule_type or 'cron',
                 'action_type': sched.action_type,
-                'kick_all_players': sched.kick_all_players,
-                'kick_minutes_before': sched.kick_minutes_before,
-                'warning_minutes': json.loads(sched.warning_minutes) if sched.warning_minutes else [],
-                'custom_message': sched.custom_message,
                 'is_active': sched.is_active,
                 'last_run': sched.last_run.isoformat() if sched.last_run else None,
                 'created_at': sched.created_at.isoformat()
-            })
+            }
+
+            # Add schedule-specific fields
+            if sched.schedule_type == 'interval':
+                sched_data['interval_minutes'] = sched.interval_minutes
+            else:
+                sched_data['hour'] = sched.hour
+                sched_data['minute'] = sched.minute
+                sched_data['weekdays'] = [int(d) for d in sched.weekdays.split(',')] if sched.weekdays else []
+
+            # Add action-specific fields
+            if sched.action_type == 'restart':
+                sched_data['kick_all_players'] = sched.kick_all_players
+                sched_data['kick_minutes_before'] = sched.kick_minutes_before
+                sched_data['warning_minutes'] = json.loads(sched.warning_minutes) if sched.warning_minutes else []
+            elif sched.action_type == 'message':
+                sched_data['custom_message'] = sched.custom_message
+
+            schedulers_data.append(sched_data)
         return jsonify({'success': True, 'schedulers': schedulers_data})
 
     elif request.method == 'POST':
         data = request.get_json()
 
         # Validate required fields
-        required_fields = ['name', 'hour', 'minute', 'weekdays', 'action_type']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'success': False, 'message': f'Missing required field: {field}'}), 400
+        if 'name' not in data or 'action_type' not in data:
+            return jsonify({'success': False, 'message': 'Name and action_type are required'}), 400
 
-        # Create scheduler
+        # Create scheduler with new format
         success, message, scheduler_id = server_scheduler_manager.add_scheduler(
             server_id=server_id,
             name=data['name'],
-            hour=data['hour'],
-            minute=data['minute'],
-            weekdays=data['weekdays'],
             action_type=data['action_type'],
+            schedule_type=data.get('schedule_type', 'cron'),
+            hour=data.get('hour'),
+            minute=data.get('minute'),
+            weekdays=data.get('weekdays', []),
+            interval_minutes=data.get('interval_minutes'),
             kick_all_players=data.get('kick_all_players', True),
             kick_minutes_before=data.get('kick_minutes_before', 1),
             warning_minutes=data.get('warning_minutes', [60, 30, 15, 10, 5, 3, 2, 1]),
@@ -1043,6 +1055,31 @@ with app.app_context():
         # If database file was just created, ensure it has proper permissions
         if os.path.exists(db_path):
             os.chmod(db_path, 0o664)
+
+        # Run automatic database migrations for schedulers
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Check if new columns exist
+            cursor.execute("PRAGMA table_info(server_schedulers)")
+            columns = [row[1] for row in cursor.fetchall()]
+
+            if 'schedule_type' not in columns:
+                cursor.execute("ALTER TABLE server_schedulers ADD COLUMN schedule_type VARCHAR(20) DEFAULT 'cron'")
+                cursor.execute("UPDATE server_schedulers SET schedule_type = 'cron' WHERE schedule_type IS NULL")
+                print("✓ Added 'schedule_type' column to database")
+
+            if 'interval_minutes' not in columns:
+                cursor.execute("ALTER TABLE server_schedulers ADD COLUMN interval_minutes INTEGER")
+                print("✓ Added 'interval_minutes' column to database")
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Note: Database migration check: {e}")
+
     finally:
         # Restore original umask
         os.umask(old_umask)

@@ -53,136 +53,305 @@
     </div>
 </div>
 
-<!-- Create/Edit Scheduler Modal -->
+<!-- Create/Edit Scheduler Modal - STEP BY STEP -->
 <div id="schedulerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto p-4">
-    <div class="min-h-screen flex items-center justify-center">
+    <div class="min-h-screen flex items-center justify-center py-8">
         <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-3xl w-full p-8">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold text-white" id="modalTitle">Neuer Scheduler</h3>
+                <div class="flex-1">
+                    <h3 class="text-2xl font-bold text-white" id="modalTitle">Neuer Scheduler</h3>
+                    <p class="text-sm text-gray-400 mt-1" id="modalSubtitle">Schritt 1 von 3</p>
+                </div>
                 <button onclick="closeSchedulerModal()" class="text-gray-400 hover:text-white transition">
                     <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
 
-            <form id="schedulerForm" class="space-y-6">
+            <!-- Progress Bar -->
+            <div class="mb-8">
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs text-gray-400">Fortschritt</span>
+                    <span class="text-xs text-gray-400"><span id="currentStep">1</span>/3</span>
+                </div>
+                <div class="h-2 bg-[#0D1117] rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full bg-[#E32345] transition-all duration-300" style="width: 33%"></div>
+                </div>
+            </div>
+
+            <form id="schedulerForm">
                 <input type="hidden" id="schedulerId" value="">
 
-                <!-- Name -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        Name <span class="text-[#E32345]">*</span>
-                    </label>
-                    <input type="text" id="schedulerName" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="z.B. Täglicher Neustart">
-                </div>
-
-                <!-- Time Selection -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Stunde <span class="text-[#E32345]">*</span>
-                        </label>
-                        <select id="schedulerHour" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                            <option value="">Wählen...</option>
-                            <script>
-                                for (let i = 0; i < 24; i++) {
-                                    document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
-                                }
-                            </script>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Minute <span class="text-[#E32345]">*</span>
-                        </label>
-                        <select id="schedulerMinute" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                            <option value="">Wählen...</option>
-                            <script>
-                                for (let i = 0; i < 60; i += 5) {
-                                    document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
-                                }
-                            </script>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Weekdays -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-3">
-                        Wochentage <span class="text-[#E32345]">*</span>
-                    </label>
-                    <div class="grid grid-cols-7 gap-2">
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
-                        <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
-                    </div>
-                </div>
-
-                <!-- Action Type -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">
-                        Aktion <span class="text-[#E32345]">*</span>
-                    </label>
-                    <select id="actionType" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                        <option value="">Wählen...</option>
-                        <option value="restart">Server neustarten</option>
-                        <option value="message">Server-Nachricht senden</option>
-                    </select>
-                </div>
-
-                <!-- Restart Options -->
-                <div id="restartOptions" class="hidden space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
-                    <h4 class="font-medium text-white mb-3">Neustart-Einstellungen</h4>
-
-                    <div class="flex items-center gap-3">
-                        <input type="checkbox" id="kickAllPlayers" checked class="w-5 h-5 bg-[#0D1117] border border-[#E32345]/30 rounded text-[#E32345] focus:ring-[#E32345]">
-                        <label for="kickAllPlayers" class="text-gray-300">Alle Spieler kicken</label>
-                    </div>
-
-                    <div id="kickOptions">
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Minuten vor Neustart für Kick
-                        </label>
-                        <input type="number" id="kickMinutes" value="1" min="0" max="60" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Warnungs-Zeiten (Minuten vor Neustart)
-                        </label>
-                        <div id="warningMinutesContainer" class="flex flex-wrap gap-2 mb-2">
-                            <!-- Warning tags will be inserted here -->
+                <!-- STEP 1: Name -->
+                <div id="step1" class="step-content">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-signature text-[#E32345] text-3xl"></i>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="number" id="newWarningMinute" min="1" max="120" placeholder="Minuten..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                            <button type="button" onclick="addWarningMinute()" class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition">
-                                <i class="fas fa-plus"></i>
-                            </button>
+                        <h4 class="text-xl font-bold text-white mb-2">Scheduler benennen</h4>
+                        <p class="text-gray-400">Gib deinem Scheduler einen eindeutigen Namen</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">
+                            Name <span class="text-[#E32345]">*</span>
+                        </label>
+                        <input type="text" id="schedulerName" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition text-lg" placeholder="z.B. Täglicher Neustart 03:00">
+                        <p class="text-xs text-gray-500 mt-2">💡 Tipp: Verwende aussagekräftige Namen wie "Neustart Montag 4 Uhr" oder "Wartungshinweis alle 2h"</p>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Action Type -->
+                <div id="step2" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-bolt text-[#E32345] text-3xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">Aktion wählen</h4>
+                        <p class="text-gray-400">Was soll der Scheduler tun?</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button type="button" onclick="selectAction('restart')" class="action-card group p-6 bg-[#0D1117] border-2 border-[#E32345]/30 rounded-xl hover:border-[#E32345] transition cursor-pointer">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition">
+                                    <i class="fas fa-rotate-right text-orange-500 text-2xl"></i>
+                                </div>
+                                <h5 class="text-lg font-bold text-white mb-2">Server Neustarten</h5>
+                                <p class="text-sm text-gray-400">Automatischer Server-Neustart mit Warnungen und Spieler-Kick</p>
+                            </div>
+                        </button>
+
+                        <button type="button" onclick="selectAction('message')" class="action-card group p-6 bg-[#0D1117] border-2 border-[#E32345]/30 rounded-xl hover:border-[#E32345] transition cursor-pointer">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition">
+                                    <i class="fas fa-message text-blue-500 text-2xl"></i>
+                                </div>
+                                <h5 class="text-lg font-bold text-white mb-2">Nachricht Senden</h5>
+                                <p class="text-sm text-gray-400">Globale Nachricht an alle Spieler senden</p>
+                            </div>
+                        </button>
+                    </div>
+                    <input type="hidden" id="actionType">
+                </div>
+
+                <!-- STEP 3A: Restart Configuration -->
+                <div id="step3restart" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-rotate-right text-[#E32345] text-3xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">Neustart Konfigurieren</h4>
+                        <p class="text-gray-400">Zeitpunkt und Optionen festlegen</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Time Selection -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Stunde <span class="text-[#E32345]">*</span>
+                                </label>
+                                <select id="schedulerHour" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                    <option value="">Wählen...</option>
+                                    <script>
+                                        for (let i = 0; i < 24; i++) {
+                                            document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
+                                        }
+                                    </script>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Minute <span class="text-[#E32345]">*</span>
+                                </label>
+                                <select id="schedulerMinute" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                    <option value="">Wählen...</option>
+                                    <script>
+                                        for (let i = 0; i < 60; i += 5) {
+                                            document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
+                                        }
+                                    </script>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Weekdays -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-3">
+                                Wochentage <span class="text-[#E32345]">*</span>
+                            </label>
+                            <div class="grid grid-cols-7 gap-2">
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
+                            </div>
+                        </div>
+
+                        <!-- Restart Options -->
+                        <div class="space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
+                            <h4 class="font-medium text-white mb-3 flex items-center gap-2">
+                                <i class="fas fa-cog text-[#E32345]"></i>
+                                Neustart-Einstellungen
+                            </h4>
+
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="kickAllPlayers" checked class="w-5 h-5 bg-[#0D1117] border border-[#E32345]/30 rounded text-[#E32345] focus:ring-[#E32345]">
+                                <label for="kickAllPlayers" class="text-gray-300">Alle Spieler kicken</label>
+                            </div>
+
+                            <div id="kickOptions">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Minuten vor Neustart für Kick
+                                </label>
+                                <input type="number" id="kickMinutes" value="1" min="0" max="60" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    Warnungs-Zeiten (Minuten vor Neustart)
+                                </label>
+                                <div id="warningMinutesContainer" class="flex flex-wrap gap-2 mb-2">
+                                    <!-- Warning tags will be inserted here -->
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" id="newWarningMinute" min="1" max="120" placeholder="Minuten..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                    <button type="button" onclick="addWarningMinute()" class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Message Options -->
-                <div id="messageOptions" class="hidden space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
-                    <h4 class="font-medium text-white mb-3">Nachrichten-Einstellungen</h4>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            Nachricht
-                        </label>
-                        <textarea id="customMessage" rows="3" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="Deine Nachricht an alle Spieler..."></textarea>
+                <!-- STEP 3B: Message Configuration -->
+                <div id="step3message" class="step-content hidden">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-message text-[#E32345] text-3xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-2">Nachricht Konfigurieren</h4>
+                        <p class="text-gray-400">Zeitplan und Nachricht festlegen</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Schedule Type Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-3">
+                                Zeitplan-Typ <span class="text-[#E32345]">*</span>
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button type="button" onclick="selectScheduleType('cron')" class="schedule-type-btn group p-4 bg-[#0D1117] border-2 border-[#E32345]/30 rounded-xl hover:border-[#E32345] transition cursor-pointer">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition">
+                                            <i class="fas fa-clock text-green-500 text-xl"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <h5 class="font-bold text-white mb-1">Bestimmte Uhrzeit</h5>
+                                            <p class="text-xs text-gray-400">Z.B. jeden Tag um 12:00</p>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button type="button" onclick="selectScheduleType('interval')" class="schedule-type-btn group p-4 bg-[#0D1117] border-2 border-[#E32345]/30 rounded-xl hover:border-[#E32345] transition cursor-pointer">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center group-hover:bg-purple-500/30 transition">
+                                            <i class="fas fa-repeat text-purple-500 text-xl"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <h5 class="font-bold text-white mb-1">Alle X Minuten</h5>
+                                            <p class="text-xs text-gray-400">Z.B. alle 30 Minuten</p>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            <input type="hidden" id="scheduleType">
+                        </div>
+
+                        <!-- Cron Schedule (Fixed Time) -->
+                        <div id="cronScheduleConfig" class="hidden space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Stunde <span class="text-[#E32345]">*</span>
+                                    </label>
+                                    <select id="messageHour" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                        <option value="">Wählen...</option>
+                                        <script>
+                                            for (let i = 0; i < 24; i++) {
+                                                document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
+                                            }
+                                        </script>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                                        Minute <span class="text-[#E32345]">*</span>
+                                    </label>
+                                    <select id="messageMinute" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                        <option value="">Wählen...</option>
+                                        <script>
+                                            for (let i = 0; i < 60; i += 5) {
+                                                document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
+                                            }
+                                        </script>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-3">
+                                    Wochentage <span class="text-[#E32345]">*</span>
+                                </label>
+                                <div class="grid grid-cols-7 gap-2">
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interval Schedule (Every X minutes) -->
+                        <div id="intervalScheduleConfig" class="hidden">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                Intervall in Minuten <span class="text-[#E32345]">*</span>
+                            </label>
+                            <input type="number" id="intervalMinutes" min="1" max="1440" placeholder="Z.B. 30 für alle 30 Minuten" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            <p class="text-xs text-gray-500 mt-2">💡 Beliebte Werte: 30, 60, 120 (2h), 180 (3h)</p>
+                        </div>
+
+                        <!-- Message Text -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                Nachricht <span class="text-[#E32345]">*</span>
+                            </label>
+                            <textarea id="customMessage" rows="3" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="Deine Nachricht an alle Spieler..." required></textarea>
+                            <p class="text-xs text-gray-500 mt-2">💡 Die Nachricht erscheint unten links im Spiel</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Submit Buttons -->
-                <div class="flex gap-3 pt-4">
-                    <button type="submit" class="flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
-                        <i class="fas fa-save mr-2"></i>Speichern
+                <!-- Navigation Buttons -->
+                <div class="flex gap-3 pt-6 border-t border-[#E32345]/20 mt-8">
+                    <button type="button" id="btnBack" onclick="previousStep()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition hidden">
+                        <i class="fas fa-arrow-left mr-2"></i>Zurück
                     </button>
                     <button type="button" onclick="closeSchedulerModal()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition">
                         Abbrechen
+                    </button>
+                    <button type="button" id="btnNext" onclick="nextStep()" class="flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
+                        Weiter<i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button type="button" id="btnSave" onclick="saveScheduler()" class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition shadow-lg shadow-green-600/20 hidden">
+                        <i class="fas fa-save mr-2"></i>Speichern
                     </button>
                 </div>
             </form>
@@ -202,7 +371,13 @@
 
 <script>
     const serverId = {{ server.id }};
+
+    // State variables
+    let currentStep = 1;
+    let selectedAction = null;
+    let selectedScheduleType = null;
     let selectedWeekdays = new Set();
+    let selectedMessageWeekdays = new Set();
     let warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
     let editingSchedulerId = null;
 
@@ -212,8 +387,104 @@
         setupEventListeners();
     });
 
+    // ==== STEP NAVIGATION ====
+    function nextStep() {
+        // Validate current step
+        if (currentStep === 1) {
+            const name = document.getElementById('schedulerName').value.trim();
+            if (!name) {
+                alert('Bitte gib einen Namen ein');
+                return;
+            }
+        } else if (currentStep === 2) {
+            if (!selectedAction) {
+                alert('Bitte wähle eine Aktion');
+                return;
+            }
+        }
+
+        // Move to next step
+        if (currentStep < 3) {
+            currentStep++;
+            updateStepDisplay();
+        }
+    }
+
+    function previousStep() {
+        if (currentStep > 1) {
+            currentStep--;
+            updateStepDisplay();
+        }
+    }
+
+    function updateStepDisplay() {
+        // Hide all steps
+        document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
+
+        // Show current step
+        if (currentStep === 1) {
+            document.getElementById('step1').classList.remove('hidden');
+        } else if (currentStep === 2) {
+            document.getElementById('step2').classList.remove('hidden');
+        } else if (currentStep === 3) {
+            if (selectedAction === 'restart') {
+                document.getElementById('step3restart').classList.remove('hidden');
+            } else if (selectedAction === 'message') {
+                document.getElementById('step3message').classList.remove('hidden');
+            }
+        }
+
+        // Update progress bar
+        const progress = (currentStep / 3) * 100;
+        document.getElementById('progressBar').style.width = progress + '%';
+        document.getElementById('currentStep').textContent = currentStep;
+        document.getElementById('modalSubtitle').textContent = `Schritt ${currentStep} von 3`;
+
+        // Update buttons
+        document.getElementById('btnBack').classList.toggle('hidden', currentStep === 1);
+        document.getElementById('btnNext').classList.toggle('hidden', currentStep === 3);
+        document.getElementById('btnSave').classList.toggle('hidden', currentStep !== 3);
+    }
+
+    function selectAction(action) {
+        selectedAction = action;
+        document.getElementById('actionType').value = action;
+
+        // Highlight selected card
+        document.querySelectorAll('.action-card').forEach(card => {
+            card.classList.remove('border-[#E32345]');
+            card.classList.add('border-[#E32345]/30');
+        });
+        event.target.closest('.action-card').classList.remove('border-[#E32345]/30');
+        event.target.closest('.action-card').classList.add('border-[#E32345]');
+
+        setTimeout(() => nextStep(), 300);
+    }
+
+    function selectScheduleType(type) {
+        selectedScheduleType = type;
+        document.getElementById('scheduleType').value = type;
+
+        // Highlight selected card
+        document.querySelectorAll('.schedule-type-btn').forEach(btn => {
+            btn.classList.remove('border-[#E32345]');
+            btn.classList.add('border-[#E32345]/30');
+        });
+        event.target.closest('.schedule-type-btn').classList.remove('border-[#E32345]/30');
+        event.target.closest('.schedule-type-btn').classList.add('border-[#E32345]');
+
+        // Show/hide schedule config
+        if (type === 'cron') {
+            document.getElementById('cronScheduleConfig').classList.remove('hidden');
+            document.getElementById('intervalScheduleConfig').classList.add('hidden');
+        } else {
+            document.getElementById('cronScheduleConfig').classList.add('hidden');
+            document.getElementById('intervalScheduleConfig').classList.remove('hidden');
+        }
+    }
+
     function setupEventListeners() {
-        // Weekday buttons
+        // Restart Weekday buttons
         document.querySelectorAll('.weekday-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -230,21 +501,21 @@
             });
         });
 
-        // Action type change
-        document.getElementById('actionType').addEventListener('change', function() {
-            const restartOptions = document.getElementById('restartOptions');
-            const messageOptions = document.getElementById('messageOptions');
-
-            if (this.value === 'restart') {
-                restartOptions.classList.remove('hidden');
-                messageOptions.classList.add('hidden');
-            } else if (this.value === 'message') {
-                restartOptions.classList.add('hidden');
-                messageOptions.classList.remove('hidden');
-            } else {
-                restartOptions.classList.add('hidden');
-                messageOptions.classList.add('hidden');
-            }
+        // Message Weekday buttons (separate set!)
+        document.querySelectorAll('.message-weekday-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const day = parseInt(this.dataset.day);
+                if (selectedMessageWeekdays.has(day)) {
+                    selectedMessageWeekdays.delete(day);
+                    this.classList.remove('bg-[#E32345]', 'border-[#E32345]');
+                    this.classList.add('bg-[#0D1117]', 'border-[#E32345]/30');
+                } else {
+                    selectedMessageWeekdays.add(day);
+                    this.classList.add('bg-[#E32345]', 'border-[#E32345]');
+                    this.classList.remove('bg-[#0D1117]', 'border-[#E32345]/30');
+                }
+            });
         });
 
         // Kick players checkbox
@@ -255,12 +526,6 @@
             } else {
                 kickOptions.classList.add('hidden');
             }
-        });
-
-        // Form submission
-        document.getElementById('schedulerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveScheduler();
         });
     }
 
@@ -302,12 +567,37 @@
 
     function createSchedulerCard(scheduler) {
         const weekdayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-        const weekdaysStr = scheduler.weekdays.map(d => weekdayNames[d]).join(', ');
-        const timeStr = `${String(scheduler.hour).padStart(2, '0')}:${String(scheduler.minute).padStart(2, '0')}`;
         const actionIcon = scheduler.action_type === 'restart' ? 'fa-rotate-right' : 'fa-message';
         const actionText = scheduler.action_type === 'restart' ? 'Server neustarten' : 'Nachricht senden';
         const statusColor = scheduler.is_active ? 'green' : 'gray';
         const statusText = scheduler.is_active ? 'Aktiv' : 'Inaktiv';
+
+        // Determine schedule display based on type
+        let scheduleInfo = '';
+        const scheduleType = scheduler.schedule_type || 'cron';
+
+        if (scheduleType === 'interval') {
+            // Interval scheduler
+            const interval = scheduler.interval_minutes || 60;
+            scheduleInfo = `<span class="flex items-center gap-2">
+                <i class="fas fa-repeat text-[#E32345]"></i>
+                <strong class="text-white">Alle ${interval} Minuten</strong>
+            </span>`;
+        } else {
+            // Cron scheduler
+            const weekdaysStr = scheduler.weekdays.map(d => weekdayNames[d]).join(', ');
+            const timeStr = `${String(scheduler.hour).padStart(2, '0')}:${String(scheduler.minute).padStart(2, '0')}`;
+            scheduleInfo = `
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-clock text-[#E32345]"></i>
+                    <strong class="text-white">${timeStr} Uhr</strong>
+                </span>
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-calendar text-[#E32345]"></i>
+                    <strong class="text-white">${weekdaysStr}</strong>
+                </span>
+            `;
+        }
 
         return `
             <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
@@ -320,14 +610,7 @@
                             </span>
                         </div>
                         <div class="flex flex-wrap gap-4 text-sm text-gray-400">
-                            <span class="flex items-center gap-2">
-                                <i class="fas fa-clock text-[#E32345]"></i>
-                                <strong class="text-white">${timeStr} Uhr</strong>
-                            </span>
-                            <span class="flex items-center gap-2">
-                                <i class="fas fa-calendar text-[#E32345]"></i>
-                                <strong class="text-white">${weekdaysStr}</strong>
-                            </span>
+                            ${scheduleInfo}
                             <span class="flex items-center gap-2">
                                 <i class="fas ${actionIcon} text-[#E32345]"></i>
                                 <strong class="text-white">${actionText}</strong>
@@ -353,19 +636,42 @@
 
     function openCreateScheduler() {
         editingSchedulerId = null;
+        currentStep = 1;
+        selectedAction = null;
+        selectedScheduleType = null;
+        selectedWeekdays.clear();
+        selectedMessageWeekdays.clear();
+        warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
+
         document.getElementById('modalTitle').textContent = 'Neuer Scheduler';
         document.getElementById('schedulerForm').reset();
-        selectedWeekdays.clear();
-        warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
         updateWarningMinutesDisplay();
 
-        // Reset weekday buttons
-        document.querySelectorAll('.weekday-btn').forEach(btn => {
+        // Reset all weekday buttons
+        document.querySelectorAll('.weekday-btn, .message-weekday-btn').forEach(btn => {
             btn.classList.remove('bg-[#E32345]', 'border-[#E32345]');
             btn.classList.add('bg-[#0D1117]', 'border-[#E32345]/30');
         });
 
+        // Reset action/schedule type cards
+        document.querySelectorAll('.action-card, .schedule-type-btn').forEach(card => {
+            card.classList.remove('border-[#E32345]');
+            card.classList.add('border-[#E32345]/30');
+        });
+
+        // Hide schedule configs
+        document.getElementById('cronScheduleConfig').classList.add('hidden');
+        document.getElementById('intervalScheduleConfig').classList.add('hidden');
+
+        updateStepDisplay();
         document.getElementById('schedulerModal').classList.remove('hidden');
+    }
+
+    function closeSchedulerModal() {
+        document.getElementById('schedulerModal').classList.add('hidden');
+        currentStep = 1;
+        selectedAction = null;
+        selectedScheduleType = null;
     }
 
     function editScheduler(schedulerId) {
@@ -428,25 +734,93 @@
     }
 
     function saveScheduler() {
-        if (selectedWeekdays.size === 0) {
-            alert('Bitte wähle mindestens einen Wochentag aus');
+        const data = {
+            name: document.getElementById('schedulerName').value.trim(),
+            action_type: selectedAction
+        };
+
+        // Validation
+        if (!data.name) {
+            alert('Bitte gib einen Namen ein');
             return;
         }
 
-        const data = {
-            name: document.getElementById('schedulerName').value,
-            hour: parseInt(document.getElementById('schedulerHour').value),
-            minute: parseInt(document.getElementById('schedulerMinute').value),
-            weekdays: Array.from(selectedWeekdays),
-            action_type: document.getElementById('actionType').value
-        };
+        if (!selectedAction) {
+            alert('Bitte wähle eine Aktion');
+            return;
+        }
 
-        if (data.action_type === 'restart') {
+        // === Action-specific configuration ===
+        if (selectedAction === 'restart') {
+            // Restart requires cron schedule
+            const hour = document.getElementById('schedulerHour').value;
+            const minute = document.getElementById('schedulerMinute').value;
+
+            if (!hour || !minute) {
+                alert('Bitte wähle Stunde und Minute');
+                return;
+            }
+
+            if (selectedWeekdays.size === 0) {
+                alert('Bitte wähle mindestens einen Wochentag');
+                return;
+            }
+
+            data.schedule_type = 'cron';
+            data.hour = parseInt(hour);
+            data.minute = parseInt(minute);
+            data.weekdays = Array.from(selectedWeekdays);
             data.kick_all_players = document.getElementById('kickAllPlayers').checked;
             data.kick_minutes_before = parseInt(document.getElementById('kickMinutes').value);
             data.warning_minutes = warningMinutes;
-        } else if (data.action_type === 'message') {
-            data.custom_message = document.getElementById('customMessage').value;
+
+        } else if (selectedAction === 'message') {
+            const message = document.getElementById('customMessage').value.trim();
+
+            if (!message) {
+                alert('Bitte gib eine Nachricht ein');
+                return;
+            }
+
+            data.custom_message = message;
+
+            if (!selectedScheduleType) {
+                alert('Bitte wähle einen Zeitplan-Typ');
+                return;
+            }
+
+            data.schedule_type = selectedScheduleType;
+
+            if (selectedScheduleType === 'cron') {
+                // Fixed time schedule
+                const hour = document.getElementById('messageHour').value;
+                const minute = document.getElementById('messageMinute').value;
+
+                if (!hour || !minute) {
+                    alert('Bitte wähle Stunde und Minute');
+                    return;
+                }
+
+                if (selectedMessageWeekdays.size === 0) {
+                    alert('Bitte wähle mindestens einen Wochentag');
+                    return;
+                }
+
+                data.hour = parseInt(hour);
+                data.minute = parseInt(minute);
+                data.weekdays = Array.from(selectedMessageWeekdays);
+
+            } else if (selectedScheduleType === 'interval') {
+                // Interval schedule
+                const interval = parseInt(document.getElementById('intervalMinutes').value);
+
+                if (!interval || interval < 1) {
+                    alert('Bitte gib ein gültiges Intervall ein (mindestens 1 Minute)');
+                    return;
+                }
+
+                data.interval_minutes = interval;
+            }
         }
 
         showLoading(editingSchedulerId ? 'Aktualisiere...' : 'Erstelle...');

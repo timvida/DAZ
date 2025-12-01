@@ -253,11 +253,32 @@ class BattlEyeRCon:
                 return False, f"Send error: {str(e)}"
 
         # Wait for response (UDP has no clear "end of message", so time-based)
-        time.sleep(timeout)
+        # Use adaptive waiting: check multiple times if response is still coming
+        check_interval = 0.1
+        checks = int(timeout / check_interval)
+        last_length = 0
+        stable_count = 0
+
+        for i in range(checks):
+            time.sleep(check_interval)
+            with self.response_lock:
+                current_length = len(self.last_response)
+                if current_length == last_length:
+                    stable_count += 1
+                    # If response hasn't changed for 3 checks (0.3s), we're probably done
+                    if stable_count >= 3 and current_length > 0:
+                        break
+                else:
+                    stable_count = 0
+                    last_length = current_length
 
         with self.response_lock:
             response = self.last_response.strip()
-            logger.debug(f"Command response: {response[:100] if response else '(empty)'}")
+            logger.debug(f"Command '{command[:20]}...' response length: {len(response)} bytes")
+            if len(response) > 100:
+                logger.debug(f"Response preview: {response[:100]}...")
+            else:
+                logger.debug(f"Response: {response}")
             return True, response
 
     # =========================================================================
@@ -367,10 +388,16 @@ class BattlEyeRCon:
         Returns:
             tuple: (success: bool, players: list)
         """
-        success, response = self.send_command('players', timeout=2.0)
+        # Increase timeout for players command as it can take longer with many players
+        success, response = self.send_command('players', timeout=4.0)
 
         if not success:
+            logger.warning(f"Failed to get players: {response}")
             return False, []
+
+        if not response or len(response.strip()) == 0:
+            logger.info("Players command returned empty response (no players online)")
+            return True, []
 
         # Parse player list
         players = []

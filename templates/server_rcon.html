@@ -3,7 +3,7 @@
 {% block title %}{{ server.name }} - RCon Console{% endblock %}
 
 {% block page_title %}{{ server.name }}{% endblock %}
-{% block page_subtitle %}RCon Console & Verwaltung{% endblock %}
+{% block page_subtitle %}RCon Console & Management{% endblock %}
 
 {% block topbar_actions %}
 <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
@@ -22,8 +22,8 @@
                     <i class="fas fa-question text-white text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-white mb-1">RCon Verbindungsstatus</h2>
-                    <p id="connectionStatusText" class="text-gray-400">Noch nicht getestet</p>
+                    <h2 class="text-xl font-bold text-white mb-1">RCon Connection Status</h2>
+                    <p id="connectionStatusText" class="text-gray-400">Not tested yet</p>
                     <div id="connectionDetails" class="mt-2 text-sm text-gray-500 hidden">
                         <span class="mr-4"><strong>IP:</strong> <span id="serverIP">-</span></span>
                         <span><strong>Port:</strong> <span id="serverPort">-</span></span>
@@ -36,7 +36,7 @@
             </div>
             <button onclick="testConnection()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 flex items-center gap-2">
                 <i class="fas fa-plug"></i>
-                <span>Verbindung testen</span>
+                <span>Test Connection</span>
             </button>
         </div>
     </div>
@@ -49,7 +49,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-users text-[#E32345] text-xl"></i>
-                        <h3 class="text-lg font-bold text-white">Online Spieler</h3>
+                        <h3 class="text-lg font-bold text-white">Online Players</h3>
                     </div>
                     <button onclick="loadPlayers()" class="px-3 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
                         <i class="fas fa-sync-alt"></i>
@@ -58,13 +58,13 @@
 
                 <div class="mb-4 p-4 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-center">
                     <div class="text-3xl font-bold text-[#E32345]" id="playerCount">0</div>
-                    <div class="text-sm text-gray-400">Spieler online</div>
+                    <div class="text-sm text-gray-400">Players online</div>
                 </div>
 
                 <div id="playersList" class="space-y-2 max-h-96 overflow-y-auto">
                     <div class="text-center text-gray-500 py-8">
                         <i class="fas fa-user-slash text-4xl mb-2"></i>
-                        <p>Keine Spieler online</p>
+                        <p>No players online</p>
                     </div>
                 </div>
             </div>
@@ -73,24 +73,24 @@
             <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mt-6">
                 <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-bolt text-[#E32345]"></i>
-                    Schnellaktionen
+                    Quick Actions
                 </h3>
                 <div class="space-y-2">
                     <div class="flex gap-2">
-                        <input type="text" id="quickMessage" placeholder="Nachricht an alle..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition text-sm">
+                        <input type="text" id="quickMessage" placeholder="Message to all..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition text-sm">
                         <button onclick="sendQuickMessage()" class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
                     <button onclick="kickAllPlayers()" class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-medium transition text-sm">
-                        <i class="fas fa-user-slash mr-2"></i>Alle Spieler kicken
+                        <i class="fas fa-user-slash mr-2"></i>Kick All Players
                     </button>
                     <div class="grid grid-cols-2 gap-2 pt-2">
                         <button id="lockBtn" onclick="lockServer()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg font-medium transition text-sm">
-                            <i class="fas fa-lock mr-2"></i>Sperren
+                            <i class="fas fa-lock mr-2"></i>Lock
                         </button>
                         <button id="unlockBtn" onclick="unlockServer()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition text-sm">
-                            <i class="fas fa-unlock mr-2"></i>Entsperren
+                            <i class="fas fa-unlock mr-2"></i>Unlock
                         </button>
                     </div>
                 </div>
@@ -107,25 +107,25 @@
                     </div>
                     <div class="flex gap-2">
                         <button onclick="clearConsole()" class="px-3 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition text-sm">
-                            <i class="fas fa-trash mr-2"></i>Leeren
+                            <i class="fas fa-trash mr-2"></i>Clear
                         </button>
                     </div>
                 </div>
 
                 <div id="consoleOutput" class="flex-1 bg-[#0D1117] border border-[#E32345]/30 rounded-lg p-4 font-mono text-sm text-green-400 overflow-y-auto mb-4 min-h-[500px]">
-                    <div class="text-gray-500">RCon Console bereit. Gib ein Kommando ein...</div>
+                    <div class="text-gray-500">RCon Console ready. Enter a command...</div>
                 </div>
 
                 <div class="flex gap-2">
-                    <input type="text" id="commandInput" placeholder="Kommando eingeben... (z.B. 'players', 'say -1 Hallo')" class="flex-1 px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" onkeypress="if(event.key==='Enter') sendCommand()">
+                    <input type="text" id="commandInput" placeholder="Enter command... (e.g. 'players', 'say -1 Hello')" class="flex-1 px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" onkeypress="if(event.key==='Enter') sendCommand()">
                     <button onclick="sendCommand()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
-                        <i class="fas fa-paper-plane mr-2"></i>Senden
+                        <i class="fas fa-paper-plane mr-2"></i>Send
                     </button>
                 </div>
 
                 <!-- Common Commands -->
                 <div class="mt-4 p-4 bg-[#0D1117] border border-[#E32345]/30 rounded-lg">
-                    <p class="text-sm text-gray-400 mb-2">Häufige Befehle:</p>
+                    <p class="text-sm text-gray-400 mb-2">Common Commands:</p>
                     <div class="flex flex-wrap gap-2">
                         <button onclick="quickCommand('players')" class="px-3 py-1 bg-[#E32345]/20 hover:bg-[#E32345]/30 border border-[#E32345]/50 rounded text-white text-xs transition">players</button>
                         <button onclick="quickCommand('admins')" class="px-3 py-1 bg-[#E32345]/20 hover:bg-[#E32345]/30 border border-[#E32345]/50 rounded text-white text-xs transition">admins</button>
@@ -145,7 +145,7 @@
     <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
         <div class="text-center">
             <div class="w-16 h-16 border-4 border-[#E32345]/30 border-t-[#E32345] rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Lädt...</h3>
+            <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Loading...</h3>
         </div>
     </div>
 </div>
@@ -161,7 +161,7 @@
     });
 
     function testConnection() {
-        showLoading('Teste Verbindung...');
+        showLoading('Testing connection...');
         fetch(`/api/server/${serverId}/rcon/test`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -174,7 +174,7 @@
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            updateConnectionStatus(false, 'Verbindungsfehler', {});
+            updateConnectionStatus(false, 'Connection error', {});
         });
     }
 
@@ -215,30 +215,30 @@
             let debugHtml = '';
 
             if (debug.be_config_found) {
-                debugHtml += `<div class="text-green-400">✓ BattlEye Config gefunden</div>`;
-                debugHtml += `<div>Config-Datei: <span class="text-yellow-400">${debug.config_file || 'Unknown'}</span></div>`;
+                debugHtml += `<div class="text-green-400">✓ BattlEye Config found</div>`;
+                debugHtml += `<div>Config file: <span class="text-yellow-400">${debug.config_file || 'Unknown'}</span></div>`;
                 debugHtml += `<div>RCon Port: ${debug.rcon_port}</div>`;
                 debugHtml += `<div>RCon IP: ${debug.rcon_ip}</div>`;
-                debugHtml += `<div>Passwort gesetzt: ${debug.password_set}</div>`;
+                debugHtml += `<div>Password set: ${debug.password_set}</div>`;
                 if (debug.password_length) {
-                    debugHtml += `<div>Passwort Länge: ${debug.password_length} Zeichen</div>`;
+                    debugHtml += `<div>Password length: ${debug.password_length} characters</div>`;
                 }
                 if (debug.password_preview) {
-                    debugHtml += `<div>Passwort (Preview): <span class="text-yellow-400">${debug.password_preview}</span></div>`;
+                    debugHtml += `<div>Password (Preview): <span class="text-yellow-400">${debug.password_preview}</span></div>`;
                 }
             } else {
-                debugHtml += `<div class="text-red-400">✗ BattlEye Config nicht gefunden</div>`;
-                debugHtml += `<div>BE Pfad: ${debug.be_path || 'N/A'}</div>`;
+                debugHtml += `<div class="text-red-400">✗ BattlEye Config not found</div>`;
+                debugHtml += `<div>BE Path: ${debug.be_path || 'N/A'}</div>`;
                 if (debug.be_path_exists === false) {
-                    debugHtml += `<div class="text-red-400">✗ BattlEye Verzeichnis existiert nicht!</div>`;
+                    debugHtml += `<div class="text-red-400">✗ BattlEye directory does not exist!</div>`;
                 } else if (debug.config_files_found) {
                     if (debug.config_files_found.length > 0) {
-                        debugHtml += `<div class="text-yellow-400">Gefundene Dateien:</div>`;
+                        debugHtml += `<div class="text-yellow-400">Found files:</div>`;
                         debug.config_files_found.forEach(file => {
                             debugHtml += `<div class="ml-4">• ${file}</div>`;
                         });
                     } else {
-                        debugHtml += `<div class="text-red-400">Keine beserver_x64*.cfg Dateien gefunden</div>`;
+                        debugHtml += `<div class="text-red-400">No beserver_x64*.cfg files found</div>`;
                     }
                 }
             }
@@ -269,7 +269,7 @@
             container.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
                     <i class="fas fa-user-slash text-4xl mb-2"></i>
-                    <p>Keine Spieler online</p>
+                    <p>No players online</p>
                 </div>
             `;
             return;
@@ -300,9 +300,9 @@
     }
 
     function kickPlayer(playerId, playerName) {
-        if (!confirm(`Möchtest du ${playerName} wirklich kicken?`)) return;
+        if (!confirm(`Do you really want to kick ${playerName}?`)) return;
 
-        showLoading('Kicke Spieler...');
+        showLoading('Kicking player...');
         fetch(`/api/server/${serverId}/rcon/kick/${playerId}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -311,23 +311,23 @@
         .then(data => {
             hideLoading();
             if (data.success) {
-                addToConsole(`✓ Spieler ${playerName} (ID: ${playerId}) wurde gekickt`);
+                addToConsole(`✓ Player ${playerName} (ID: ${playerId}) was kicked`);
                 setTimeout(loadPlayers, 1000);
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Kicken des Spielers');
+            alert('Error kicking player');
         });
     }
 
     function kickAllPlayers() {
-        if (!confirm('Möchtest du wirklich ALLE Spieler kicken?')) return;
+        if (!confirm('Do you really want to kick ALL players?')) return;
 
-        showLoading('Kicke alle Spieler...');
+        showLoading('Kicking all players...');
         fetch(`/api/server/${serverId}/rcon/kickall`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -340,24 +340,24 @@
                 addToConsole(`✓ ${data.message}`);
                 setTimeout(loadPlayers, 1000);
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Kicken aller Spieler');
+            alert('Error kicking all players');
         });
     }
 
     function banPlayer(playerId, playerName) {
-        const minutes = prompt(`Wie lange möchtest du ${playerName} bannen?\n\n0 = Permanent\n1-999999 = Minuten`, '0');
+        const minutes = prompt(`How long do you want to ban ${playerName}?\n\n0 = Permanent\n1-999999 = Minutes`, '0');
         if (minutes === null) return;
 
-        const reason = prompt('Ban-Grund:', 'Verstoß gegen Serverregeln');
+        const reason = prompt('Ban reason:', 'Server rules violation');
         if (reason === null) return;
 
-        showLoading('Banne Spieler...');
+        showLoading('Banning player...');
         fetch(`/api/server/${serverId}/rcon/ban/${playerId}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -370,23 +370,23 @@
         .then(data => {
             hideLoading();
             if (data.success) {
-                addToConsole(`✓ Spieler ${playerName} (ID: ${playerId}) wurde gebannt`);
+                addToConsole(`✓ Player ${playerName} (ID: ${playerId}) was banned`);
                 setTimeout(loadPlayers, 1000);
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Bannen des Spielers');
+            alert('Error banning player');
         });
     }
 
     function lockServer() {
-        if (!confirm('Möchtest du den Server wirklich sperren?\n\nKeine neuen Spieler können mehr joinen.')) return;
+        if (!confirm('Do you really want to lock the server?\n\nNo new players will be able to join.')) return;
 
-        showLoading('Sperre Server...');
+        showLoading('Locking server...');
         fetch(`/api/server/${serverId}/rcon/lock`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -395,23 +395,23 @@
         .then(data => {
             hideLoading();
             if (data.success) {
-                addToConsole('🔒 Server wurde gesperrt');
-                alert('Server gesperrt! Keine neuen Spieler können mehr joinen.');
+                addToConsole('🔒 Server locked');
+                alert('Server locked! No new players can join.');
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Sperren des Servers');
+            alert('Error locking server');
         });
     }
 
     function unlockServer() {
-        if (!confirm('Möchtest du den Server entsperren?')) return;
+        if (!confirm('Do you want to unlock the server?')) return;
 
-        showLoading('Entsperre Server...');
+        showLoading('Unlocking server...');
         fetch(`/api/server/${serverId}/rcon/unlock`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -420,16 +420,16 @@
         .then(data => {
             hideLoading();
             if (data.success) {
-                addToConsole('🔓 Server wurde entsperrt');
-                alert('Server entsperrt! Spieler können wieder joinen.');
+                addToConsole('🔓 Server unlocked');
+                alert('Server unlocked! Players can join again.');
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Entsperren des Servers');
+            alert('Error unlocking server');
         });
     }
 
@@ -450,14 +450,14 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                addToConsole(data.response || '✓ Befehl ausgeführt');
+                addToConsole(data.response || '✓ Command executed');
             } else {
-                addToConsole(`✗ Fehler: ${data.response}`, 'error');
+                addToConsole(`✗ Error: ${data.response}`, 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            addToConsole('✗ Verbindungsfehler', 'error');
+            addToConsole('✗ Connection error', 'error');
         });
     }
 
@@ -471,11 +471,11 @@
         const message = input.value.trim();
 
         if (!message) {
-            alert('Bitte gib eine Nachricht ein');
+            alert('Please enter a message');
             return;
         }
 
-        showLoading('Sende Nachricht...');
+        showLoading('Sending message...');
         fetch(`/api/server/${serverId}/rcon/message`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -485,22 +485,22 @@
         .then(data => {
             hideLoading();
             if (data.success) {
-                addToConsole(`✓ Nachricht gesendet: ${message}`);
+                addToConsole(`✓ Message sent: ${message}`);
                 input.value = '';
             } else {
-                alert('Fehler: ' + data.message);
+                alert('Error: ' + data.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Senden der Nachricht');
+            alert('Error sending message');
         });
     }
 
     function addToConsole(text, type = 'info') {
         const console = document.getElementById('consoleOutput');
-        const timestamp = new Date().toLocaleTimeString('de-DE');
+        const timestamp = new Date().toLocaleTimeString('en-US', {hour12: false});
         const color = type === 'error' ? 'text-red-400' : 'text-green-400';
 
         const entry = document.createElement('div');
@@ -512,7 +512,7 @@
     }
 
     function clearConsole() {
-        document.getElementById('consoleOutput').innerHTML = '<div class="text-gray-500">Console geleert.</div>';
+        document.getElementById('consoleOutput').innerHTML = '<div class="text-gray-500">Console cleared.</div>';
     }
 
     function escapeHtml(text) {

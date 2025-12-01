@@ -150,6 +150,50 @@
     </div>
 </div>
 
+<!-- Private Message Modal -->
+<div id="messageModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fas fa-envelope text-[#E32345]"></i>
+                Send Private Message
+            </h3>
+            <button onclick="closeMessageModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="mb-6">
+            <div class="bg-[#0D1117] border border-[#E32345]/30 rounded-lg p-4 mb-4">
+                <div class="text-sm text-gray-400 mb-1">Sending to:</div>
+                <div class="font-medium text-white" id="messagePlayerName">-</div>
+                <div class="text-xs text-gray-500">ID: <span id="messagePlayerId">-</span></div>
+            </div>
+
+            <div class="mb-2">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                <textarea
+                    id="privateMessageInput"
+                    rows="3"
+                    placeholder="Enter your message..."
+                    class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E32345] transition resize-none"
+                    onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendPrivateMessage(); }"
+                ></textarea>
+                <div class="text-xs text-gray-500 mt-1">Press Enter to send, Shift+Enter for new line</div>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="closeMessageModal()" class="flex-1 px-6 py-3 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg font-medium transition">
+                Cancel
+            </button>
+            <button onclick="sendPrivateMessage()" class="flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
+                <i class="fas fa-paper-plane mr-2"></i>Send
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     const serverId = {{ server.id }};
     let playersInterval = null;
@@ -283,6 +327,9 @@
                         <div class="text-xs text-gray-500">ID: ${player.id} | Ping: ${player.ping}</div>
                     </div>
                     <div class="flex gap-1">
+                        <button onclick="openMessageModal('${player.id}', '${escapeHtml(player.name)}')" class="px-2 py-1 bg-blue-500 hover:bg-blue-600 rounded text-xs transition" title="Send Message">
+                            <i class="fas fa-envelope"></i>
+                        </button>
                         <button onclick="kickPlayer('${player.id}', '${escapeHtml(player.name)}')" class="px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-xs transition" title="Kick">
                             <i class="fas fa-shoe-prints"></i>
                         </button>
@@ -529,6 +576,77 @@
     function hideLoading() {
         document.getElementById('loadingModal').classList.add('hidden');
     }
+
+    // Private Message Modal Functions
+    let currentPlayerId = null;
+    let currentPlayerName = null;
+
+    function openMessageModal(playerId, playerName) {
+        currentPlayerId = playerId;
+        currentPlayerName = playerName;
+
+        document.getElementById('messagePlayerId').textContent = playerId;
+        document.getElementById('messagePlayerName').textContent = playerName;
+        document.getElementById('privateMessageInput').value = '';
+        document.getElementById('messageModal').classList.remove('hidden');
+
+        // Focus on textarea
+        setTimeout(() => {
+            document.getElementById('privateMessageInput').focus();
+        }, 100);
+    }
+
+    function closeMessageModal() {
+        document.getElementById('messageModal').classList.add('hidden');
+        currentPlayerId = null;
+        currentPlayerName = null;
+    }
+
+    function sendPrivateMessage() {
+        const messageInput = document.getElementById('privateMessageInput');
+        const message = messageInput.value.trim();
+
+        if (!message) {
+            alert('Please enter a message');
+            return;
+        }
+
+        if (!currentPlayerId) {
+            alert('No player selected');
+            closeMessageModal();
+            return;
+        }
+
+        closeMessageModal();
+        showLoading('Sending private message...');
+
+        fetch(`/api/server/${serverId}/rcon/message/${currentPlayerId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: message})
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                addToConsole(`✓ Private message sent to ${currentPlayerName} (ID: ${currentPlayerId}): ${message}`);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Error sending private message');
+        });
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeMessageModal();
+        }
+    });
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', function() {

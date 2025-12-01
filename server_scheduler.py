@@ -194,64 +194,101 @@ class ServerSchedulerManager:
         """
         import time
 
-        try:
-            # Sort warnings descending
-            warnings_sorted = sorted(warning_minutes, reverse=True)
+        # IMPORTANT: Run in app context for DB and RCon operations
+        with self.app.app_context():
+            try:
+                # Refresh server object from DB (we're in a new thread)
+                server = GameServer.query.get(server.id)
+                if not server:
+                    logger.error("Server not found in restart sequence")
+                    return
 
-            # Send each warning at the appropriate time
-            for i, minutes in enumerate(warnings_sorted):
-                # Calculate how long to wait before sending this warning
-                if i == 0:
-                    # First warning - no wait needed
-                    wait_time = 0
+                # Sort warnings descending
+                warnings_sorted = sorted(warning_minutes, reverse=True)
+
+                # Send each warning at the appropriate time
+                for i, minutes in enumerate(warnings_sorted):
+                    # Calculate how long to wait before sending this warning
+                    if i == 0:
+                        # First warning - no wait needed
+                        wait_time = 0
+                    else:
+                        # Wait the difference between previous and current warning
+                        wait_time = (warnings_sorted[i-1] - minutes) * 60
+
+                    if wait_time > 0:
+                        logger.debug(f"Waiting {wait_time} seconds until next warning")
+                        time.sleep(wait_time)
+
+                    # Refresh server object to get current status
+                    db.session.refresh(server)
+
+                    # Check if server is still running
+                    if server.status != 'running':
+                        logger.warning(f"Server {server.name} is no longer running, aborting restart sequence")
+                        return
+
+                    # Send the warning via RCon
+                    message = f"[Server] Restart in {minutes} minute{'s' if minutes != 1 else ''}!"
+                    logger.info(f"Sending restart warning: {message}")
+
+                    success, msg = RConManager.send_server_message(server, message)
+                    if success:
+                        logger.info(f"✓ Sent restart warning to {server.name}: {message}")
+                    else:
+                        logger.error(f"✗ Failed to send warning: {msg}")
+
+                # Kick players if configured
+                if kick_players and kick_minutes > 0:
+                    # Wait until kick time
+                    if warnings_sorted:
+                        last_warning = warnings_sorted[-1]
+                        if last_warning > kick_minutes:
+                            wait_time = (last_warning - kick_minutes) * 60
+                            logger.info(f"Waiting {wait_time} seconds until kick time")
+                            time.sleep(wait_time)
+
+                    logger.info(f"Kicking all players from {server.name} ({kick_minutes} min before restart)")
+
+                    # Refresh server
+                    db.session.refresh(server)
+
+                    success, msg = RConManager.kick_all_players(server, reason="Server Restart")
+                    if not success:
+                        logger.error(f"✗ Failed to kick players: {msg}")
+                    else:
+                        logger.info(f"✓ Successfully kicked all players: {msg}")
+
+                    # Wait remaining time until restart
+                    if kick_minutes > 0:
+                        logger.info(f"Waiting {kick_minutes} minute(s) until restart")
+                        time.sleep(kick_minutes * 60)
                 else:
-                    # Wait the difference between previous and current warning
-                    wait_time = (warnings_sorted[i-1] - minutes) * 60
+                    # Wait remaining time from last warning to restart
+                    if warnings_sorted:
+                        wait_time = warnings_sorted[-1] * 60
+                        logger.info(f"Waiting {wait_time} seconds until restart (no kick configured)")
+                        time.sleep(wait_time)
 
-                if wait_time > 0:
-                    time.sleep(wait_time)
+                # Final check: is server still running?
+                db.session.refresh(server)
+                if server.status != 'running':
+                    logger.warning(f"Server {server.name} is not running, skipping restart")
+                    return
 
-                # Send the warning
-                message = f"[Server] Restart in {minutes} minute{'s' if minutes != 1 else ''}."
-                success, msg = RConManager.send_server_message(server, message)
+                # Restart the server
+                logger.info(f"⟳ Executing server restart: {server.name}")
+                success, message = self.server_manager.restart_server(server.id)
+
                 if success:
-                    logger.info(f"Sent restart warning to {server.name}: {message}")
+                    logger.info(f"✓ Server {server.name} restarted successfully")
                 else:
-                    logger.error(f"Failed to send warning: {msg}")
+                    logger.error(f"✗ Failed to restart server {server.name}: {message}")
 
-            # Kick players if configured
-            if kick_players and kick_minutes > 0:
-                # Wait until kick time
-                if warnings_sorted:
-                    last_warning = warnings_sorted[-1]
-                    if last_warning > kick_minutes:
-                        time.sleep((last_warning - kick_minutes) * 60)
-
-                logger.info(f"Kicking all players from {server.name}")
-                success, msg = RConManager.kick_all_players(server, reason="Server Restart")
-                if not success:
-                    logger.error(f"Failed to kick players: {msg}")
-                else:
-                    logger.info(f"Successfully kicked all players: {msg}")
-
-                # Wait remaining time until restart
-                time.sleep(kick_minutes * 60)
-            else:
-                # Wait remaining time from last warning to restart
-                if warnings_sorted:
-                    time.sleep(warnings_sorted[-1] * 60)
-
-            # Restart the server
-            logger.info(f"Restarting server {server.name}")
-            success, message = self.server_manager.restart_server(server.id)
-
-            if success:
-                logger.info(f"Server {server.name} restarted successfully")
-            else:
-                logger.error(f"Failed to restart server {server.name}: {message}")
-
-        except Exception as e:
-            logger.error(f"Error in restart sequence: {str(e)}")
+            except Exception as e:
+                logger.error(f"✗ Error in restart sequence: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
 
 
     def _execute_message(self, scheduler_obj, server):

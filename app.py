@@ -911,6 +911,37 @@ def send_rcon_message(server_id):
     return jsonify({'success': success, 'message': response})
 
 
+@app.route('/api/server/<int:server_id>/rcon/message/<player_id>', methods=['POST'])
+@installation_check
+@login_required
+def send_rcon_private_message(server_id, player_id):
+    """Send private message to a specific player"""
+    from rcon_utils import RConManager
+
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    data = request.get_json()
+    message = data.get('message', '')
+
+    if not message:
+        return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+    # Use send_private_message from RConManager
+    try:
+        with RConManager.get_rcon_connection(server) as rcon:
+            success, msg = rcon.connect()
+            if not success:
+                return jsonify({'success': False, 'message': f'Failed to connect: {msg}'}), 500
+
+            success, response = rcon.send_private_message(player_id, message)
+            return jsonify({'success': success, 'message': f'Private message sent to player {player_id}' if success else response})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
 @app.route('/api/server/<int:server_id>/rcon/kick/<player_id>', methods=['POST'])
 @installation_check
 @login_required

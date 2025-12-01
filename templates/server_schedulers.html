@@ -18,12 +18,12 @@
     <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-6">
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-white mb-2">Scheduler Verwaltung</h2>
-                <p class="text-gray-400">Automatisiere Server-Neustarts und Nachrichten</p>
+                <h2 class="text-2xl font-bold text-white mb-2">Scheduler Management</h2>
+                <p class="text-gray-400">Automate server restarts and messages</p>
             </div>
             <button onclick="openCreateScheduler()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center gap-2">
                 <i class="fas fa-plus"></i>
-                <span>Neuer Scheduler</span>
+                <span>New Scheduler</span>
             </button>
         </div>
     </div>
@@ -32,7 +32,7 @@
     <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-4 mb-6">
         <div class="flex items-center gap-3">
             <i class="fas fa-clock text-[#E32345] text-xl"></i>
-            <span class="text-white font-medium">Aktive Scheduler: <strong id="activeCount">0</strong></span>
+            <span class="text-white font-medium">Active Schedulers: <strong id="activeCount">0</strong></span>
         </div>
     </div>
 
@@ -44,11 +44,11 @@
     <!-- Empty State -->
     <div id="emptyState" class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-12 text-center hidden">
         <i class="fas fa-calendar-xmark text-gray-600 text-5xl mb-4"></i>
-        <h3 class="text-xl font-bold text-white mb-2">Keine Scheduler erstellt</h3>
-        <p class="text-gray-400 mb-6">Erstelle deinen ersten Scheduler, um Server-Aufgaben zu automatisieren</p>
+        <h3 class="text-xl font-bold text-white mb-2">No Schedulers Created</h3>
+        <p class="text-gray-400 mb-6">Create your first scheduler to automate server tasks</p>
         <button onclick="openCreateScheduler()" class="px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition inline-flex items-center gap-2">
             <i class="fas fa-plus"></i>
-            <span>Ersten Scheduler erstellen</span>
+            <span>Create First Scheduler</span>
         </button>
     </div>
 </div>
@@ -59,8 +59,8 @@
         <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-3xl w-full p-8">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex-1">
-                    <h3 class="text-2xl font-bold text-white" id="modalTitle">Neuer Scheduler</h3>
-                    <p class="text-sm text-gray-400 mt-1" id="modalSubtitle">Schritt 1 von 3</p>
+                    <h3 class="text-2xl font-bold text-white" id="modalTitle">New Scheduler</h3>
+                    <p class="text-sm text-gray-400 mt-1" id="modalSubtitle">Step 1 of 3</p>
                 </div>
                 <button onclick="closeSchedulerModal()" class="text-gray-400 hover:text-white transition">
                     <i class="fas fa-times text-2xl"></i>
@@ -70,7 +70,7 @@
             <!-- Progress Bar -->
             <div class="mb-8">
                 <div class="flex justify-between mb-2">
-                    <span class="text-xs text-gray-400">Fortschritt</span>
+                    <span class="text-xs text-gray-400">Progress</span>
                     <span class="text-xs text-gray-400"><span id="currentStep">1</span>/3</span>
                 </div>
                 <div class="h-2 bg-[#0D1117] rounded-full overflow-hidden">
@@ -87,16 +87,16 @@
                         <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-signature text-[#E32345] text-3xl"></i>
                         </div>
-                        <h4 class="text-xl font-bold text-white mb-2">Scheduler benennen</h4>
-                        <p class="text-gray-400">Gib deinem Scheduler einen eindeutigen Namen</p>
+                        <h4 class="text-xl font-bold text-white mb-2">Name Your Scheduler</h4>
+                        <p class="text-gray-400">Give your scheduler a unique name</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             Name <span class="text-[#E32345]">*</span>
                         </label>
-                        <input type="text" id="schedulerName" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition text-lg" placeholder="z.B. Täglicher Neustart 03:00">
-                        <p class="text-xs text-gray-500 mt-2">💡 Tipp: Verwende aussagekräftige Namen wie "Neustart Montag 4 Uhr" oder "Wartungshinweis alle 2h"</p>
+                        <input type="text" id="schedulerName" required class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition text-lg" placeholder="e.g. Daily Restart 03:00">
+                        <p class="text-xs text-gray-500 mt-2">💡 Tip: Use descriptive names like "Restart Monday 4 AM" or "Maintenance Notice every 2h"</p>
                     </div>
                 </div>
 
@@ -106,8 +106,8 @@
                         <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-bolt text-[#E32345] text-3xl"></i>
                         </div>
-                        <h4 class="text-xl font-bold text-white mb-2">Aktion wählen</h4>
-                        <p class="text-gray-400">Was soll der Scheduler tun?</p>
+                        <h4 class="text-xl font-bold text-white mb-2">Choose Action</h4>
+                        <p class="text-gray-400">What should the scheduler do?</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,8 +116,8 @@
                                 <div class="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition">
                                     <i class="fas fa-rotate-right text-orange-500 text-2xl"></i>
                                 </div>
-                                <h5 class="text-lg font-bold text-white mb-2">Server Neustarten</h5>
-                                <p class="text-sm text-gray-400">Automatischer Server-Neustart mit Warnungen und Spieler-Kick</p>
+                                <h5 class="text-lg font-bold text-white mb-2">Restart Server</h5>
+                                <p class="text-sm text-gray-400">Automatic server restart with warnings and player kick</p>
                             </div>
                         </button>
 
@@ -126,8 +126,8 @@
                                 <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition">
                                     <i class="fas fa-message text-blue-500 text-2xl"></i>
                                 </div>
-                                <h5 class="text-lg font-bold text-white mb-2">Nachricht Senden</h5>
-                                <p class="text-sm text-gray-400">Globale Nachricht an alle Spieler senden</p>
+                                <h5 class="text-lg font-bold text-white mb-2">Send Message</h5>
+                                <p class="text-sm text-gray-400">Send global message to all players</p>
                             </div>
                         </button>
                     </div>
@@ -140,8 +140,8 @@
                         <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-rotate-right text-[#E32345] text-3xl"></i>
                         </div>
-                        <h4 class="text-xl font-bold text-white mb-2">Neustart Konfigurieren</h4>
-                        <p class="text-gray-400">Zeitpunkt und Optionen festlegen</p>
+                        <h4 class="text-xl font-bold text-white mb-2">Configure Restart</h4>
+                        <p class="text-gray-400">Set time and options</p>
                     </div>
 
                     <div class="space-y-6">
@@ -149,10 +149,10 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
-                                    Stunde <span class="text-[#E32345]">*</span>
+                                    Hour <span class="text-[#E32345]">*</span>
                                 </label>
                                 <select id="schedulerHour" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                                    <option value="">Wählen...</option>
+                                    <option value="">Select...</option>
                                     <script>
                                         for (let i = 0; i < 24; i++) {
                                             document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
@@ -165,7 +165,7 @@
                                     Minute <span class="text-[#E32345]">*</span>
                                 </label>
                                 <select id="schedulerMinute" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                                    <option value="">Wählen...</option>
+                                    <option value="">Select...</option>
                                     <script>
                                         for (let i = 0; i < 60; i += 5) {
                                             document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
@@ -178,16 +178,16 @@
                         <!-- Weekdays -->
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-3">
-                                Wochentage <span class="text-[#E32345]">*</span>
+                                Weekdays <span class="text-[#E32345]">*</span>
                             </label>
                             <div class="grid grid-cols-7 gap-2">
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
-                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mon</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Tue</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Wed</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Thu</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fri</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sat</button>
+                                <button type="button" class="weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">Sun</button>
                             </div>
                         </div>
 
@@ -195,30 +195,30 @@
                         <div class="space-y-4 p-4 bg-[#0D1117] border border-[#E32345]/20 rounded-lg">
                             <h4 class="font-medium text-white mb-3 flex items-center gap-2">
                                 <i class="fas fa-cog text-[#E32345]"></i>
-                                Neustart-Einstellungen
+                                Restart Settings
                             </h4>
 
                             <div class="flex items-center gap-3">
                                 <input type="checkbox" id="kickAllPlayers" checked class="w-5 h-5 bg-[#0D1117] border border-[#E32345]/30 rounded text-[#E32345] focus:ring-[#E32345]">
-                                <label for="kickAllPlayers" class="text-gray-300">Alle Spieler kicken</label>
+                                <label for="kickAllPlayers" class="text-gray-300">Kick all players</label>
                             </div>
 
                             <div id="kickOptions">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
-                                    Minuten vor Neustart für Kick
+                                    Minutes before restart for kick
                                 </label>
                                 <input type="number" id="kickMinutes" value="1" min="0" max="60" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
-                                    Warnungs-Zeiten (Minuten vor Neustart)
+                                    Warning times (minutes before restart)
                                 </label>
                                 <div id="warningMinutesContainer" class="flex flex-wrap gap-2 mb-2">
                                     <!-- Warning tags will be inserted here -->
                                 </div>
                                 <div class="flex gap-2">
-                                    <input type="number" id="newWarningMinute" min="1" max="120" placeholder="Minuten..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                                    <input type="number" id="newWarningMinute" min="1" max="120" placeholder="Minutes..." class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
                                     <button type="button" onclick="addWarningMinute()" class="px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition">
                                         <i class="fas fa-plus"></i>
                                     </button>
@@ -234,15 +234,15 @@
                         <div class="w-20 h-20 bg-[#E32345]/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-message text-[#E32345] text-3xl"></i>
                         </div>
-                        <h4 class="text-xl font-bold text-white mb-2">Nachricht Konfigurieren</h4>
-                        <p class="text-gray-400">Zeitplan und Nachricht festlegen</p>
+                        <h4 class="text-xl font-bold text-white mb-2">Configure Message</h4>
+                        <p class="text-gray-400">Set schedule and message</p>
                     </div>
 
                     <div class="space-y-6">
                         <!-- Schedule Type Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-3">
-                                Zeitplan-Typ <span class="text-[#E32345]">*</span>
+                                Schedule Type <span class="text-[#E32345]">*</span>
                             </label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <button type="button" onclick="selectScheduleType('cron')" class="schedule-type-btn group p-4 bg-[#0D1117] border-2 border-[#E32345]/30 rounded-xl hover:border-[#E32345] transition cursor-pointer">
@@ -251,8 +251,8 @@
                                             <i class="fas fa-clock text-green-500 text-xl"></i>
                                         </div>
                                         <div class="text-left">
-                                            <h5 class="font-bold text-white mb-1">Bestimmte Uhrzeit</h5>
-                                            <p class="text-xs text-gray-400">Z.B. jeden Tag um 12:00</p>
+                                            <h5 class="font-bold text-white mb-1">Fixed Time</h5>
+                                            <p class="text-xs text-gray-400">e.g. every day at 12:00</p>
                                         </div>
                                     </div>
                                 </button>
@@ -263,8 +263,8 @@
                                             <i class="fas fa-repeat text-purple-500 text-xl"></i>
                                         </div>
                                         <div class="text-left">
-                                            <h5 class="font-bold text-white mb-1">Alle X Minuten</h5>
-                                            <p class="text-xs text-gray-400">Z.B. alle 30 Minuten</p>
+                                            <h5 class="font-bold text-white mb-1">Every X Minutes</h5>
+                                            <p class="text-xs text-gray-400">e.g. every 30 minutes</p>
                                         </div>
                                     </div>
                                 </button>
@@ -277,10 +277,10 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-300 mb-2">
-                                        Stunde <span class="text-[#E32345]">*</span>
+                                        Hour <span class="text-[#E32345]">*</span>
                                     </label>
                                     <select id="messageHour" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                                        <option value="">Wählen...</option>
+                                        <option value="">Select...</option>
                                         <script>
                                             for (let i = 0; i < 24; i++) {
                                                 document.write(`<option value="${i}">${String(i).padStart(2, '0')}:00</option>`);
@@ -293,7 +293,7 @@
                                         Minute <span class="text-[#E32345]">*</span>
                                     </label>
                                     <select id="messageMinute" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                                        <option value="">Wählen...</option>
+                                        <option value="">Select...</option>
                                         <script>
                                             for (let i = 0; i < 60; i += 5) {
                                                 document.write(`<option value="${i}">${String(i).padStart(2, '0')}</option>`);
@@ -305,16 +305,16 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-3">
-                                    Wochentage <span class="text-[#E32345]">*</span>
+                                    Weekdays <span class="text-[#E32345]">*</span>
                                 </label>
                                 <div class="grid grid-cols-7 gap-2">
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mo</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Di</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Mi</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Do</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fr</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sa</button>
-                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">So</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="0">Mon</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="1">Tue</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="2">Wed</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="3">Thu</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="4">Fri</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="5">Sat</button>
+                                    <button type="button" class="message-weekday-btn px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white hover:bg-[#E32345]/20 transition text-sm" data-day="6">Sun</button>
                                 </div>
                             </div>
                         </div>
@@ -322,19 +322,19 @@
                         <!-- Interval Schedule (Every X minutes) -->
                         <div id="intervalScheduleConfig" class="hidden">
                             <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Intervall in Minuten <span class="text-[#E32345]">*</span>
+                                Interval in Minutes <span class="text-[#E32345]">*</span>
                             </label>
-                            <input type="number" id="intervalMinutes" min="1" max="1440" placeholder="Z.B. 30 für alle 30 Minuten" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
-                            <p class="text-xs text-gray-500 mt-2">💡 Beliebte Werte: 30, 60, 120 (2h), 180 (3h)</p>
+                            <input type="number" id="intervalMinutes" min="1" max="1440" placeholder="e.g. 30 for every 30 minutes" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition">
+                            <p class="text-xs text-gray-500 mt-2">💡 Popular values: 30, 60, 120 (2h), 180 (3h)</p>
                         </div>
 
                         <!-- Message Text -->
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">
-                                Nachricht <span class="text-[#E32345]">*</span>
+                                Message <span class="text-[#E32345]">*</span>
                             </label>
-                            <textarea id="customMessage" rows="3" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="Deine Nachricht an alle Spieler..." required></textarea>
-                            <p class="text-xs text-gray-500 mt-2">💡 Die Nachricht erscheint unten links im Spiel</p>
+                            <textarea id="customMessage" rows="3" class="w-full px-4 py-3 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white focus:outline-none focus:border-[#E32345] transition" placeholder="Your message to all players..." required></textarea>
+                            <p class="text-xs text-gray-500 mt-2">💡 The message appears bottom-left in game</p>
                         </div>
                     </div>
                 </div>
@@ -342,16 +342,16 @@
                 <!-- Navigation Buttons -->
                 <div class="flex gap-3 pt-6 border-t border-[#E32345]/20 mt-8">
                     <button type="button" id="btnBack" onclick="previousStep()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition hidden">
-                        <i class="fas fa-arrow-left mr-2"></i>Zurück
+                        <i class="fas fa-arrow-left mr-2"></i>Back
                     </button>
                     <button type="button" onclick="closeSchedulerModal()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition">
-                        Abbrechen
+                        Cancel
                     </button>
                     <button type="button" id="btnNext" onclick="nextStep()" class="flex-1 px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20">
-                        Weiter<i class="fas fa-arrow-right ml-2"></i>
+                        Next<i class="fas fa-arrow-right ml-2"></i>
                     </button>
                     <button type="button" id="btnSave" onclick="saveScheduler()" class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition shadow-lg shadow-green-600/20 hidden">
-                        <i class="fas fa-save mr-2"></i>Speichern
+                        <i class="fas fa-save mr-2"></i>Save
                     </button>
                 </div>
             </form>
@@ -364,7 +364,7 @@
     <div class="bg-[#1A1F29] border border-[#E32345]/30 rounded-2xl max-w-md w-full p-8">
         <div class="text-center">
             <div class="w-16 h-16 border-4 border-[#E32345]/30 border-t-[#E32345] rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Lädt...</h3>
+            <h3 class="text-xl font-bold text-white mb-2" id="loadingMessage">Loading...</h3>
         </div>
     </div>
 </div>
@@ -393,12 +393,12 @@
         if (currentStep === 1) {
             const name = document.getElementById('schedulerName').value.trim();
             if (!name) {
-                alert('Bitte gib einen Namen ein');
+                alert('Please enter a name');
                 return;
             }
         } else if (currentStep === 2) {
             if (!selectedAction) {
-                alert('Bitte wähle eine Aktion');
+                alert('Please select an action');
                 return;
             }
         }
@@ -438,7 +438,7 @@
         const progress = (currentStep / 3) * 100;
         document.getElementById('progressBar').style.width = progress + '%';
         document.getElementById('currentStep').textContent = currentStep;
-        document.getElementById('modalSubtitle').textContent = `Schritt ${currentStep} von 3`;
+        document.getElementById('modalSubtitle').textContent = `Step ${currentStep} of 3`;
 
         // Update buttons
         document.getElementById('btnBack').classList.toggle('hidden', currentStep === 1);
@@ -530,7 +530,7 @@
     }
 
     function loadSchedulers() {
-        showLoading('Lade Scheduler...');
+        showLoading('Loading schedulers...');
         fetch(`/api/server/${serverId}/schedulers`)
             .then(response => response.json())
             .then(data => {
@@ -538,13 +538,13 @@
                 if (data.success) {
                     displaySchedulers(data.schedulers);
                 } else {
-                    alert('Fehler beim Laden der Scheduler');
+                    alert('Error loading schedulers');
                 }
             })
             .catch(error => {
                 hideLoading();
                 console.error('Error:', error);
-                alert('Fehler beim Laden der Scheduler');
+                alert('Error loading schedulers');
             });
     }
 
@@ -566,11 +566,11 @@
     }
 
     function createSchedulerCard(scheduler) {
-        const weekdayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+        const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const actionIcon = scheduler.action_type === 'restart' ? 'fa-rotate-right' : 'fa-message';
-        const actionText = scheduler.action_type === 'restart' ? 'Server neustarten' : 'Nachricht senden';
+        const actionText = scheduler.action_type === 'restart' ? 'Restart server' : 'Send message';
         const statusColor = scheduler.is_active ? 'green' : 'gray';
-        const statusText = scheduler.is_active ? 'Aktiv' : 'Inaktiv';
+        const statusText = scheduler.is_active ? 'Active' : 'Inactive';
 
         // Determine schedule display based on type
         let scheduleInfo = '';
@@ -581,7 +581,7 @@
             const interval = scheduler.interval_minutes || 60;
             scheduleInfo = `<span class="flex items-center gap-2">
                 <i class="fas fa-repeat text-[#E32345]"></i>
-                <strong class="text-white">Alle ${interval} Minuten</strong>
+                <strong class="text-white">Every ${interval} minutes</strong>
             </span>`;
         } else {
             // Cron scheduler
@@ -590,7 +590,7 @@
             scheduleInfo = `
                 <span class="flex items-center gap-2">
                     <i class="fas fa-clock text-[#E32345]"></i>
-                    <strong class="text-white">${timeStr} Uhr</strong>
+                    <strong class="text-white">${timeStr}</strong>
                 </span>
                 <span class="flex items-center gap-2">
                     <i class="fas fa-calendar text-[#E32345]"></i>
@@ -643,7 +643,7 @@
         selectedMessageWeekdays.clear();
         warningMinutes = [60, 30, 15, 10, 5, 3, 2, 1];
 
-        document.getElementById('modalTitle').textContent = 'Neuer Scheduler';
+        document.getElementById('modalTitle').textContent = 'New Scheduler';
         document.getElementById('schedulerForm').reset();
         updateWarningMinutesDisplay();
 
@@ -675,7 +675,7 @@
     }
 
     function editScheduler(schedulerId) {
-        showLoading('Lade Scheduler...');
+        showLoading('Loading scheduler...');
         fetch(`/api/scheduler/${schedulerId}`)
             .then(response => response.json())
             .then(data => {
@@ -684,19 +684,19 @@
                     populateForm(data.scheduler);
                     document.getElementById('schedulerModal').classList.remove('hidden');
                 } else {
-                    alert('Fehler beim Laden des Schedulers');
+                    alert('Error loading scheduler');
                 }
             })
             .catch(error => {
                 hideLoading();
                 console.error('Error:', error);
-                alert('Fehler beim Laden des Schedulers');
+                alert('Error loading scheduler');
             });
     }
 
     function populateForm(scheduler) {
         editingSchedulerId = scheduler.id;
-        document.getElementById('modalTitle').textContent = 'Scheduler bearbeiten';
+        document.getElementById('modalTitle').textContent = 'Edit Scheduler';
         document.getElementById('schedulerId').value = scheduler.id;
         document.getElementById('schedulerName').value = scheduler.name;
         document.getElementById('schedulerHour').value = scheduler.hour;
@@ -741,12 +741,12 @@
 
         // Validation
         if (!data.name) {
-            alert('Bitte gib einen Namen ein');
+            alert('Please enter a name');
             return;
         }
 
         if (!selectedAction) {
-            alert('Bitte wähle eine Aktion');
+            alert('Please select an action');
             return;
         }
 
@@ -757,12 +757,12 @@
             const minute = document.getElementById('schedulerMinute').value;
 
             if (!hour || !minute) {
-                alert('Bitte wähle Stunde und Minute');
+                alert('Please select hour and minute');
                 return;
             }
 
             if (selectedWeekdays.size === 0) {
-                alert('Bitte wähle mindestens einen Wochentag');
+                alert('Please select at least one weekday');
                 return;
             }
 
@@ -778,14 +778,14 @@
             const message = document.getElementById('customMessage').value.trim();
 
             if (!message) {
-                alert('Bitte gib eine Nachricht ein');
+                alert('Please enter a message');
                 return;
             }
 
             data.custom_message = message;
 
             if (!selectedScheduleType) {
-                alert('Bitte wähle einen Zeitplan-Typ');
+                alert('Please select a schedule type');
                 return;
             }
 
@@ -797,12 +797,12 @@
                 const minute = document.getElementById('messageMinute').value;
 
                 if (!hour || !minute) {
-                    alert('Bitte wähle Stunde und Minute');
+                    alert('Please select hour and minute');
                     return;
                 }
 
                 if (selectedMessageWeekdays.size === 0) {
-                    alert('Bitte wähle mindestens einen Wochentag');
+                    alert('Please select at least one weekday');
                     return;
                 }
 
@@ -815,7 +815,7 @@
                 const interval = parseInt(document.getElementById('intervalMinutes').value);
 
                 if (!interval || interval < 1) {
-                    alert('Bitte gib ein gültiges Intervall ein (mindestens 1 Minute)');
+                    alert('Please enter a valid interval (at least 1 minute)');
                     return;
                 }
 
@@ -823,7 +823,7 @@
             }
         }
 
-        showLoading(editingSchedulerId ? 'Aktualisiere...' : 'Erstelle...');
+        showLoading(editingSchedulerId ? 'Updating...' : 'Creating...');
 
         const url = editingSchedulerId
             ? `/api/scheduler/${editingSchedulerId}`
@@ -843,13 +843,13 @@
                 closeSchedulerModal();
                 loadSchedulers();
             } else {
-                alert('Fehler: ' + result.message);
+                alert('Error: ' + result.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Speichern');
+            alert('Error saving');
         });
     }
 
@@ -864,19 +864,19 @@
             if (result.success) {
                 loadSchedulers();
             } else {
-                alert('Fehler: ' + result.message);
+                alert('Error: ' + result.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Fehler beim Umschalten');
+            alert('Error toggling');
         });
     }
 
     function deleteScheduler(schedulerId) {
-        if (!confirm('Möchtest du diesen Scheduler wirklich löschen?')) return;
+        if (!confirm('Do you really want to delete this scheduler?')) return;
 
-        showLoading('Lösche...');
+        showLoading('Deleting...');
         fetch(`/api/scheduler/${schedulerId}`, {
             method: 'DELETE'
         })
@@ -886,13 +886,13 @@
             if (result.success) {
                 loadSchedulers();
             } else {
-                alert('Fehler: ' + result.message);
+                alert('Error: ' + result.message);
             }
         })
         .catch(error => {
             hideLoading();
             console.error('Error:', error);
-            alert('Fehler beim Löschen');
+            alert('Error deleting');
         });
     }
 
@@ -901,12 +901,12 @@
         const value = parseInt(input.value);
 
         if (!value || value < 1) {
-            alert('Bitte gib eine gültige Minutenzahl ein');
+            alert('Please enter a valid number of minutes');
             return;
         }
 
         if (warningMinutes.includes(value)) {
-            alert('Diese Warnung existiert bereits');
+            alert('This warning already exists');
             return;
         }
 

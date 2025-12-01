@@ -171,10 +171,13 @@ class BattlEyeRCon:
     def _listener_loop(self):
         """
         Background process:
-        1. Receives data from server
+        1. Receives data from server (including MULTIPART packets)
         2. Sends keep-alive packets
         """
         last_keep_alive = time.time()
+        # Storage for multipart messages
+        multipart_messages = {}  # {sequence: {index: data}}
+        multipart_total = {}     # {sequence: total_parts}
 
         while self.running:
             try:
@@ -191,29 +194,81 @@ class BattlEyeRCon:
                 # B. Receive data (non-blocking check via socket timeout)
                 try:
                     self.sock.settimeout(0.5)  # Short timeout for responsive keep-alive
-                    data, _ = self.sock.recvfrom(4096)
+                    data, _ = self.sock.recvfrom(8192)  # Increased buffer for multipart
                 except socket.timeout:
                     continue  # Just continue looping
                 except OSError:
                     break  # Socket closed
 
-                if len(data) < 7:
-                    continue  # Too short for header
+                if len(data) < 9:  # Need at least header + type + sequence
+                    continue
 
-                # Parse header (first 2 'BE', then 4 CRC, then 1 flag)
-                flag = data[6]
-                payload = data[7:]
+                # BattlEye packet structure:
+                # 0-1: 'BE' (2 bytes)
+                # 2-5: CRC32 (4 bytes)
+                # 6: 0xFF header (1 byte)
+                # 7: Packet type (1 byte)
+                # 8+: Payload
 
-                if flag == 0x02:  # Command Response
-                    # Remove sequence byte (first byte of payload with flag 0x02)
-                    text_response = payload[1:].decode('utf-8', errors='ignore')
+                packet_type = data[7]
 
-                    # Store for retrieving function
-                    with self.response_lock:
-                        self.last_response += text_response
-                        self.response_buffer.append(text_response)
+                if packet_type == 0x01:  # Command response
+                    # Structure: ... Type(7) + Sequence(8) + [Multipart Flag(9)] + Data
+                    recv_seq = data[8]
 
-                elif flag == 0x00:  # Login Response (shouldn't happen in loop)
+                    # Check for multipart packet
+                    if len(data) > 9 and data[9] == 0x00:
+                        # === MULTIPART PACKET ===
+                        # Structure: Type(7) + Seq(8) + 0x00(9) + Total(10) + Index(11) + Data(12+)
+                        if len(data) < 12:
+                            continue
+
+                        total_parts = data[10]
+                        part_index = data[11]
+                        part_data = data[12:].decode('utf-8', errors='ignore')
+
+                        logger.debug(f"Received multipart packet {part_index+1}/{total_parts} for seq {recv_seq}")
+
+                        # Store this part
+                        if recv_seq not in multipart_messages:
+                            multipart_messages[recv_seq] = {}
+                            multipart_total[recv_seq] = total_parts
+
+                        multipart_messages[recv_seq][part_index] = part_data
+
+                        # Check if we have all parts
+                        if len(multipart_messages[recv_seq]) == total_parts:
+                            # Assemble complete message
+                            complete_msg = ''
+                            for i in range(total_parts):
+                                if i in multipart_messages[recv_seq]:
+                                    complete_msg += multipart_messages[recv_seq][i]
+
+                            # Store assembled message
+                            with self.response_lock:
+                                self.last_response += complete_msg
+                                self.response_buffer.append(complete_msg)
+
+                            logger.debug(f"Multipart message complete for seq {recv_seq}: {len(complete_msg)} bytes")
+
+                            # Clean up
+                            del multipart_messages[recv_seq]
+                            del multipart_total[recv_seq]
+                    else:
+                        # === SINGLE PACKET ===
+                        # Structure: Type(7) + Seq(8) + Data(9+)
+                        text_response = data[9:].decode('utf-8', errors='ignore')
+
+                        # Store for retrieving function
+                        with self.response_lock:
+                            self.last_response += text_response
+                            self.response_buffer.append(text_response)
+
+                elif packet_type == 0x00:  # Login Response
+                    pass  # Handled in connect()
+
+                elif packet_type == 0x02:  # Server message (broadcast from server)
+                    # This is unsolicited messages from server
                     pass
 
             except Exception as e:

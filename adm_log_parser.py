@@ -295,9 +295,20 @@ class ADMLogParser:
                     # Debug: Log the raw line
                     logger.debug(f"ADM Line {lines_read}: {line[:200]}")  # First 200 chars
 
-                    # Parse timestamp
-                    timestamp = self.parse_timestamp(line)
-                    if not timestamp:
+                    # Parse timestamp and remove it from line
+                    timestamp_match = self.PATTERNS['timestamp'].match(line)
+                    if timestamp_match:
+                        # Extract timestamp
+                        now = datetime.now()
+                        hour = int(timestamp_match.group('hour'))
+                        minute = int(timestamp_match.group('minute'))
+                        second = int(timestamp_match.group('second'))
+                        timestamp = now.replace(hour=hour, minute=minute, second=second, microsecond=0)
+
+                        # Remove timestamp from line (keep only the content after "HH:MM:SS | ")
+                        line = line[timestamp_match.end():]
+                        logger.debug(f"Stripped timestamp, line now: {line[:100]}")
+                    else:
                         timestamp = datetime.now()
                         logger.debug(f"No timestamp found in line, using current time")
 

@@ -234,6 +234,21 @@ GET /api/server/<server_id>/player/<player_id>
 - **Statistiken** - Spielzeit, Sessions, First/Last Seen
 - **Auto-Refresh** - Alle 60 Sekunden
 
+## Initialization & Sync
+
+### RCon-Synchronisation beim Start
+Wenn der Player-Tracker initialisiert wird:
+1. **Tail to End** - Log-Position wird ans Ende gesetzt (vermeidet Re-Reading großer Logs)
+2. **RCon Sync** - Abfrage aktuell online Spieler via RCon
+3. **Session-Erstellung** - Für alle online Spieler werden Sessions erstellt
+4. **Log-Monitoring** - Ab jetzt werden neue Join/Leave-Events aus Logs getrackt
+
+**Warum RCon-Sync?**
+- Problem: Wenn Tracker startet, ist Log-Position am Ende
+- Spieler die VOR dem Tracker-Start beigetreten sind, werden nicht erkannt
+- Lösung: RCon "players" Befehl zeigt aktuell online Spieler
+- Diese werden sofort in DB eingetragen mit aktiver Session
+
 ## Performance & Zuverlässigkeit
 
 ### Performance-Optimierungen
@@ -242,6 +257,7 @@ GET /api/server/<server_id>/player/<player_id>
    - Tail-Reading (nur neue Zeilen)
    - Position-Tracking im Log-File
    - Kein Re-Reading von alten Daten
+   - RCon-Sync beim Start (statt komplettes Log parsen)
 
 2. **Datenbank**
    - Indizes auf GUID, SteamID, Player-ID
@@ -315,9 +331,13 @@ tail -f webinterface.log
 **Erwartete Log-Ausgaben:**
 ```
 INFO:player_tracking_scheduler:Player Tracking Scheduler initialized
-INFO:player_tracking_scheduler:Initialized player tracker for server: My DayZ Server
+INFO:player_tracking_scheduler:Player tracker for 'DayZTools' will monitor: /home/dayzserver/.../server_stdout.log
+INFO:player_tracker:Syncing with RCon for server: DayZTools
+INFO:player_tracker:Synced online player: BrandyMandy (d2c1e1708ac2a40dea825a1fe7556a6b)
+INFO:player_tracking_scheduler:Synced 1 currently online player(s) for 'DayZTools'
+INFO:player_tracking_scheduler:Initialized player tracker for server: DayZTools
 INFO:player_tracking_scheduler:Player event monitoring started (every 10 seconds)
-INFO:player_tracking_scheduler:Online player update task scheduled (every 30 minutes)
+INFO:player_tracking_scheduler:Online player update task started (every 30 minutes)
 INFO:player_tracker:Created new player: BrandyMandy (d2c1e1708...) - DayZTools ID: A1B2C3D4E5F6G7H8
 INFO:player_tracker:Player joined: BrandyMandy (d2c1e1708...) at 2025-12-09 12:00:00
 INFO:player_tracker:Player left: BrandyMandy - Session duration: 7200s
@@ -328,9 +348,13 @@ INFO:player_tracking_scheduler:Updated 5 online player(s)
 
 ### Problem: Spieler werden nicht getrackt
 **Lösung:**
-1. Log-Datei prüfen: `<server>/profiles/logs/server_stdout.log`
-2. Permissions prüfen: Log-Datei muss lesbar sein
-3. Scheduler-Status prüfen in Logs
+1. **RCon-Status prüfen**: Server muss laufen, RCon muss funktionieren
+2. **Logs prüfen**: Schaue nach "Synced X currently online player(s)"
+3. Log-Datei prüfen: `<server>/profiles/logs/server_stdout.log`
+4. Permissions prüfen: Log-Datei muss lesbar sein
+5. Scheduler-Status prüfen in Logs
+
+**Wichtig**: Beim Tracker-Start werden ALLE aktuell online Spieler via RCon erkannt und in die Datenbank eingetragen. Wenn du bereits auf dem Server warst, solltest du sofort getrackt werden!
 
 ### Problem: Duplikate in Datenbank
 **Lösung:**

@@ -43,12 +43,26 @@ class PlayerTrackingScheduler:
                 for server in servers:
                     try:
                         tracker = PlayerTracker(server)
+                        # Log the log file path for debugging
+                        logger.info(f"Player tracker for '{server.name}' will monitor: {tracker.log_parser.log_file_path}")
+
                         # Skip existing logs (start fresh from now)
                         tracker.log_parser.tail_to_end()
+
+                        # Sync with RCon to detect currently online players
+                        # This ensures players who joined BEFORE the tracker started are tracked
+                        try:
+                            if server.status == 'running':
+                                synced = tracker.sync_with_rcon()
+                                if synced > 0:
+                                    logger.info(f"Synced {synced} currently online player(s) for '{server.name}'")
+                        except Exception as e:
+                            logger.warning(f"Could not sync with RCon for '{server.name}': {e}")
+
                         self.player_trackers[server.id] = tracker
                         logger.info(f"Initialized player tracker for server: {server.name}")
                     except Exception as e:
-                        logger.error(f"Error initializing tracker for server {server.name}: {e}")
+                        logger.error(f"Error initializing tracker for server {server.name}: {e}", exc_info=True)
 
             except Exception as e:
                 logger.error(f"Error initializing player trackers: {e}")
@@ -88,12 +102,14 @@ class PlayerTrackingScheduler:
             try:
                 for server_id, tracker in self.player_trackers.items():
                     try:
+                        # Debug: Log file path
+                        logger.debug(f"Checking log file: {tracker.log_parser.log_file_path}")
                         tracker.process_log_events()
                     except Exception as e:
-                        logger.error(f"Error processing log events for server {server_id}: {e}")
+                        logger.error(f"Error processing log events for server {server_id}: {e}", exc_info=True)
 
             except Exception as e:
-                logger.error(f"Error in player event monitor: {e}")
+                logger.error(f"Error in player event monitor: {e}", exc_info=True)
 
     def _update_online_players(self):
         """Update all online players (called every 30 minutes)"""
@@ -123,6 +139,16 @@ class PlayerTrackingScheduler:
 
             tracker = PlayerTracker(server)
             tracker.log_parser.tail_to_end()  # Start from current position
+
+            # Sync with RCon to detect currently online players
+            try:
+                if server.status == 'running':
+                    synced = tracker.sync_with_rcon()
+                    if synced > 0:
+                        logger.info(f"Synced {synced} currently online player(s) for new server '{server.name}'")
+            except Exception as e:
+                logger.warning(f"Could not sync with RCon for new server '{server.name}': {e}")
+
             self.player_trackers[server.id] = tracker
             logger.info(f"Added player tracker for new server: {server.name}")
             return tracker

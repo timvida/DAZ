@@ -285,6 +285,99 @@ class PlayerTracker:
             except Exception as e:
                 logger.error(f"Error processing leave event: {e}")
 
+    def sync_with_rcon(self):
+        """
+        Sync player tracking with RCon to detect currently online players
+        This is called on initialization to ensure we track players that joined before the tracker started
+        """
+        try:
+            from rcon_utils import RConManager
+
+            logger.info(f"Syncing with RCon for server: {self.server.name}")
+            success, players, message = RConManager.get_players(self.server)
+
+            if not success:
+                logger.warning(f"Could not sync with RCon: {message}")
+                return 0
+
+            if not players:
+                logger.info("No players online to sync")
+                return 0
+
+            synced_count = 0
+            timestamp = datetime.utcnow()
+
+            for rcon_player in players:
+                try:
+                    guid = rcon_player.get('guid', 'N/A')
+                    name = rcon_player.get('name', 'Unknown')
+
+                    # Skip if no valid GUID
+                    if guid == 'N/A' or not guid:
+                        logger.warning(f"Skipping player {name} - no valid GUID")
+                        continue
+
+                    # Parse IP and port
+                    ip_port = rcon_player.get('ip', '')
+                    ip = None
+                    port = None
+                    if ':' in ip_port:
+                        parts = ip_port.split(':')
+                        ip = parts[0]
+                        try:
+                            port = int(parts[1])
+                        except:
+                            pass
+
+                    # Get or create player
+                    player = self.get_or_create_player(
+                        guid=guid,
+                        name=name,
+                        ip=ip,
+                        port=port
+                    )
+
+                    # Check if player already has an open session
+                    open_session = PlayerSession.query.filter_by(
+                        player_id=player.id,
+                        leave_time=None
+                    ).first()
+
+                    if not open_session:
+                        # Create new session for this currently online player
+                        session = PlayerSession(
+                            player_id=player.id,
+                            join_time=timestamp,
+                            name_at_join=name,
+                            ip_at_join=ip,
+                            port_at_join=port
+                        )
+                        db.session.add(session)
+
+                        # Update player status
+                        player.is_online = True
+                        player.last_seen = timestamp
+                        player.session_count += 1
+
+                        synced_count += 1
+                        logger.info(f"Synced online player: {name} ({guid})")
+                    else:
+                        logger.debug(f"Player {name} already has open session")
+
+                except Exception as e:
+                    logger.error(f"Error syncing player {rcon_player.get('name', 'Unknown')}: {e}")
+                    continue
+
+            if synced_count > 0:
+                db.session.commit()
+                logger.info(f"Successfully synced {synced_count} online player(s) from RCon")
+
+            return synced_count
+
+        except Exception as e:
+            logger.error(f"Error during RCon sync: {e}", exc_info=True)
+            return 0
+
     def update_online_players(self):
         """
         Update all currently online players

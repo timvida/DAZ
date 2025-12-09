@@ -122,9 +122,12 @@ class PlayerLogParser:
         Very performant - only reads what's new
         """
         if not os.path.exists(self.log_file_path):
+            import logging
+            logging.warning(f"Log file does not exist: {self.log_file_path}")
             return []
 
         events = []
+        lines_read = 0
 
         try:
             with open(self.log_file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -133,6 +136,7 @@ class PlayerLogParser:
 
                 # Read new lines
                 for line in f:
+                    lines_read += 1
                     line = line.strip()
                     if not line:
                         continue
@@ -146,12 +150,20 @@ class PlayerLogParser:
                     event = self.parse_line(line, timestamp)
                     if event:
                         events.append(event)
+                        import logging
+                        logging.info(f"Found player event: {event['event']} - {event.get('name', 'Unknown')}")
 
                 # Update position
                 self.last_position = f.tell()
 
+            # Debug logging
+            if lines_read > 0:
+                import logging
+                logging.debug(f"Read {lines_read} new lines from log, found {len(events)} events")
+
         except Exception as e:
-            print(f"Error reading log file: {e}")
+            import logging
+            logging.error(f"Error reading log file {self.log_file_path}: {e}", exc_info=True)
             return []
 
         return events

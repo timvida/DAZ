@@ -19,48 +19,44 @@ class ADMLogParser:
     """
 
     # Regex patterns for log parsing
+    # Format: HH:MM:SS | Player "Name" (DEAD) (id=... pos=<x, y, z>) ...
     PATTERNS = {
-        # Player "Hexchen" (id=2Hnkevo6Z3K3205vN-R-6Q9xPqea7nPPWxbePK8l9pU= pos=<13373.9, 5370.2, 5.9>) is unconscious
+        # 15:08:25 | Player "Brandy" (DEAD) (id=hQbMz6ZxsMudsUhepezzVlXWJl1KJ991DebofUxQ1ac= pos=<12942.5, 8623.6, 3.3>) killed by Player "Scotty" (id=96GpuDNvQHuVu5HGi-i2u5uPBUbW6wVeyBkZc6Gi298= pos=<12931.9, 8652.8, 4.7>) with M4-A1 from 31.1503 meters
+        'killed_by_player': re.compile(
+            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
+        ),
+
+        # 15:21:30 | Player "Brandy" (DEAD) (id=hQbMz6ZxsMudsUhepezzVlXWJl1KJ991DebofUxQ1ac= pos=<9518.0, 1977.9, 6.3>) committed suicide.
+        'suicide': re.compile(
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) committed suicide'
+        ),
+
+        # Player unconscious
         'unconscious': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)\[HP: (?P<hp>[\d\.]+)\] (?:hit by .+ for [\d\.]+ damage \(.+\)\s+)?.*?is unconscious'
+            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)(?:\[HP: [\d\.]+\])? (?:hit by .+?)? is unconscious'
         ),
 
-        # Simpler pattern for unconscious without HP
-        'unconscious_simple': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) is unconscious'
-        ),
-
-        # Player "Hexchen" (id=2Hnkevo6Z3K3205vN-R-6Q9xPqea7nPPWxbePK8l9pU= pos=<13375.9, 5370.1, 5.9>) regained consciousness
+        # Player regained consciousness
         'regained_consciousness': re.compile(
             r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) regained consciousness'
         ),
 
-        # Player "Brandy" (DEAD) (id=hQbMz6ZxsMudsUhepezzVlXWJl1KJ991DebofUxQ1ac= pos=<6012.7, 1930.9, 6.2>) killed by Player "BrandyMandy" (id=96GpuDNvQHuVu5HGi-i2u5uPBUbW6wVeyBkZc6Gi298= pos=<5977.8, 2002.7, 3.4>) with M4-A1 from 79.9567 meters
-        'killed_by_player': re.compile(
-            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\).+? killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/=]+).+?\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
-        ),
-
-        # Player "Brandy" (DEAD) (id=... pos=<...>) killed by Player "X" with (MeleeFist)
-        'killed_by_player_melee': re.compile(
-            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\).+? killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/=]+).+?\) with \((?P<weapon>Melee[A-Za-z]+)\)'
-        ),
-
-        # Player "Hexchen" (DEAD) (id=... pos=<...>) died. Stats> Water: 914.234 Energy: 789.689 Bleed sources: 0
-        'died_stats': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) died\. Stats> Water: (?P<water>[\d\.]+) Energy: (?P<energy>[\d\.]+) Bleed sources: (?P<bleed>[\d]+)'
-        ),
-
-        # Player "Brandy" (DEAD) (id=... pos=<...>) bled out
+        # Player bled out
         'bled_out': re.compile(
             r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) bled out'
         ),
 
-        # Player "BrandyMandy" (id=... pos=<...>) committed suicide
-        'suicide': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) committed suicide'
+        # Player died with stats
+        'died_stats': re.compile(
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) died\. Stats>'
         ),
 
-        # Timestamp: 14:20:11 | ...
+        # Generic death (catches all other DEAD entries)
+        'generic_death': re.compile(
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)'
+        ),
+
+        # Timestamp: HH:MM:SS |
         'timestamp': re.compile(r'^(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2}) \| '),
     }
 
@@ -140,7 +136,9 @@ class ADMLogParser:
         Returns:
             dict: Event data, or None if no event found
         """
-        # Check for suicide (check first as it's most specific)
+        # Check patterns in order of specificity (most specific first)
+
+        # 1. Check for suicide
         match = self.PATTERNS['suicide'].search(line)
         if match:
             return {
@@ -155,7 +153,7 @@ class ADMLogParser:
                 }
             }
 
-        # Check for PvP kill (with distance)
+        # 2. Check for PvP kill
         match = self.PATTERNS['killed_by_player'].search(line)
         if match:
             return {
@@ -174,26 +172,7 @@ class ADMLogParser:
                 }
             }
 
-        # Check for PvP kill (melee, no distance)
-        match = self.PATTERNS['killed_by_player_melee'].search(line)
-        if match:
-            return {
-                'event': 'killed_by_player',
-                'timestamp': timestamp,
-                'victim_name': match.group('victim_name'),
-                'victim_bohemia_id': match.group('victim_id'),
-                'killer_name': match.group('killer_name'),
-                'killer_bohemia_id': match.group('killer_id'),
-                'weapon': match.group('weapon'),
-                'distance': 0.0,  # Melee = close range
-                'position': {
-                    'x': float(match.group('x')),
-                    'y': float(match.group('y')),
-                    'z': float(match.group('z'))
-                }
-            }
-
-        # Check for bled out
+        # 3. Check for bled out
         match = self.PATTERNS['bled_out'].search(line)
         if match:
             return {
@@ -208,7 +187,7 @@ class ADMLogParser:
                 }
             }
 
-        # Check for death with stats
+        # 4. Check for death with stats
         match = self.PATTERNS['died_stats'].search(line)
         if match:
             return {
@@ -221,15 +200,11 @@ class ADMLogParser:
                     'y': float(match.group('y')),
                     'z': float(match.group('z'))
                 },
-                'stats': {
-                    'water': float(match.group('water')),
-                    'energy': float(match.group('energy')),
-                    'bleed_sources': int(match.group('bleed'))
-                }
+                'cause': 'Unknown'
             }
 
-        # Check for unconscious
-        match = self.PATTERNS['unconscious_simple'].search(line)
+        # 5. Check for unconscious
+        match = self.PATTERNS['unconscious'].search(line)
         if match:
             return {
                 'event': 'unconscious',
@@ -243,7 +218,7 @@ class ADMLogParser:
                 }
             }
 
-        # Check for regained consciousness
+        # 6. Check for regained consciousness
         match = self.PATTERNS['regained_consciousness'].search(line)
         if match:
             return {
@@ -256,6 +231,22 @@ class ADMLogParser:
                     'y': float(match.group('y')),
                     'z': float(match.group('z'))
                 }
+            }
+
+        # 7. Generic death (catch-all for any other DEAD entries)
+        match = self.PATTERNS['generic_death'].search(line)
+        if match:
+            return {
+                'event': 'died',
+                'timestamp': timestamp,
+                'name': match.group('name'),
+                'bohemia_id': match.group('id'),
+                'position': {
+                    'x': float(match.group('x')),
+                    'y': float(match.group('y')),
+                    'z': float(match.group('z'))
+                },
+                'cause': 'Unknown'
             }
 
         return None
@@ -289,22 +280,32 @@ class ADMLogParser:
                     if not line:
                         continue
 
+                    # Debug: Log the raw line
+                    logger.debug(f"ADM Line {lines_read}: {line[:200]}")  # First 200 chars
+
                     # Parse timestamp
                     timestamp = self.parse_timestamp(line)
                     if not timestamp:
                         timestamp = datetime.now()
+                        logger.debug(f"No timestamp found in line, using current time")
 
                     # Parse line for events
                     event = self.parse_line(line, timestamp)
                     if event:
                         events.append(event)
-                        logger.info(f"Found ADM event: {event['event']} - {event.get('name', 'Unknown')}")
+                        logger.info(f"✓ Found ADM event: {event['event']} - {event.get('name', 'Unknown')}")
+                    else:
+                        # Debug: Log why line wasn't matched
+                        if any(keyword in line.lower() for keyword in ['unconscious', 'dead', 'killed', 'suicide', 'died', 'bled']):
+                            logger.warning(f"Line contains event keyword but wasn't matched: {line[:300]}")
 
                 # Update position
                 self.last_position = f.tell()
 
             if lines_read > 0:
                 logger.info(f"Read {lines_read} new lines from ADM log, found {len(events)} events")
+                if lines_read > 0 and len(events) == 0:
+                    logger.warning(f"Lines were read but NO events were found. Check regex patterns!")
             else:
                 logger.debug(f"No new lines in ADM log (position: {self.last_position})")
 

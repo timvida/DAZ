@@ -1701,8 +1701,11 @@ def deduplicate_players(server_id):
                     db.session.delete(duplicate)
                     duplicates_removed += 1
 
-                # Normalize GUID in primary record
-                primary.guid = normalized_guid
+                # Normalize GUID in primary record (only if different)
+                if primary.guid != normalized_guid:
+                    primary.guid = normalized_guid
+
+                # Commit after processing each group
                 db.session.commit()
                 merged_count += 1
 

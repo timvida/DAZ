@@ -20,41 +20,42 @@ class ADMLogParser:
 
     # Regex patterns for log parsing
     # Format: HH:MM:SS | Player "Name" (DEAD) (id=... pos=<x, y, z>) ...
+    # IMPORTANT: Bohemia IDs can contain: A-Z, a-z, 0-9, +, /, -, =
     PATTERNS = {
         # PvP Kill: Player "Brandy" (DEAD) (id=... pos=<...>) killed by Player "Scotty" (id=... pos=<...>) with M4-A1 from 10.3476 meters
         'killed_by_player': re.compile(
-            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
+            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/\-=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
         ),
 
         # Killed by NPC: Player "Survivor" (DEAD) (id=... pos=<...>) killed by Infected
         # IMPORTANT: Use negative lookahead to NOT match "killed by Player" (PvP kills)
         'killed_by_npc': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by (?!Player)(?P<killer>.+?)$'
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by (?!Player)(?P<killer>.+?)$'
         ),
 
         # Suicide: Player "Brandy" (id=... pos=<...>) performed EmoteSuicide with HuntingKnife
         'suicide': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) performed EmoteSuicide(?: with (?P<weapon>.+?))?'
+            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) performed EmoteSuicide(?: with (?P<weapon>.+?))?'
         ),
 
         # Player unconscious
         'unconscious': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)(?:\[HP: [\d\.]+\])? (?:hit by .+?)? is unconscious'
+            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)(?:\[HP: [\d\.]+\])? (?:hit by .+?)? is unconscious'
         ),
 
         # Player regained consciousness
         'regained_consciousness': re.compile(
-            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) regained consciousness'
+            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) regained consciousness'
         ),
 
         # Player bled out
         'bled_out': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) bled out'
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) bled out'
         ),
 
         # Player died with stats
         'died_stats': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) died\. Stats>'
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/\-=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) died\. Stats>'
         ),
 
         # Timestamp: HH:MM:SS |

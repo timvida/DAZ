@@ -2,7 +2,12 @@
 -- Database Migration: Add Server Auto-Update Fields
 -- ============================================
 -- This migration adds auto-update tracking fields to the game_servers table
--- Run this SQL if you have an existing database and need to add the new columns
+--
+-- WICHTIG: Diese Migration wird AUTOMATISCH beim Start des Web-Interfaces durchgeführt!
+-- Du musst diese Datei NICHT manuell ausführen, es sei denn, die automatische Migration schlägt fehl.
+--
+-- Falls die automatische Migration fehlgeschlagen ist, kannst du diese Datei manuell ausführen:
+-- sqlite3 gameserver.db < database_migration_server_updates.sql
 
 -- Add update_available column (tracks if a server update is available)
 ALTER TABLE game_servers

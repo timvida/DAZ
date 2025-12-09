@@ -1092,7 +1092,7 @@ with app.app_context():
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
-            # Check if new columns exist
+            # Check if new columns exist in server_schedulers
             cursor.execute("PRAGMA table_info(server_schedulers)")
             columns = [row[1] for row in cursor.fetchall()]
 
@@ -1104,6 +1104,22 @@ with app.app_context():
             if 'interval_minutes' not in columns:
                 cursor.execute("ALTER TABLE server_schedulers ADD COLUMN interval_minutes INTEGER")
                 print("✓ Added 'interval_minutes' column to database")
+
+            # Check if new columns exist in game_servers (for auto-update system)
+            cursor.execute("PRAGMA table_info(game_servers)")
+            game_server_columns = [row[1] for row in cursor.fetchall()]
+
+            if 'update_available' not in game_server_columns:
+                cursor.execute("ALTER TABLE game_servers ADD COLUMN update_available BOOLEAN DEFAULT 0")
+                print("✓ Added 'update_available' column to game_servers table")
+
+            if 'update_downloaded' not in game_server_columns:
+                cursor.execute("ALTER TABLE game_servers ADD COLUMN update_downloaded BOOLEAN DEFAULT 0")
+                print("✓ Added 'update_downloaded' column to game_servers table")
+
+            if 'last_update_check' not in game_server_columns:
+                cursor.execute("ALTER TABLE game_servers ADD COLUMN last_update_check DATETIME")
+                print("✓ Added 'last_update_check' column to game_servers table")
 
             conn.commit()
             conn.close()

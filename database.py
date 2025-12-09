@@ -4,6 +4,9 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+# Import player models (will be defined in player_models.py)
+# These will be imported after db initialization to avoid circular imports
+
 class User(db.Model):
     """Admin user model"""
     __tablename__ = 'users'

@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.current_name }} - Player Profile{% endblock %}
+
+{% block page_title %}{{ player.current_name }}{% endblock %}
+{% block page_subtitle %}Player Profile{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('server_players', server_id=server.id) }}" class="flex items-center gap-2 px-4 py-2 bg-[#0D1117] hover:bg-[#E32345]/10 border border-[#E32345]/30 rounded-lg transition">
+    <i class="fas fa-arrow-left"></i>
+    <span class="hidden lg:inline">Back to Players</span>
+</a>
+{% endblock %}
+
+{% block content %}
+        <!-- Player Header -->
+        <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-8">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="bg-[#0D1117] p-5 rounded-xl border border-[#E32345]/30">
+                        <i class="fas fa-user text-[#E32345] text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-2">{{ player.current_name }}</h2>
+                        <div class="flex flex-wrap gap-3 text-sm text-gray-400">
+                            <span class="flex items-center gap-2">
+                                <i class="fas fa-fingerprint text-[#E32345]"></i>
+                                <span class="font-mono">{{ player.dayztools_id }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div>
+                    {% if player.is_online %}
+                        <span class="px-6 py-3 bg-green-500/20 border-2 border-green-500 text-green-500 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-circle-dot animate-pulse"></i>ONLINE
+                        </span>
+                    {% else %}
+                        <span class="px-6 py-3 bg-gray-500/20 border-2 border-gray-500 text-gray-400 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-circle"></i>OFFLINE
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Playtime -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-clock text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Total Playtime</h3>
+                </div>
+                <p class="text-2xl font-bold text-white" id="totalPlaytime">Loading...</p>
+            </div>
+
+            <!-- Sessions -->
+            <div class="bg-[#1A1F29] border border-blue-500/20 rounded-xl p-6 hover:border-blue-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-list text-blue-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Total Sessions</h3>
+                </div>
+                <p class="text-2xl font-bold text-white">{{ player.session_count }}</p>
+            </div>
+
+            <!-- First Seen -->
+            <div class="bg-[#1A1F29] border border-green-500/20 rounded-xl p-6 hover:border-green-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-calendar-plus text-green-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">First Seen</h3>
+                </div>
+                <p class="text-sm font-bold text-white" id="firstSeen">Loading...</p>
+            </div>
+
+            <!-- Last Seen -->
+            <div class="bg-[#1A1F29] border border-yellow-500/20 rounded-xl p-6 hover:border-yellow-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-calendar-check text-yellow-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Last Seen</h3>
+                </div>
+                <p class="text-sm font-bold text-white" id="lastSeen">Loading...</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Identities & History -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Identities -->
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-id-card text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Identities</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- DayZTools ID -->
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">DayZTools ID</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="{{ player.dayztools_id }}" class="flex-1 px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded text-white font-mono text-sm">
+                                <button onclick="copyToClipboard('{{ player.dayztools_id }}')" class="px-3 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded transition">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- BattlEye GUID -->
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">BattlEye GUID</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="{{ player.guid }}" class="flex-1 px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded text-white font-mono text-xs">
+                                <button onclick="copyToClipboard('{{ player.guid }}')" class="px-3 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded transition">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Steam ID -->
+                        {% if player.steam_id %}
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Steam ID</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="{{ player.steam_id }}" class="flex-1 px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded text-white font-mono text-sm">
+                                <button onclick="copyToClipboard('{{ player.steam_id }}')" class="px-3 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded transition">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <a href="https://steamcommunity.com/profiles/{{ player.steam_id }}" target="_blank" class="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded transition">
+                                    <i class="fab fa-steam"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Bohemia ID -->
+                        {% if player.bohemia_id %}
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Bohemia Interactive ID</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="{{ player.bohemia_id }}" class="flex-1 px-3 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded text-white font-mono text-xs">
+                                <button onclick="copyToClipboard('{{ player.bohemia_id }}')" class="px-3 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded transition">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Name History -->
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-user-tag text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Name History</h2>
+                    </div>
+                    <div id="nameHistory" class="space-y-3">
+                        <div class="text-center text-gray-400 py-4">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IP History -->
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-network-wired text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">IP History</h2>
+                    </div>
+                    <div id="ipHistory" class="space-y-3">
+                        <div class="text-center text-gray-400 py-4">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Sessions Timeline -->
+            <div class="lg:col-span-2">
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-history text-[#E32345] text-2xl"></i>
+                            <h2 class="text-xl font-bold text-white">Session History</h2>
+                        </div>
+                        <span class="text-sm text-gray-400" id="sessionCount">Loading...</span>
+                    </div>
+
+                    <div id="sessionsTimeline" class="space-y-4 max-h-[800px] overflow-y-auto pr-2">
+                        <div class="text-center text-gray-400 py-12">
+                            <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                            <p>Loading sessions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        const serverId = {{ server.id }};
+        const playerId = {{ player.id }};
+
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success feedback
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                btn.classList.remove('bg-[#E32345]', 'hover:bg-[#c41d39]');
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    btn.classList.add('bg-[#E32345]', 'hover:bg-[#c41d39]');
+                }, 2000);
+            });
+        }
+
+        // Format playtime
+        function formatPlaytime(seconds) {
+            if (!seconds) return '0h 0m';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 24) {
+                const days = Math.floor(hours / 24);
+                const remainingHours = hours % 24;
+                return `${days}d ${remainingHours}h`;
+            }
+            return `${hours}h ${minutes}m`;
+        }
+
+        // Format date
+        function formatDate(isoString) {
+            if (!isoString) return 'Never';
+            const date = new Date(isoString);
+            return date.toLocaleString('de-DE', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Format date - short version
+        function formatDateShort(isoString) {
+            if (!isoString) return 'Never';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('de-DE', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        // Load player profile
+        function loadProfile() {
+            fetch(`/api/server/${serverId}/player/${playerId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Error loading player profile: ' + data.message);
+                        return;
+                    }
+
+                    const player = data.player;
+
+                    // Update stats
+                    document.getElementById('totalPlaytime').textContent = formatPlaytime(player.total_playtime);
+                    document.getElementById('firstSeen').textContent = formatDate(player.first_seen);
+                    document.getElementById('lastSeen').textContent = formatDate(player.last_seen);
+
+                    // Render name history
+                    const nameHistory = document.getElementById('nameHistory');
+                    if (data.name_history.length === 0) {
+                        nameHistory.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No name changes recorded</p>';
+                    } else {
+                        nameHistory.innerHTML = data.name_history.map(name => `
+                            <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-3">
+                                <div class="font-medium text-white mb-1">${name.name}</div>
+                                <div class="text-xs text-gray-500">
+                                    <div>First: ${formatDateShort(name.first_seen)}</div>
+                                    <div>Last: ${formatDateShort(name.last_seen)}</div>
+                                    <div>Used: ${name.usage_count}x</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Render IP history
+                    const ipHistory = document.getElementById('ipHistory');
+                    if (data.ip_history.length === 0) {
+                        ipHistory.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No IP addresses recorded</p>';
+                    } else {
+                        ipHistory.innerHTML = data.ip_history.map(ip => `
+                            <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-3">
+                                <div class="font-mono text-white mb-1">${ip.ip_address}${ip.port ? ':' + ip.port : ''}</div>
+                                <div class="text-xs text-gray-500">
+                                    <div>First: ${formatDateShort(ip.first_seen)}</div>
+                                    <div>Last: ${formatDateShort(ip.last_seen)}</div>
+                                    <div>Used: ${ip.usage_count}x</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Render sessions
+                    const sessionsTimeline = document.getElementById('sessionsTimeline');
+                    document.getElementById('sessionCount').textContent = `${data.sessions.length} session(s)`;
+
+                    if (data.sessions.length === 0) {
+                        sessionsTimeline.innerHTML = '<p class="text-gray-500 text-center py-12">No sessions recorded</p>';
+                    } else {
+                        sessionsTimeline.innerHTML = data.sessions.map(session => {
+                            const isActive = !session.leave_time;
+                            const duration = session.duration ? formatPlaytime(session.duration) : 'Active';
+
+                            return `
+                                <div class="relative pl-8 pb-8 border-l-2 ${isActive ? 'border-green-500' : 'border-[#E32345]/30'}">
+                                    <div class="absolute left-0 top-0 w-4 h-4 -ml-[9px] rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-[#E32345]'} border-4 border-[#1A1F29]"></div>
+
+                                    <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-4 hover:border-[#E32345]/40 transition">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <div class="flex items-center gap-2">
+                                                ${isActive
+                                                    ? '<span class="px-2 py-1 bg-green-500/20 border border-green-500 text-green-500 rounded text-xs font-bold">ACTIVE</span>'
+                                                    : '<span class="px-2 py-1 bg-gray-500/20 border border-gray-500 text-gray-400 rounded text-xs font-bold">ENDED</span>'
+                                                }
+                                                <span class="text-xs text-gray-500">${duration}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-sign-in-alt text-green-500 w-4"></i>
+                                                <span class="text-gray-400">Joined:</span>
+                                                <span class="text-white font-medium">${formatDate(session.join_time)}</span>
+                                            </div>
+                                            ${session.leave_time ? `
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-sign-out-alt text-red-500 w-4"></i>
+                                                    <span class="text-gray-400">Left:</span>
+                                                    <span class="text-white font-medium">${formatDate(session.leave_time)}</span>
+                                                </div>
+                                            ` : ''}
+                                            ${session.name_at_join ? `
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-user text-blue-500 w-4"></i>
+                                                    <span class="text-gray-400">Name:</span>
+                                                    <span class="text-white font-medium">${session.name_at_join}</span>
+                                                </div>
+                                            ` : ''}
+                                            ${session.ip_at_join ? `
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-network-wired text-purple-500 w-4"></i>
+                                                    <span class="text-gray-400">IP:</span>
+                                                    <span class="text-white font-mono text-xs">${session.ip_at_join}${session.port_at_join ? ':' + session.port_at_join : ''}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading player profile');
+                });
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(loadProfile, 60000);
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
+{% endblock %}

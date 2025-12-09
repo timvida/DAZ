@@ -11,6 +11,9 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 import atexit
 
+# Import player tracking models (after db is initialized)
+from player_models import Player, PlayerSession, PlayerName, PlayerIP
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -37,6 +40,7 @@ mod_manager = ModManager()
 mod_update_scheduler = None
 server_update_scheduler = None
 server_scheduler_manager = None
+player_tracking_scheduler = None
 
 # Context processor to add common data to all templates
 @app.context_processor
@@ -1066,6 +1070,187 @@ def kickall_rcon_players(server_id):
     return jsonify({'success': success, 'message': response})
 
 
+# ============================================
+# PLAYER TRACKING ROUTES
+# ============================================
+
+@app.route('/server/<int:server_id>/players')
+@installation_check
+@login_required
+def server_players(server_id):
+    """Players list page for a server"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    return render_template('server_players.html', server=server)
+
+
+@app.route('/server/<int:server_id>/player/<int:player_id>')
+@installation_check
+@login_required
+def player_profile(server_id, player_id):
+    """Individual player profile page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    player = Player.query.get(player_id)
+    if not player or player.server_id != server_id:
+        flash('Player not found', 'error')
+        return redirect(url_for('server_players', server_id=server_id))
+
+    return render_template('player_profile.html', server=server, player=player)
+
+
+@app.route('/api/server/<int:server_id>/players', methods=['GET'])
+@installation_check
+@login_required
+def api_get_players(server_id):
+    """Get all players for a server with optional search/filter"""
+    search = request.args.get('search', '').strip()
+    online_only = request.args.get('online_only', 'false').lower() == 'true'
+    limit = int(request.args.get('limit', 100))
+    offset = int(request.args.get('offset', 0))
+
+    # Base query
+    query = Player.query.filter_by(server_id=server_id)
+
+    # Filter by online status
+    if online_only:
+        query = query.filter_by(is_online=True)
+
+    # Search filter
+    if search:
+        search_pattern = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Player.current_name.like(search_pattern),
+                Player.steam_id.like(search_pattern),
+                Player.guid.like(search_pattern),
+                Player.dayztools_id.like(search_pattern)
+            )
+        )
+
+    # Sorting: Online players first, then by total playtime
+    query = query.order_by(
+        Player.is_online.desc(),
+        Player.total_playtime.desc()
+    )
+
+    # Get total count
+    total = query.count()
+
+    # Pagination
+    players = query.limit(limit).offset(offset).all()
+
+    # Format response
+    players_data = []
+    for player in players:
+        players_data.append({
+            'id': player.id,
+            'dayztools_id': player.dayztools_id,
+            'guid': player.guid,
+            'steam_id': player.steam_id,
+            'bohemia_id': player.bohemia_id,
+            'current_name': player.current_name,
+            'current_ip': player.current_ip,
+            'is_online': player.is_online,
+            'total_playtime': player.total_playtime,
+            'session_count': player.session_count,
+            'first_seen': player.first_seen.isoformat() if player.first_seen else None,
+            'last_seen': player.last_seen.isoformat() if player.last_seen else None
+        })
+
+    return jsonify({
+        'success': True,
+        'total': total,
+        'limit': limit,
+        'offset': offset,
+        'players': players_data
+    })
+
+
+@app.route('/api/server/<int:server_id>/player/<int:player_id>', methods=['GET'])
+@installation_check
+@login_required
+def api_get_player_profile(server_id, player_id):
+    """Get detailed player profile"""
+    player = Player.query.get(player_id)
+
+    if not player or player.server_id != server_id:
+        return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+    # Get tracker for this server
+    tracker = player_tracking_scheduler.get_tracker(server_id)
+    if not tracker:
+        return jsonify({'success': False, 'message': 'Player tracker not available'}), 500
+
+    # Get player stats
+    stats = tracker.get_player_stats(player_id)
+
+    if not stats:
+        return jsonify({'success': False, 'message': 'Could not load player stats'}), 500
+
+    # Format sessions
+    sessions_data = []
+    for session in stats['sessions']:
+        sessions_data.append({
+            'id': session.id,
+            'join_time': session.join_time.isoformat(),
+            'leave_time': session.leave_time.isoformat() if session.leave_time else None,
+            'duration': session.duration,
+            'name_at_join': session.name_at_join,
+            'ip_at_join': session.ip_at_join,
+            'port_at_join': session.port_at_join
+        })
+
+    # Format name history
+    names_data = []
+    for name in stats['name_history']:
+        names_data.append({
+            'name': name.name,
+            'first_seen': name.first_seen.isoformat(),
+            'last_seen': name.last_seen.isoformat(),
+            'usage_count': name.usage_count
+        })
+
+    # Format IP history
+    ips_data = []
+    for ip in stats['ip_history']:
+        ips_data.append({
+            'ip_address': ip.ip_address,
+            'port': ip.port,
+            'first_seen': ip.first_seen.isoformat(),
+            'last_seen': ip.last_seen.isoformat(),
+            'usage_count': ip.usage_count
+        })
+
+    return jsonify({
+        'success': True,
+        'player': {
+            'id': player.id,
+            'dayztools_id': player.dayztools_id,
+            'guid': player.guid,
+            'steam_id': player.steam_id,
+            'bohemia_id': player.bohemia_id,
+            'current_name': player.current_name,
+            'current_ip': player.current_ip,
+            'current_port': player.current_port,
+            'is_online': player.is_online,
+            'total_playtime': player.total_playtime,
+            'session_count': player.session_count,
+            'first_seen': player.first_seen.isoformat() if player.first_seen else None,
+            'last_seen': player.last_seen.isoformat() if player.last_seen else None
+        },
+        'sessions': sessions_data,
+        'name_history': names_data,
+        'ip_history': ips_data
+    })
+
+
 # Initialize database
 with app.app_context():
     # Ensure database file and directory have proper permissions
@@ -1121,6 +1306,9 @@ with app.app_context():
                 cursor.execute("ALTER TABLE game_servers ADD COLUMN last_update_check DATETIME")
                 print("✓ Added 'last_update_check' column to game_servers table")
 
+            # Note: Player tracking tables will be created automatically via db.create_all()
+            # No manual migration needed as these are new tables
+
             conn.commit()
             conn.close()
         except Exception as e:
@@ -1145,6 +1333,11 @@ with app.app_context():
     server_scheduler_manager = ServerSchedulerManager(app)
     server_scheduler_manager.load_all_schedulers()
 
+    # Initialize and start the player tracking scheduler (monitors player join/leave events)
+    from player_tracking_scheduler import PlayerTrackingScheduler
+    player_tracking_scheduler = PlayerTrackingScheduler(app, server_manager)
+    player_tracking_scheduler.start_tracking()
+
     # Register cleanup on shutdown
     def shutdown_schedulers():
         if mod_update_scheduler:
@@ -1153,6 +1346,8 @@ with app.app_context():
             server_update_scheduler.shutdown()
         if server_scheduler_manager:
             server_scheduler_manager.shutdown()
+        if player_tracking_scheduler:
+            player_tracking_scheduler.shutdown()
     atexit.register(shutdown_schedulers)
 
 

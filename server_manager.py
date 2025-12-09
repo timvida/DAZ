@@ -521,3 +521,12 @@ RConIP 127.0.0.1
                 return ''.join(all_lines[-lines:])
         except Exception as e:
             return f"Error reading log: {str(e)}"
+
+    def get_stdout_log_path(self, server_id):
+        """Get the path to the server's stdout log file"""
+        server = self.get_server(server_id)
+        if not server:
+            return None
+
+        log_path = os.path.join(server.profile_path, 'logs', 'server_stdout.log')
+        return log_path if os.path.exists(log_path) else None

@@ -92,6 +92,10 @@
                                         <i class="fas fa-terminal w-4 text-xs"></i>
                                         <span class="text-sm">RCon Console</span>
                                     </a>
+                                    <a href="{{ url_for('server_players', server_id=server.id) }}" class="flex items-center gap-3 px-4 py-2 rounded-lg transition {% if request.endpoint in ['server_players', 'player_profile'] and server_id|string == server.id|string %}bg-[#E32345] text-white{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
+                                        <i class="fas fa-users w-4 text-xs"></i>
+                                        <span class="text-sm">Players</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>

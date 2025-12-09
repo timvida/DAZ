@@ -13,6 +13,7 @@ import atexit
 
 # Import player tracking models (after db is initialized)
 from player_models import Player, PlayerSession, PlayerName, PlayerIP
+from player_event_models import PlayerEvent, PlayerStats, WebhookConfig
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -41,6 +42,7 @@ mod_update_scheduler = None
 server_update_scheduler = None
 server_scheduler_manager = None
 player_tracking_scheduler = None
+adm_monitor_scheduler = None
 
 # Context processor to add common data to all templates
 @app.context_processor
@@ -1316,6 +1318,214 @@ def api_unban_player(server_id, player_id):
         return jsonify({'success': False, 'message': message}), 400
 
 
+@app.route('/api/server/<int:server_id>/player/<int:player_id>/events', methods=['GET'])
+@installation_check
+@login_required
+def api_get_player_events(server_id, player_id):
+    """Get player events (deaths, kills, unconscious)"""
+    player = Player.query.get(player_id)
+
+    if not player or player.server_id != server_id:
+        return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+    try:
+        # Get player stats
+        stats = PlayerStats.query.filter_by(player_id=player_id).first()
+
+        # Get events (latest 50)
+        events = PlayerEvent.query.filter_by(player_id=player_id).order_by(PlayerEvent.timestamp.desc()).limit(50).all()
+
+        # Format events
+        events_data = []
+        for event in events:
+            event_dict = event.to_dict()
+
+            # Add killer/victim player name if applicable
+            if event.killer_id:
+                killer = Player.query.get(event.killer_id)
+                event_dict['killer_player_name'] = killer.current_name if killer else event.killer_name
+
+            events_data.append(event_dict)
+
+        return jsonify({
+            'success': True,
+            'stats': stats.to_dict() if stats else {
+                'total_kills': 0,
+                'total_deaths': 0,
+                'suicide_count': 0,
+                'unconscious_count': 0,
+                'kd_ratio': 0.0,
+                'longest_kill_distance': 0.0,
+                'longest_kill_weapon': None
+            },
+            'events': events_data
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading player events: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+# =============================================================================
+#                          WEBHOOK MANAGEMENT ROUTES
+# =============================================================================
+
+@app.route('/server/<int:server_id>/webhooks')
+@installation_check
+@login_required
+def server_webhooks(server_id):
+    """Webhook configuration page"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        flash('Server not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Get or create webhook config
+    webhook_config = WebhookConfig.query.filter_by(server_id=server_id).first()
+
+    return render_template('server_webhooks.html', server=server, webhook_config=webhook_config)
+
+
+@app.route('/api/server/<int:server_id>/webhooks', methods=['GET'])
+@installation_check
+@login_required
+def api_get_webhook_config(server_id):
+    """Get webhook configuration"""
+    webhook_config = WebhookConfig.query.filter_by(server_id=server_id).first()
+
+    if not webhook_config:
+        return jsonify({
+            'success': True,
+            'config': {
+                'server_id': server_id,
+                'unconscious_webhook_url': '',
+                'death_webhook_url': '',
+                'suicide_webhook_url': '',
+                'unconscious_enabled': False,
+                'death_enabled': False,
+                'suicide_enabled': False
+            }
+        })
+
+    return jsonify({'success': True, 'config': webhook_config.to_dict()})
+
+
+@app.route('/api/server/<int:server_id>/webhooks', methods=['POST'])
+@installation_check
+@login_required
+def api_update_webhook_config(server_id):
+    """Update webhook configuration"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+    try:
+        # Get or create webhook config
+        webhook_config = WebhookConfig.query.filter_by(server_id=server_id).first()
+
+        if not webhook_config:
+            webhook_config = WebhookConfig(server_id=server_id)
+            db.session.add(webhook_config)
+
+        # Update URLs
+        if 'unconscious_webhook_url' in data:
+            webhook_config.unconscious_webhook_url = data['unconscious_webhook_url'] or None
+
+        if 'death_webhook_url' in data:
+            webhook_config.death_webhook_url = data['death_webhook_url'] or None
+
+        if 'suicide_webhook_url' in data:
+            webhook_config.suicide_webhook_url = data['suicide_webhook_url'] or None
+
+        # Update toggles
+        if 'unconscious_enabled' in data:
+            webhook_config.unconscious_enabled = bool(data['unconscious_enabled'])
+
+        if 'death_enabled' in data:
+            webhook_config.death_enabled = bool(data['death_enabled'])
+
+        if 'suicide_enabled' in data:
+            webhook_config.suicide_enabled = bool(data['suicide_enabled'])
+
+        db.session.commit()
+
+        logger.info(f"Updated webhook config for server {server_id} by {session.get('username', 'Admin')}")
+
+        return jsonify({'success': True, 'message': 'Webhook configuration updated', 'config': webhook_config.to_dict()})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating webhook config: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/server/<int:server_id>/webhooks/test', methods=['POST'])
+@installation_check
+@login_required
+def api_test_webhook(server_id):
+    """Test a webhook by sending a test message"""
+    data = request.get_json()
+
+    if not data or 'webhook_url' not in data or 'type' not in data:
+        return jsonify({'success': False, 'message': 'Missing webhook_url or type'}), 400
+
+    webhook_url = data['webhook_url']
+    webhook_type = data['type']
+
+    if not webhook_url:
+        return jsonify({'success': False, 'message': 'Webhook URL is empty'}), 400
+
+    try:
+        from discord_webhook import DiscordWebhook
+        from datetime import datetime
+
+        # Create test embed based on type
+        position = {'x': 12345.6, 'y': 7890.1, 'z': 15.3}
+        timestamp = datetime.now().isoformat()
+
+        if webhook_type == 'unconscious':
+            embed = DiscordWebhook.create_unconscious_embed(
+                player_name='TestPlayer',
+                position=position,
+                timestamp=timestamp
+            )
+        elif webhook_type == 'death':
+            embed = DiscordWebhook.create_death_embed(
+                player_name='TestVictim',
+                cause='Killed by player',
+                position=position,
+                timestamp=timestamp,
+                killer_name='TestKiller',
+                weapon='M4-A1',
+                distance=75.5
+            )
+        elif webhook_type == 'suicide':
+            embed = DiscordWebhook.create_suicide_embed(
+                player_name='TestPlayer',
+                position=position,
+                timestamp=timestamp
+            )
+        else:
+            return jsonify({'success': False, 'message': 'Invalid webhook type'}), 400
+
+        # Add test indicator to embed
+        embed['title'] = '🧪 TEST - ' + embed['title']
+        embed['footer'] = {'text': 'This is a test message from DayZ Server Events'}
+
+        # Send webhook
+        success = DiscordWebhook.send_webhook(webhook_url, embed)
+
+        if success:
+            return jsonify({'success': True, 'message': 'Test webhook sent successfully!'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to send test webhook. Check URL and try again.'}), 400
+
+    except Exception as e:
+        logger.error(f"Error testing webhook: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
 # Initialize database
 with app.app_context():
     # Ensure database file and directory have proper permissions
@@ -1403,6 +1613,11 @@ with app.app_context():
     player_tracking_scheduler = PlayerTrackingScheduler(app, server_manager)
     player_tracking_scheduler.start_tracking()
 
+    # Initialize and start the ADM monitor scheduler (monitors ADM logs for deaths/kills/unconscious)
+    from adm_monitor_scheduler import ADMMonitorScheduler
+    adm_monitor_scheduler = ADMMonitorScheduler(app, server_manager)
+    adm_monitor_scheduler.start_monitoring()
+
     # Register cleanup on shutdown
     def shutdown_schedulers():
         if mod_update_scheduler:
@@ -1413,6 +1628,8 @@ with app.app_context():
             server_scheduler_manager.shutdown()
         if player_tracking_scheduler:
             player_tracking_scheduler.shutdown()
+        if adm_monitor_scheduler:
+            adm_monitor_scheduler.shutdown()
     atexit.register(shutdown_schedulers)
 
 

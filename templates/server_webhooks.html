@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Discord Webhooks - {{ server.name }}{% endblock %}
+
+{% block page_title %}Discord Webhooks{% endblock %}
+{% block page_subtitle %}Configure Discord notifications for server events{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="saveWebhooks()" class="flex items-center gap-2 px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition font-bold">
+    <i class="fas fa-save"></i>
+    <span class="hidden lg:inline">Save Configuration</span>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Info Banner -->
+    <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-info-circle text-blue-500 text-2xl"></i>
+            <div class="flex-1">
+                <h3 class="font-bold text-white mb-1">Discord Webhooks</h3>
+                <p class="text-sm text-gray-300">
+                    Configure Discord webhooks to receive real-time notifications for player deaths, unconscious states, and suicides.
+                    Events are monitored from the ADM log and sent as beautiful embeds to your Discord channels.
+                </p>
+                <p class="text-xs text-gray-400 mt-2">
+                    <i class="fas fa-lightbulb text-yellow-500"></i>
+                    You can use the same webhook URL for all event types, or create separate channels for each type.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unconscious Events Webhook -->
+    <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="bg-orange-500/20 p-3 rounded-lg">
+                <i class="fas fa-heartbeat text-orange-500 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-white">Unconscious Events</h2>
+                <p class="text-sm text-gray-400">Get notified when players fall unconscious or wake up</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="unconscious_enabled" class="sr-only peer" {% if webhook_config and webhook_config.unconscious_enabled %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#E32345]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E32345]"></div>
+                <span class="ml-3 text-sm font-medium text-gray-300">Enabled</span>
+            </label>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Discord Webhook URL</label>
+                <div class="flex gap-2">
+                    <input type="url" id="unconscious_webhook_url" placeholder="https://discord.com/api/webhooks/..." value="{% if webhook_config %}{{ webhook_config.unconscious_webhook_url or '' }}{% endif %}" class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:border-[#E32345] focus:outline-none">
+                    <button onclick="testWebhook('unconscious')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition font-medium text-white">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fab fa-discord"></i> Create a webhook in your Discord channel settings → Integrations → Webhooks
+                </p>
+            </div>
+
+            <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-4">
+                <h4 class="text-sm font-bold text-white mb-2">Preview:</h4>
+                <div class="text-sm text-gray-400 space-y-1">
+                    <p>• <span class="text-orange-500">😵 Player Unconscious</span> - When player falls unconscious</p>
+                    <p>• <span class="text-green-500">💚 Player Regained Consciousness</span> - When player wakes up</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Death Events Webhook -->
+    <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="bg-red-500/20 p-3 rounded-lg">
+                <i class="fas fa-skull-crossbones text-red-500 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-white">Death & Kill Events</h2>
+                <p class="text-sm text-gray-400">Get notified of player deaths and PvP kills</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="death_enabled" class="sr-only peer" {% if webhook_config and webhook_config.death_enabled %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#E32345]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E32345]"></div>
+                <span class="ml-3 text-sm font-medium text-gray-300">Enabled</span>
+            </label>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Discord Webhook URL</label>
+                <div class="flex gap-2">
+                    <input type="url" id="death_webhook_url" placeholder="https://discord.com/api/webhooks/..." value="{% if webhook_config %}{{ webhook_config.death_webhook_url or '' }}{% endif %}" class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:border-[#E32345] focus:outline-none">
+                    <button onclick="testWebhook('death')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition font-medium text-white">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fab fa-discord"></i> Can be the same or different from Unconscious webhook
+                </p>
+            </div>
+
+            <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-4">
+                <h4 class="text-sm font-bold text-white mb-2">Preview:</h4>
+                <div class="text-sm text-gray-400 space-y-1">
+                    <p>• <span class="text-red-500">☠️ Player Death</span> - Generic deaths (infected, environment, bled out)</p>
+                    <p>• <span class="text-red-600">🎯 Player Kill</span> - PvP kills with weapon and distance info</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suicide Events Webhook -->
+    <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="bg-purple-500/20 p-3 rounded-lg">
+                <i class="fas fa-user-slash text-purple-500 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-white">Suicide Events</h2>
+                <p class="text-sm text-gray-400">Get notified when players commit suicide</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="suicide_enabled" class="sr-only peer" {% if webhook_config and webhook_config.suicide_enabled %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#E32345]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E32345]"></div>
+                <span class="ml-3 text-sm font-medium text-gray-300">Enabled</span>
+            </label>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Discord Webhook URL</label>
+                <div class="flex gap-2">
+                    <input type="url" id="suicide_webhook_url" placeholder="https://discord.com/api/webhooks/..." value="{% if webhook_config %}{{ webhook_config.suicide_webhook_url or '' }}{% endif %}" class="flex-1 px-4 py-2 bg-[#0D1117] border border-[#E32345]/30 rounded-lg text-white placeholder-gray-500 focus:border-[#E32345] focus:outline-none">
+                    <button onclick="testWebhook('suicide')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition font-medium text-white">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fab fa-discord"></i> Can be the same or different from other webhooks
+                </p>
+            </div>
+
+            <div class="bg-[#0D1117] border border-[#E32345]/20 rounded-lg p-4">
+                <h4 class="text-sm font-bold text-white mb-2">Preview:</h4>
+                <div class="text-sm text-gray-400 space-y-1">
+                    <p>• <span class="text-purple-500">💀 Player Suicide</span> - When player uses suicide gesture</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const serverId = {{ server.id }};
+
+    function saveWebhooks() {
+        const data = {
+            unconscious_webhook_url: document.getElementById('unconscious_webhook_url').value.trim(),
+            death_webhook_url: document.getElementById('death_webhook_url').value.trim(),
+            suicide_webhook_url: document.getElementById('suicide_webhook_url').value.trim(),
+            unconscious_enabled: document.getElementById('unconscious_enabled').checked,
+            death_enabled: document.getElementById('death_enabled').checked,
+            suicide_enabled: document.getElementById('suicide_enabled').checked
+        };
+
+        fetch(`/api/server/${serverId}/webhooks`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Webhook configuration saved successfully!');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error saving configuration');
+        });
+    }
+
+    function testWebhook(type) {
+        const urlInputId = `${type}_webhook_url`;
+        const webhook_url = document.getElementById(urlInputId).value.trim();
+
+        if (!webhook_url) {
+            alert('⚠️ Please enter a webhook URL first');
+            return;
+        }
+
+        // Show loading state
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+
+        fetch(`/api/server/${serverId}/webhooks/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                webhook_url: webhook_url,
+                type: type
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message + '\n\nCheck your Discord channel!');
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error testing webhook');
+        })
+        .finally(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        });
+    }
+</script>
+{% endblock %}

@@ -96,6 +96,10 @@
                                         <i class="fas fa-users w-4 text-xs"></i>
                                         <span class="text-sm">Players</span>
                                     </a>
+                                    <a href="{{ url_for('server_webhooks', server_id=server.id) }}" class="flex items-center gap-3 px-4 py-2 rounded-lg transition {% if request.endpoint == 'server_webhooks' and server_id|string == server.id|string %}bg-[#E32345] text-white{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
+                                        <i class="fab fa-discord w-4 text-xs"></i>
+                                        <span class="text-sm">Discord Webhooks</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>

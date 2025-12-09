@@ -92,6 +92,54 @@
             </div>
         </div>
 
+        <!-- K/D Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <!-- Kills -->
+            <div class="bg-[#1A1F29] border border-green-500/20 rounded-xl p-6 hover:border-green-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-crosshairs text-green-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Kills</h3>
+                </div>
+                <p class="text-2xl font-bold text-white" id="totalKills">0</p>
+            </div>
+
+            <!-- Deaths -->
+            <div class="bg-[#1A1F29] border border-red-500/20 rounded-xl p-6 hover:border-red-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-skull text-red-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Deaths</h3>
+                </div>
+                <p class="text-2xl font-bold text-white" id="totalDeaths">0</p>
+            </div>
+
+            <!-- K/D Ratio -->
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 hover:border-[#E32345]/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-chart-line text-[#E32345] text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">K/D Ratio</h3>
+                </div>
+                <p class="text-2xl font-bold text-white" id="kdRatio">0.00</p>
+            </div>
+
+            <!-- Longest Kill -->
+            <div class="bg-[#1A1F29] border border-purple-500/20 rounded-xl p-6 hover:border-purple-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-bullseye text-purple-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Longest Kill</h3>
+                </div>
+                <p class="text-lg font-bold text-white" id="longestKill">-</p>
+            </div>
+
+            <!-- Unconscious Count -->
+            <div class="bg-[#1A1F29] border border-orange-500/20 rounded-xl p-6 hover:border-orange-500/40 transition">
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="fas fa-heartbeat text-orange-500 text-xl"></i>
+                    <h3 class="text-gray-400 text-sm font-medium">Unconscious</h3>
+                </div>
+                <p class="text-2xl font-bold text-white" id="unconsciousCount">0</p>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Identities & History -->
             <div class="lg:col-span-1 space-y-6">
@@ -246,6 +294,26 @@
                             <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
                             <p>Loading sessions...</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Timeline Section -->
+        <div class="mt-8">
+            <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-skull-crossbones text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Event Timeline</h2>
+                    </div>
+                    <span class="text-sm text-gray-400" id="eventCount">Loading...</span>
+                </div>
+
+                <div id="eventsTimeline" class="space-y-4 max-h-[800px] overflow-y-auto pr-2">
+                    <div class="text-center text-gray-400 py-12">
+                        <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                        <p>Loading events...</p>
                     </div>
                 </div>
             </div>
@@ -492,10 +560,157 @@
             });
         }
 
+        // Load player events and K/D stats
+        function loadPlayerEvents() {
+            fetch(`/api/server/${serverId}/player/${playerId}/events`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Error loading events:', data.message);
+                        return;
+                    }
+
+                    const stats = data.stats;
+                    const events = data.events;
+
+                    // Update K/D stats cards
+                    document.getElementById('totalKills').textContent = stats.total_kills || 0;
+                    document.getElementById('totalDeaths').textContent = stats.total_deaths || 0;
+                    document.getElementById('kdRatio').textContent = stats.kd_ratio || '0.00';
+                    document.getElementById('unconsciousCount').textContent = stats.unconscious_count || 0;
+
+                    // Update longest kill
+                    if (stats.longest_kill_distance && stats.longest_kill_distance > 0) {
+                        document.getElementById('longestKill').textContent =
+                            `${stats.longest_kill_distance.toFixed(1)}m with ${stats.longest_kill_weapon || 'Unknown'}`;
+                    } else {
+                        document.getElementById('longestKill').textContent = '-';
+                    }
+
+                    // Render events timeline
+                    const eventsTimeline = document.getElementById('eventsTimeline');
+                    document.getElementById('eventCount').textContent = `${events.length} event(s)`;
+
+                    if (events.length === 0) {
+                        eventsTimeline.innerHTML = '<p class="text-gray-500 text-center py-12">No events recorded</p>';
+                    } else {
+                        eventsTimeline.innerHTML = events.map(event => {
+                            let icon, color, title, description, borderColor;
+
+                            switch(event.event_type) {
+                                case 'kill':
+                                    icon = 'fa-crosshairs';
+                                    color = 'text-green-500';
+                                    borderColor = 'border-green-500';
+                                    title = 'Player Kill';
+                                    description = `Killed <strong>${event.victim_name || 'Unknown'}</strong>`;
+                                    if (event.weapon) {
+                                        description += ` with <code class="bg-[#0D1117] px-2 py-1 rounded">${event.weapon}</code>`;
+                                    }
+                                    if (event.distance && event.distance > 0) {
+                                        description += ` from <strong>${event.distance.toFixed(1)}m</strong>`;
+                                    }
+                                    break;
+
+                                case 'death':
+                                    icon = 'fa-skull';
+                                    color = 'text-red-500';
+                                    borderColor = 'border-red-500';
+                                    title = 'Player Death';
+                                    if (event.killer_name) {
+                                        description = `Killed by <strong>${event.killer_name}</strong>`;
+                                        if (event.weapon) {
+                                            description += ` with <code class="bg-[#0D1117] px-2 py-1 rounded">${event.weapon}</code>`;
+                                        }
+                                        if (event.distance && event.distance > 0) {
+                                            description += ` from <strong>${event.distance.toFixed(1)}m</strong>`;
+                                        }
+                                    } else {
+                                        description = `Died${event.cause_of_death ? ': ' + event.cause_of_death : ''}`;
+                                    }
+                                    break;
+
+                                case 'suicide':
+                                    icon = 'fa-user-slash';
+                                    color = 'text-purple-500';
+                                    borderColor = 'border-purple-500';
+                                    title = 'Suicide';
+                                    description = 'Committed suicide';
+                                    break;
+
+                                case 'unconscious':
+                                    icon = 'fa-heartbeat';
+                                    color = 'text-orange-500';
+                                    borderColor = 'border-orange-500';
+                                    title = 'Fell Unconscious';
+                                    description = 'Player fell unconscious';
+                                    break;
+
+                                case 'regained_consciousness':
+                                    icon = 'fa-heart';
+                                    color = 'text-green-400';
+                                    borderColor = 'border-green-400';
+                                    title = 'Regained Consciousness';
+                                    description = 'Player regained consciousness';
+                                    break;
+
+                                default:
+                                    icon = 'fa-circle';
+                                    color = 'text-gray-500';
+                                    borderColor = 'border-gray-500';
+                                    title = event.event_type;
+                                    description = '';
+                            }
+
+                            return `
+                                <div class="relative pl-8 pb-8 border-l-2 ${borderColor}/30">
+                                    <div class="absolute left-0 top-0 w-4 h-4 -ml-[9px] rounded-full ${borderColor} border-4 border-[#1A1F29]"></div>
+
+                                    <div class="bg-[#0D1117] border ${borderColor}/20 rounded-lg p-4 hover:border-${borderColor.split('-')[1]}/40 transition">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas ${icon} ${color} text-lg"></i>
+                                                <span class="text-white font-bold">${title}</span>
+                                            </div>
+                                            <span class="text-xs text-gray-500">${formatDate(event.timestamp)}</span>
+                                        </div>
+
+                                        <div class="mb-3 text-sm text-gray-300">
+                                            ${description}
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                            ${event.position_x !== null && event.position_x !== undefined ? `
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-map-marker-alt ${color} w-4"></i>
+                                                    <span class="text-gray-400">Position:</span>
+                                                    <span class="text-white font-mono">${event.position_x.toFixed(1)}, ${event.position_y.toFixed(1)}, ${event.position_z.toFixed(1)}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading events:', error);
+                    document.getElementById('eventsTimeline').innerHTML =
+                        '<p class="text-red-500 text-center py-12">Error loading events</p>';
+                });
+        }
+
         // Auto-refresh every 60 seconds
-        setInterval(loadProfile, 60000);
+        setInterval(() => {
+            loadProfile();
+            loadPlayerEvents();
+        }, 60000);
 
         // Initial load
-        document.addEventListener('DOMContentLoaded', loadProfile);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+            loadPlayerEvents();
+        });
     </script>
 {% endblock %}

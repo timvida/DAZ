@@ -27,8 +27,9 @@ class PlayerLogParser:
         ),
 
         # Player BrandyMandy (id=96GpuDNvQHuVu5HGi-i2u5uPBUbW6wVeyBkZc6Gi298=) has connected.
+        # Bohemia IDs can contain: A-Z, a-z, 0-9, +, /, -, _, =
         'bohemia_id': re.compile(
-            r'Player (?P<name>.+?) \(id=(?P<bohemia_id>[A-Za-z0-9\+/=]+)\) has connected\.'
+            r'Player (?P<name>.+?) \(id=(?P<bohemia_id>[A-Za-z0-9\+/\-_=]+)\) has connected\.'
         ),
 
         # Player BrandyMandy disconnected.

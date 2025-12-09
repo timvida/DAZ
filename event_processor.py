@@ -233,6 +233,7 @@ class EventProcessor:
     def process_kill_event(self, event: Dict):
         """
         Process PvP kill event
+        Creates events for found players even if one is not in database
 
         Args:
             event: Event data from ADM parser
@@ -241,34 +242,47 @@ class EventProcessor:
             # Find victim
             victim = self.find_player_by_bohemia_id(event['victim_bohemia_id'])
             if not victim:
-                logger.warning(f"Victim not found for kill event: {event.get('victim_name')}")
-                return
+                logger.warning(f"Victim not found in database: {event.get('victim_name')} ({event['victim_bohemia_id']})")
 
             # Find killer
             killer = self.find_player_by_bohemia_id(event['killer_bohemia_id'])
-            killer_id = killer.id if killer else None
+            if not killer:
+                logger.warning(f"Killer not found in database: {event.get('killer_name')} ({event['killer_bohemia_id']})")
 
-            # Create death event for victim
-            victim_event = PlayerEvent(
-                server_id=self.server_id,
-                player_id=victim.id,
-                event_type='death',
-                timestamp=event['timestamp'],
-                position_x=event['position']['x'],
-                position_y=event['position']['y'],
-                position_z=event['position']['z'],
-                killer_id=killer_id,
-                killer_name=event['killer_name'],
-                weapon=event['weapon'],
-                distance=event['distance'],
-                cause_of_death='Killed by player'
-            )
+            # If neither player found, skip
+            if not victim and not killer:
+                logger.warning(f"Neither player found for kill event - skipping")
+                return
 
-            db.session.add(victim_event)
+            victim_event = None
+            killer_event = None
 
-            # Update victim stats
-            victim_stats = self.get_or_create_player_stats(victim.id)
-            victim_stats.total_deaths += 1
+            # Create death event for victim (if found)
+            if victim:
+                killer_id = killer.id if killer else None
+
+                victim_event = PlayerEvent(
+                    server_id=self.server_id,
+                    player_id=victim.id,
+                    event_type='death',
+                    timestamp=event['timestamp'],
+                    position_x=event['position']['x'],
+                    position_y=event['position']['y'],
+                    position_z=event['position']['z'],
+                    killer_id=killer_id,
+                    killer_name=event['killer_name'],
+                    weapon=event['weapon'],
+                    distance=event['distance'],
+                    cause_of_death='Killed by player'
+                )
+
+                db.session.add(victim_event)
+
+                # Update victim stats
+                victim_stats = self.get_or_create_player_stats(victim.id)
+                victim_stats.total_deaths += 1
+
+                logger.info(f"Created death event for {victim.current_name}")
 
             # Create kill event for killer (if found)
             if killer:
@@ -292,14 +306,16 @@ class EventProcessor:
                 killer_stats.total_kills += 1
 
                 # Update longest kill
-                if event['distance'] > killer_stats.longest_kill_distance:
+                if event['distance'] > (killer_stats.longest_kill_distance or 0):
                     killer_stats.longest_kill_distance = event['distance']
                     killer_stats.longest_kill_weapon = event['weapon']
+
+                logger.info(f"Created kill event for {killer.current_name}")
 
             db.session.commit()
 
             logger.info(f"Processed kill event: {event['killer_name']} killed {event['victim_name']} with {event['weapon']} from {event['distance']}m")
-            return victim_event
+            return victim_event or killer_event
 
         except Exception as e:
             db.session.rollback()

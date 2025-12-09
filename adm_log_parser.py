@@ -21,14 +21,19 @@ class ADMLogParser:
     # Regex patterns for log parsing
     # Format: HH:MM:SS | Player "Name" (DEAD) (id=... pos=<x, y, z>) ...
     PATTERNS = {
-        # 15:08:25 | Player "Brandy" (DEAD) (id=hQbMz6ZxsMudsUhepezzVlXWJl1KJ991DebofUxQ1ac= pos=<12942.5, 8623.6, 3.3>) killed by Player "Scotty" (id=96GpuDNvQHuVu5HGi-i2u5uPBUbW6wVeyBkZc6Gi298= pos=<12931.9, 8652.8, 4.7>) with M4-A1 from 31.1503 meters
+        # PvP Kill: Player "Brandy" (DEAD) (id=... pos=<...>) killed by Player "Scotty" (id=... pos=<...>) with M4-A1 from 10.3476 meters
         'killed_by_player': re.compile(
             r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
         ),
 
-        # 15:21:30 | Player "Brandy" (DEAD) (id=hQbMz6ZxsMudsUhepezzVlXWJl1KJ991DebofUxQ1ac= pos=<9518.0, 1977.9, 6.3>) committed suicide.
+        # Killed by NPC: Player "Survivor" (DEAD) (id=... pos=<...>) killed by Infected
+        'killed_by_npc': re.compile(
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by (?P<killer>.+?)$'
+        ),
+
+        # Suicide: Player "Brandy" (id=... pos=<...>) performed EmoteSuicide with HuntingKnife
         'suicide': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) committed suicide'
+            r'Player "(?P<name>.+?)" \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) performed EmoteSuicide(?: with (?P<weapon>.+?))?'
         ),
 
         # Player unconscious
@@ -49,11 +54,6 @@ class ADMLogParser:
         # Player died with stats
         'died_stats': re.compile(
             r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) died\. Stats>'
-        ),
-
-        # Generic death (catches all other DEAD entries)
-        'generic_death': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\)'
         ),
 
         # Timestamp: HH:MM:SS |
@@ -136,16 +136,24 @@ class ADMLogParser:
         Returns:
             dict: Event data, or None if no event found
         """
+        # CRITICAL: Ignore HIT messages (damage messages, not deaths)
+        # HIT messages contain "[HP: X] hit by" and are NOT death events
+        if '[HP:' in line and 'hit by' in line:
+            logger.debug(f"Skipping HIT message (not a death): {line[:100]}")
+            return None
+
         # Check patterns in order of specificity (most specific first)
 
         # 1. Check for suicide
         match = self.PATTERNS['suicide'].search(line)
         if match:
+            weapon = match.group('weapon') if match.group('weapon') else 'Unknown'
             return {
                 'event': 'suicide',
                 'timestamp': timestamp,
                 'name': match.group('name'),
                 'bohemia_id': match.group('id'),
+                'weapon': weapon,
                 'position': {
                     'x': float(match.group('x')),
                     'y': float(match.group('y')),
@@ -172,7 +180,23 @@ class ADMLogParser:
                 }
             }
 
-        # 3. Check for bled out
+        # 3. Check for NPC kill (Infected, Wolf, Bear, etc)
+        match = self.PATTERNS['killed_by_npc'].search(line)
+        if match:
+            return {
+                'event': 'died',
+                'timestamp': timestamp,
+                'name': match.group('name'),
+                'bohemia_id': match.group('id'),
+                'position': {
+                    'x': float(match.group('x')),
+                    'y': float(match.group('y')),
+                    'z': float(match.group('z'))
+                },
+                'cause': match.group('killer')  # "Infected", "Wolf", etc
+            }
+
+        # 4. Check for bled out
         match = self.PATTERNS['bled_out'].search(line)
         if match:
             return {
@@ -187,7 +211,7 @@ class ADMLogParser:
                 }
             }
 
-        # 4. Check for death with stats
+        # 5. Check for death with stats
         match = self.PATTERNS['died_stats'].search(line)
         if match:
             return {
@@ -203,7 +227,7 @@ class ADMLogParser:
                 'cause': 'Unknown'
             }
 
-        # 5. Check for unconscious
+        # 6. Check for unconscious
         match = self.PATTERNS['unconscious'].search(line)
         if match:
             return {
@@ -218,7 +242,7 @@ class ADMLogParser:
                 }
             }
 
-        # 6. Check for regained consciousness
+        # 7. Check for regained consciousness
         match = self.PATTERNS['regained_consciousness'].search(line)
         if match:
             return {
@@ -231,22 +255,6 @@ class ADMLogParser:
                     'y': float(match.group('y')),
                     'z': float(match.group('z'))
                 }
-            }
-
-        # 7. Generic death (catch-all for any other DEAD entries)
-        match = self.PATTERNS['generic_death'].search(line)
-        if match:
-            return {
-                'event': 'died',
-                'timestamp': timestamp,
-                'name': match.group('name'),
-                'bohemia_id': match.group('id'),
-                'position': {
-                    'x': float(match.group('x')),
-                    'y': float(match.group('y')),
-                    'z': float(match.group('z'))
-                },
-                'cause': 'Unknown'
             }
 
         return None

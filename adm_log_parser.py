@@ -27,8 +27,9 @@ class ADMLogParser:
         ),
 
         # Killed by NPC: Player "Survivor" (DEAD) (id=... pos=<...>) killed by Infected
+        # IMPORTANT: Use negative lookahead to NOT match "killed by Player" (PvP kills)
         'killed_by_npc': re.compile(
-            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by (?P<killer>.+?)$'
+            r'Player "(?P<name>.+?)" \(DEAD\) \(id=(?P<id>[A-Za-z0-9\+/=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by (?!Player)(?P<killer>.+?)$'
         ),
 
         # Suicide: Player "Brandy" (id=... pos=<...>) performed EmoteSuicide with HuntingKnife
@@ -148,6 +149,7 @@ class ADMLogParser:
         match = self.PATTERNS['suicide'].search(line)
         if match:
             weapon = match.group('weapon') if match.group('weapon') else 'Unknown'
+            logger.debug(f"✓ Matched SUICIDE pattern: {match.group('name')} with {weapon}")
             return {
                 'event': 'suicide',
                 'timestamp': timestamp,
@@ -164,6 +166,7 @@ class ADMLogParser:
         # 2. Check for PvP kill
         match = self.PATTERNS['killed_by_player'].search(line)
         if match:
+            logger.debug(f"✓ Matched PvP KILL pattern: {match.group('killer_name')} killed {match.group('victim_name')} with {match.group('weapon')} from {match.group('distance')}m")
             return {
                 'event': 'killed_by_player',
                 'timestamp': timestamp,
@@ -183,6 +186,7 @@ class ADMLogParser:
         # 3. Check for NPC kill (Infected, Wolf, Bear, etc)
         match = self.PATTERNS['killed_by_npc'].search(line)
         if match:
+            logger.debug(f"✓ Matched NPC KILL pattern: {match.group('name')} killed by {match.group('killer')}")
             return {
                 'event': 'died',
                 'timestamp': timestamp,

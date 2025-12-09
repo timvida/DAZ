@@ -5,6 +5,13 @@
 {% block page_title %}Players{% endblock %}
 {% block page_subtitle %}{{ server.name }} - Player Tracking{% endblock %}
 
+{% block topbar_actions %}
+<button onclick="deduplicatePlayers()" class="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition font-bold">
+    <i class="fas fa-broom"></i>
+    <span class="hidden lg:inline">Remove Duplicates</span>
+</button>
+{% endblock %}
+
 {% block content %}
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
@@ -262,6 +269,44 @@
                         </tr>
                     `;
                 });
+        }
+
+        // Deduplicate players
+        function deduplicatePlayers() {
+            if (!confirm('This will merge duplicate players caused by GUID inconsistencies.\n\nDuplicate entries will be merged, keeping the oldest player record.\n\nContinue?')) {
+                return;
+            }
+
+            // Show loading state
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            fetch(`/api/server/${serverId}/players/deduplicate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Deduplication complete!\n\n${data.duplicates_removed} duplicate player(s) removed\n${data.merged_count} player(s) merged\n\nReloading player list...`);
+                    // Reload players
+                    loadPlayers();
+                } else {
+                    alert(`❌ Error: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error deduplicating players');
+            })
+            .finally(() => {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            });
         }
 
         // Event listeners

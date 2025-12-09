@@ -52,11 +52,13 @@ class ADMMonitorScheduler:
                         # Initialize ADM parser
                         parser = ADMLogParser(server.profile_path)
 
-                        # Find and tail to end of current log
+                        # Find current log
                         latest_log = parser.find_latest_adm_log()
                         if latest_log:
                             logger.info(f"ADM monitor for '{server.name}' will monitor: {latest_log}")
-                            parser.tail_to_end()
+                            # Don't tail to end - this allows parsing recent events
+                            # Tail to end only if you want to skip history
+                            # parser.tail_to_end()
                         else:
                             logger.warning(f"No ADM log found for '{server.name}' at: {server.profile_path}")
 

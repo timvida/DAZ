@@ -271,6 +271,7 @@ class ADMLogParser:
         self.update_log_file()
 
         if not self.log_file_path or not os.path.exists(self.log_file_path):
+            logger.warning(f"No ADM log file found at: {self.log_file_path}")
             return []
 
         events = []
@@ -303,7 +304,9 @@ class ADMLogParser:
                 self.last_position = f.tell()
 
             if lines_read > 0:
-                logger.debug(f"Read {lines_read} new lines from ADM log, found {len(events)} events")
+                logger.info(f"Read {lines_read} new lines from ADM log, found {len(events)} events")
+            else:
+                logger.debug(f"No new lines in ADM log (position: {self.last_position})")
 
         except Exception as e:
             logger.error(f"Error reading ADM log {self.log_file_path}: {e}", exc_info=True)

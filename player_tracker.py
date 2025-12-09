@@ -22,12 +22,31 @@ class PlayerTracker:
 
         self.log_parser = PlayerLogParser(log_path)
 
+    @staticmethod
+    def normalize_guid(guid: str) -> str:
+        """
+        Normalize GUID by removing (OK) suffix if present
+        RCon returns GUIDs with (OK) suffix, but logs don't always include it
+
+        Args:
+            guid: Raw GUID from logs or RCon
+
+        Returns:
+            str: Normalized GUID without (OK) suffix
+        """
+        if guid and guid.endswith('(OK)'):
+            return guid[:-4]  # Remove last 4 characters: "(OK)"
+        return guid
+
     def get_or_create_player(self, guid: str, name: str, ip: str = None, port: int = None,
                              steam_id: str = None, bohemia_id: str = None) -> Player:
         """
         Get existing player or create new one
         Uses GUID as unique identifier
         """
+        # Normalize GUID to prevent duplicates from (OK) suffix
+        guid = self.normalize_guid(guid)
+
         # Try to find existing player
         player = Player.query.filter_by(
             server_id=self.server_id,

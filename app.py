@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import os
+import logging
 from config import Config
 from database import db, User, SteamAccount, GameServer, ServerMod, ServerScheduler
 from steam_utils import SteamCMDManager
@@ -17,6 +18,9 @@ from player_event_models import PlayerEvent, PlayerStats, WebhookConfig
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Initialize database
 db.init_app(app)
@@ -1631,6 +1635,90 @@ with app.app_context():
         if adm_monitor_scheduler:
             adm_monitor_scheduler.shutdown()
     atexit.register(shutdown_schedulers)
+
+
+@app.route('/api/server/<int:server_id>/players/deduplicate', methods=['POST'])
+@installation_check
+@login_required
+def deduplicate_players(server_id):
+    """Remove duplicate players caused by GUID (OK) suffix inconsistency"""
+    try:
+        from player_tracker import PlayerTracker
+
+        # Find all players for this server
+        all_players = Player.query.filter_by(server_id=server_id).all()
+
+        # Group by normalized GUID
+        guid_groups = {}
+        for player in all_players:
+            normalized = PlayerTracker.normalize_guid(player.guid)
+            if normalized not in guid_groups:
+                guid_groups[normalized] = []
+            guid_groups[normalized].append(player)
+
+        duplicates_removed = 0
+        merged_count = 0
+
+        # Process duplicates
+        for normalized_guid, players in guid_groups.items():
+            if len(players) > 1:
+                # Sort by first_seen to keep the oldest player
+                players.sort(key=lambda p: p.first_seen if p.first_seen else datetime.utcnow())
+                primary = players[0]
+
+                # Merge data from duplicates into primary
+                for duplicate in players[1:]:
+                    # Merge stats
+                    primary.total_playtime += duplicate.total_playtime
+                    primary.session_count += duplicate.session_count
+
+                    # Update timestamps
+                    if duplicate.first_seen and (not primary.first_seen or duplicate.first_seen < primary.first_seen):
+                        primary.first_seen = duplicate.first_seen
+                    if duplicate.last_seen and (not primary.last_seen or duplicate.last_seen > primary.last_seen):
+                        primary.last_seen = duplicate.last_seen
+
+                    # Update IDs if missing
+                    if duplicate.steam_id and not primary.steam_id:
+                        primary.steam_id = duplicate.steam_id
+                    if duplicate.bohemia_id and not primary.bohemia_id:
+                        primary.bohemia_id = duplicate.bohemia_id
+
+                    # Update sessions to point to primary player
+                    PlayerSession.query.filter_by(player_id=duplicate.id).update({'player_id': primary.id})
+
+                    # Update name history to point to primary player
+                    PlayerName.query.filter_by(player_id=duplicate.id).update({'player_id': primary.id})
+
+                    # Update IP history to point to primary player
+                    PlayerIP.query.filter_by(player_id=duplicate.id).update({'player_id': primary.id})
+
+                    # Update player events to point to primary player
+                    PlayerEvent.query.filter_by(player_id=duplicate.id).update({'player_id': primary.id})
+                    PlayerEvent.query.filter_by(killer_id=duplicate.id).update({'killer_id': primary.id})
+
+                    # Delete duplicate player
+                    db.session.delete(duplicate)
+                    duplicates_removed += 1
+
+                # Normalize GUID in primary record
+                primary.guid = normalized_guid
+                db.session.commit()
+                merged_count += 1
+
+        logger.info(f"Deduplication complete: Removed {duplicates_removed} duplicates, merged into {merged_count} players")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully removed {duplicates_removed} duplicate player(s)',
+            'duplicates_removed': duplicates_removed,
+            'merged_count': merged_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error deduplicating players: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 if __name__ == '__main__':

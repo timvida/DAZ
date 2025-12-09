@@ -6,10 +6,16 @@
 {% block page_subtitle %}Configure Discord notifications for server events{% endblock %}
 
 {% block topbar_actions %}
-<button onclick="saveWebhooks()" class="flex items-center gap-2 px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition font-bold">
-    <i class="fas fa-save"></i>
-    <span class="hidden lg:inline">Save Configuration</span>
-</button>
+<div class="flex items-center gap-3">
+    <span id="saveIndicator" class="text-sm text-green-500 opacity-0 transition-opacity flex items-center gap-2">
+        <i class="fas fa-check-circle"></i>
+        <span class="hidden lg:inline">Saved</span>
+    </span>
+    <button onclick="saveWebhooks(true)" class="flex items-center gap-2 px-4 py-2 bg-[#E32345] hover:bg-[#c41d39] rounded-lg transition font-bold">
+        <i class="fas fa-save"></i>
+        <span class="hidden lg:inline">Save Configuration</span>
+    </button>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -157,8 +163,9 @@
 
 <script>
     const serverId = {{ server.id }};
+    let saveTimeout = null;
 
-    function saveWebhooks() {
+    function saveWebhooks(showAlert = false) {
         const data = {
             unconscious_webhook_url: document.getElementById('unconscious_webhook_url').value.trim(),
             death_webhook_url: document.getElementById('death_webhook_url').value.trim(),
@@ -178,16 +185,59 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('✅ Webhook configuration saved successfully!');
+                if (showAlert) {
+                    alert('✅ Webhook configuration saved successfully!');
+                } else {
+                    console.log('Webhook configuration auto-saved');
+                    showSaveIndicator();
+                }
             } else {
-                alert('❌ Error: ' + data.message);
+                if (showAlert) {
+                    alert('❌ Error: ' + data.message);
+                } else {
+                    console.error('Error saving webhook config:', data.message);
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('❌ Error saving configuration');
+            if (showAlert) {
+                alert('❌ Error saving configuration');
+            }
         });
     }
+
+    function showSaveIndicator() {
+        // Show a subtle save indicator
+        const indicator = document.getElementById('saveIndicator');
+        if (indicator) {
+            indicator.classList.remove('opacity-0');
+            setTimeout(() => {
+                indicator.classList.add('opacity-0');
+            }, 2000);
+        }
+    }
+
+    function autoSave() {
+        // Debounce auto-save
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveWebhooks(false);
+        }, 500);
+    }
+
+    // Add auto-save event listeners when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-save on toggle changes
+        document.getElementById('unconscious_enabled').addEventListener('change', autoSave);
+        document.getElementById('death_enabled').addEventListener('change', autoSave);
+        document.getElementById('suicide_enabled').addEventListener('change', autoSave);
+
+        // Auto-save on URL input changes (debounced)
+        document.getElementById('unconscious_webhook_url').addEventListener('input', autoSave);
+        document.getElementById('death_webhook_url').addEventListener('input', autoSave);
+        document.getElementById('suicide_webhook_url').addEventListener('input', autoSave);
+    });
 
     function testWebhook(type) {
         const urlInputId = `${type}_webhook_url`;

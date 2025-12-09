@@ -35,6 +35,7 @@ mod_manager = ModManager()
 
 # Initialize schedulers (will be set up after app context is available)
 mod_update_scheduler = None
+server_update_scheduler = None
 server_scheduler_manager = None
 
 # Context processor to add common data to all templates
@@ -389,6 +390,35 @@ def server_status(server_id):
         'status': server.status,
         'is_installed': server.is_installed,
         'install_info': status_info
+    })
+
+
+@app.route('/api/server/<int:server_id>/update/check', methods=['POST'])
+@installation_check
+@login_required
+def check_server_update(server_id):
+    """Manually check for server updates"""
+    success, message, update_available = server_update_scheduler.check_single_server_update(server_id)
+    return jsonify({
+        'success': success,
+        'message': message,
+        'update_available': update_available
+    })
+
+
+@app.route('/api/server/<int:server_id>/update/status', methods=['GET'])
+@installation_check
+@login_required
+def get_server_update_status(server_id):
+    """Get the current update status of a server"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'error': 'Server not found'}), 404
+
+    return jsonify({
+        'update_available': server.update_available or False,
+        'update_downloaded': server.update_downloaded or False,
+        'last_update_check': server.last_update_check.isoformat() if server.last_update_check else None
     })
 
 
@@ -1089,6 +1119,11 @@ with app.app_context():
     mod_update_scheduler = ModUpdateScheduler(app, mod_manager)
     mod_update_scheduler.start_auto_update_task()
 
+    # Initialize and start the server update scheduler (checks for DayZ server updates every 4 hours)
+    from server_update_scheduler import ServerUpdateScheduler
+    server_update_scheduler = ServerUpdateScheduler(app, steam_manager, server_manager)
+    server_update_scheduler.start_auto_update_check()
+
     # Initialize and start the server scheduler manager
     from server_scheduler import ServerSchedulerManager
     server_scheduler_manager = ServerSchedulerManager(app)
@@ -1098,6 +1133,8 @@ with app.app_context():
     def shutdown_schedulers():
         if mod_update_scheduler:
             mod_update_scheduler.shutdown()
+        if server_update_scheduler:
+            server_update_scheduler.shutdown()
         if server_scheduler_manager:
             server_scheduler_manager.shutdown()
     atexit.register(shutdown_schedulers)

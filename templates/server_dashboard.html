@@ -13,6 +13,25 @@
 {% endblock %}
 
 {% block content %}
+        <!-- Update Notification Banner -->
+        <div id="updateBanner" class="hidden bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-xl p-4 mb-6">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-yellow-500 p-2 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-black text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-yellow-500 font-bold text-lg">DayZ Server Update verfügbar!</h3>
+                        <p class="text-gray-300 text-sm">Ein neues Update wurde heruntergeladen. Starte den Server neu, um das Update zu aktivieren.</p>
+                    </div>
+                </div>
+                <button onclick="restartForUpdate()" class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg transition shadow-lg shadow-yellow-500/30 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-rotate-right"></i>
+                    <span>Jetzt neu starten</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Server Info Header -->
         <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6 mb-8">
             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -122,9 +141,9 @@
                             <span>Restart Server</span>
                         </button>
 
-                        <button onclick="updateServer()" id="updateBtn" class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
-                            <i class="fas fa-download"></i>
-                            <span>Update Server</span>
+                        <button onclick="checkForUpdates()" id="updateBtn" class="w-full px-6 py-3 bg-[#E32345] hover:bg-[#c41d39] rounded-lg font-medium transition shadow-lg shadow-[#E32345]/20 hover:shadow-[#E32345]/40 flex items-center justify-center gap-2">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Nach Updates suchen</span>
                         </button>
 
                         <a href="{{ url_for('server_mods', server_id=server.id) }}" class="w-full px-6 py-3 bg-purple-500 hover:bg-purple-600 rounded-lg font-medium transition shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 flex items-center justify-center gap-2">
@@ -290,9 +309,63 @@
             });
         }
 
+        // Check for available DayZ server updates
+        function checkForUpdates() {
+            const btn = document.getElementById('updateBtn');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Checking...</span>';
+
+            fetch(`/api/server/${serverId}/update/check`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+
+                if (data.success) {
+                    if (data.update_available) {
+                        alert('✓ ' + data.message);
+                        // Reload to show the update banner
+                        location.reload();
+                    } else {
+                        alert('✓ Server ist auf dem neuesten Stand!');
+                    }
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                alert('Error: ' + error);
+            });
+        }
+
+        // Restart server to apply update
+        function restartForUpdate() {
+            if (!confirm('Server jetzt neu starten, um das Update zu aktivieren? Alle Spieler werden getrennt.')) return;
+            restartServer();
+        }
+
+        // Check update status and show banner if update is available
+        function checkUpdateStatus() {
+            fetch(`/api/server/${serverId}/update/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.update_available && data.update_downloaded) {
+                        document.getElementById('updateBanner').classList.remove('hidden');
+                    }
+                })
+                .catch(error => console.error('Error checking update status:', error));
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             loadConsole();
             startConsoleRefresh();
+            checkUpdateStatus();  // Check for available updates on page load
         });
 
         window.addEventListener('beforeunload', function() {

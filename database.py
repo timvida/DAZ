@@ -69,6 +69,11 @@ class GameServer(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Auto-update system for DayZ server
+    update_available = db.Column(db.Boolean, default=False)  # Is a server update available?
+    update_downloaded = db.Column(db.Boolean, default=False)  # Has the update been downloaded?
+    last_update_check = db.Column(db.DateTime)  # Last time we checked for updates
+
     # Relationship to mods
     server_mods_rel = db.relationship('ServerMod', backref='server', lazy=True, cascade='all, delete-orphan')
 

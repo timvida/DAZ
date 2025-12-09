@@ -211,6 +211,12 @@ class ServerManager:
             # Update server status and save process ID
             server.status = 'running'
             server.process_id = process.pid
+
+            # Reset update flags after server start (update has been applied)
+            if server.update_available and server.update_downloaded:
+                server.update_available = False
+                server.update_downloaded = False
+
             db.session.commit()
 
             return True, f"DayZ Server started successfully (PID: {process.pid})"

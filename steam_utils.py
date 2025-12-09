@@ -408,3 +408,80 @@ class SteamCMDManager:
 
         except Exception as e:
             return False, f"Error copying keys: {str(e)}", 0
+
+    def check_for_server_update(self, app_id, install_dir, username, password):
+        """
+        Check if a server update is available via SteamCMD
+        This uses SteamCMD's app_update command in validate mode to check for updates
+        Returns: (update_available: bool, message: str)
+        """
+        if not self.is_available():
+            return False, "SteamCMD not found on system"
+
+        try:
+            # Build SteamCMD command to check for updates
+            # We use validate to check if files need updating
+            commands = [
+                self.steamcmd_path,
+                f"+force_install_dir {install_dir}",
+                f"+login {username} {password}",
+                f"+app_update {app_id} validate",
+                "+quit"
+            ]
+
+            print(f"Checking for updates for App ID {app_id}...")
+
+            # Run SteamCMD
+            process = subprocess.Popen(
+                commands,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            stdout, stderr = process.communicate(timeout=600)  # 10 minute timeout
+            output = stdout + stderr
+
+            # Debug output
+            print(f"=== SteamCMD Update Check Output ===")
+            print(output)
+            print("====================================")
+
+            # Check if update was needed and applied
+            # SteamCMD will download files if they're out of date
+            if "Success! App" in output and "fully installed" in output:
+                # Check if files were actually updated
+                if "downloading" in output.lower() or "update" in output.lower():
+                    return True, "Update was available and has been downloaded"
+                else:
+                    return False, "Server is up to date"
+
+            # Check for specific update-related messages
+            if "Update state" in output or "Downloading" in output:
+                return True, "Update detected and downloaded"
+
+            # If validation succeeded without downloads, we're up to date
+            if "Success" in output:
+                return False, "Server is up to date"
+
+            # Check for errors
+            if "Invalid Password" in output or "Invalid credentials" in output:
+                return False, "Invalid Steam credentials"
+
+            if "No subscription" in output:
+                return False, "Steam account doesn't own this game/app"
+
+            return False, f"Unable to determine update status"
+
+        except subprocess.TimeoutExpired:
+            return False, "Update check timeout after 10 minutes"
+        except Exception as e:
+            return False, f"Error checking for updates: {str(e)}"
+
+    def download_server_update(self, app_id, install_dir, username, password):
+        """
+        Download server update (same as install_server but specifically for updates)
+        Returns: (success: bool, message: str)
+        """
+        # This is essentially the same as install_server with validate
+        return self.install_server(app_id, install_dir, username, password, validate=True)

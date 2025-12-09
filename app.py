@@ -1701,6 +1701,10 @@ def deduplicate_players(server_id):
                     db.session.delete(duplicate)
                     duplicates_removed += 1
 
+                # IMPORTANT: Flush deletes to database BEFORE updating primary's GUID
+                # This prevents UNIQUE constraint errors
+                db.session.flush()
+
                 # Normalize GUID in primary record (only if different)
                 if primary.guid != normalized_guid:
                     primary.guid = normalized_guid

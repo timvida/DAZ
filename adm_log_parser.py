@@ -23,8 +23,9 @@ class ADMLogParser:
     # IMPORTANT: Bohemia IDs can contain: A-Z, a-z, 0-9, +, /, -, _, =
     PATTERNS = {
         # PvP Kill: Player "Brandy" (DEAD) (id=... pos=<...>) killed by Player "Scotty" (id=... pos=<...>) with M4-A1 from 10.3476 meters
+        # Weapon pattern matches: Letters, Numbers, Hyphens, Underscores, Spaces (for all DayZ weapons)
         'killed_by_player': re.compile(
-            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/\-_=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/\-_=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>.+?) from (?P<distance>[\d\.]+) meters'
+            r'Player "(?P<victim_name>.+?)" \(DEAD\) \(id=(?P<victim_id>[A-Za-z0-9\+/\-_=]+) pos=<(?P<x>[\d\.]+), (?P<y>[\d\.]+), (?P<z>[\d\.]+)>\) killed by Player "(?P<killer_name>.+?)" \(id=(?P<killer_id>[A-Za-z0-9\+/\-_=]+) pos=<[\d\.,\s]+>\) with (?P<weapon>[A-Za-z0-9\-_\s]+) from (?P<distance>[\d\.]+) meters'
         ),
 
         # Killed by NPC: Player "Survivor" (DEAD) (id=... pos=<...>) killed by Infected

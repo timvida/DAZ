@@ -31,8 +31,8 @@
                     </div>
                 </div>
 
-                <!-- Status Badge -->
-                <div>
+                <!-- Status Badges -->
+                <div class="flex flex-col gap-3">
                     {% if player.is_online %}
                         <span class="px-6 py-3 bg-green-500/20 border-2 border-green-500 text-green-500 rounded-xl text-sm font-bold flex items-center gap-2">
                             <i class="fas fa-circle-dot animate-pulse"></i>ONLINE
@@ -40,6 +40,13 @@
                     {% else %}
                         <span class="px-6 py-3 bg-gray-500/20 border-2 border-gray-500 text-gray-400 rounded-xl text-sm font-bold flex items-center gap-2">
                             <i class="fas fa-circle"></i>OFFLINE
+                        </span>
+                    {% endif %}
+
+                    <!-- Ban Status Badge -->
+                    {% if is_banned %}
+                        <span class="px-6 py-3 bg-red-500/20 border-2 border-red-500 text-red-500 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-ban"></i>BANNED
                         </span>
                     {% endif %}
                 </div>
@@ -148,6 +155,51 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- Ban Management -->
+                {% if player.steam_id %}
+                <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-shield-alt text-[#E32345] text-2xl"></i>
+                        <h2 class="text-xl font-bold text-white">Ban Management</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Ban Status Display -->
+                        <div id="banStatusDisplay" class="p-4 rounded-lg {% if is_banned %}bg-red-500/10 border border-red-500/30{% else %}bg-green-500/10 border border-green-500/30{% endif %}">
+                            <div class="flex items-center gap-3">
+                                <i class="fas {% if is_banned %}fa-ban text-red-500{% else %}fa-check-circle text-green-500{% endif %} text-2xl"></i>
+                                <div>
+                                    <p class="font-bold {% if is_banned %}text-red-500{% else %}text-green-500{% endif %}" id="banStatusText">
+                                        {% if is_banned %}Player is BANNED{% else %}Player is NOT banned{% endif %}
+                                    </p>
+                                    <p class="text-sm text-gray-400">Status checked from ban.txt</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ban/Unban Buttons -->
+                        <div class="space-y-2">
+                            {% if is_banned %}
+                                <button onclick="unbanPlayer()" class="w-full px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition font-bold flex items-center justify-center gap-2">
+                                    <i class="fas fa-user-check"></i>
+                                    <span>Unban Player</span>
+                                </button>
+                            {% else %}
+                                <button onclick="showBanModal()" class="w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition font-bold flex items-center justify-center gap-2">
+                                    <i class="fas fa-ban"></i>
+                                    <span>Ban Player</span>
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><i class="fas fa-info-circle text-[#E32345]"></i> Bans are applied immediately</p>
+                            <p><i class="fas fa-file-alt text-[#E32345]"></i> Steam ID will be added/removed from ban.txt</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Name History -->
                 <div class="bg-[#1A1F29] border border-[#E32345]/20 rounded-xl p-6">
@@ -373,6 +425,71 @@
                     console.error('Error:', error);
                     alert('Error loading player profile');
                 });
+        }
+
+        // Show ban modal
+        function showBanModal() {
+            const reason = prompt('Ban reason (optional):');
+            if (reason === null) return; // User cancelled
+
+            banPlayer(reason || 'Banned by admin');
+        }
+
+        // Ban player
+        function banPlayer(reason) {
+            if (!confirm(`Are you sure you want to ban {{ player.current_name }}?\n\nThis will add their Steam ID to ban.txt and kick them immediately if online.`)) {
+                return;
+            }
+
+            fetch(`/api/server/${serverId}/player/${playerId}/ban`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Player banned successfully!\n\n' + data.message);
+                    // Reload page to update ban status
+                    location.reload();
+                } else {
+                    alert('Error banning player:\n' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error banning player');
+            });
+        }
+
+        // Unban player
+        function unbanPlayer() {
+            if (!confirm(`Are you sure you want to unban {{ player.current_name }}?\n\nThis will remove their Steam ID from ban.txt.`)) {
+                return;
+            }
+
+            fetch(`/api/server/${serverId}/player/${playerId}/unban`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Player unbanned successfully!\n\n' + data.message);
+                    // Reload page to update ban status
+                    location.reload();
+                } else {
+                    alert('Error unbanning player:\n' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error unbanning player');
+            });
         }
 
         // Auto-refresh every 60 seconds

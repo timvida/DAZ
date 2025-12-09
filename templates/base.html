@@ -70,7 +70,7 @@
                             </button>
 
                             <!-- Server Submenu -->
-                            <div id="submenu-{{ server.id }}" class="overflow-hidden transition-all duration-300 {% if request.endpoint in ['server_dashboard', 'server_config', 'server_mods', 'server_schedulers', 'server_rcon'] and server_id|string == server.id|string %}max-h-96{% else %}max-h-0{% endif %}">
+                            <div id="submenu-{{ server.id }}" class="overflow-hidden transition-all duration-300 {% if request.endpoint in ['server_dashboard', 'server_config', 'server_mods', 'server_schedulers', 'server_rcon', 'server_players', 'player_profile'] and server_id|string == server.id|string %}max-h-96{% else %}max-h-0{% endif %}">
                                 <div class="ml-6 mt-1 space-y-1">
                                     <a href="{{ url_for('server_dashboard', server_id=server.id) }}" class="flex items-center gap-3 px-4 py-2 rounded-lg transition {% if request.endpoint == 'server_dashboard' and server_id|string == server.id|string %}bg-[#E32345] text-white{% else %}text-gray-400 hover:bg-[#E32345]/10 hover:text-white{% endif %}">
                                         <i class="fas fa-gauge-high w-4 text-xs"></i>

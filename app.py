@@ -1102,7 +1102,12 @@ def player_profile(server_id, player_id):
         flash('Player not found', 'error')
         return redirect(url_for('server_players', server_id=server_id))
 
-    return render_template('player_profile.html', server=server, player=player)
+    # Check ban status
+    from ban_manager import BanManager
+    ban_manager = BanManager(server)
+    is_banned = ban_manager.is_banned(player.steam_id) if player.steam_id else False
+
+    return render_template('player_profile.html', server=server, player=player, is_banned=is_banned)
 
 
 @app.route('/api/server/<int:server_id>/players', methods=['GET'])
@@ -1249,6 +1254,66 @@ def api_get_player_profile(server_id, player_id):
         'name_history': names_data,
         'ip_history': ips_data
     })
+
+
+@app.route('/api/server/<int:server_id>/player/<int:player_id>/ban', methods=['POST'])
+@installation_check
+@login_required
+def api_ban_player(server_id, player_id):
+    """Ban a player by adding their Steam ID to ban.txt"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    player = Player.query.get(player_id)
+    if not player or player.server_id != server_id:
+        return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+    if not player.steam_id:
+        return jsonify({'success': False, 'message': 'Player has no Steam ID'}), 400
+
+    # Get ban reason from request
+    data = request.get_json() or {}
+    reason = data.get('reason', f'Banned by {session.get("username", "Admin")}')
+
+    # Ban the player
+    from ban_manager import BanManager
+    ban_manager = BanManager(server)
+    success, message = ban_manager.add_ban(player.steam_id, reason)
+
+    if success:
+        logger.info(f"Player {player.current_name} (Steam ID: {player.steam_id}) banned by {session.get('username', 'Admin')}")
+        return jsonify({'success': True, 'message': message})
+    else:
+        return jsonify({'success': False, 'message': message}), 400
+
+
+@app.route('/api/server/<int:server_id>/player/<int:player_id>/unban', methods=['POST'])
+@installation_check
+@login_required
+def api_unban_player(server_id, player_id):
+    """Unban a player by removing their Steam ID from ban.txt"""
+    server = server_manager.get_server(server_id)
+    if not server:
+        return jsonify({'success': False, 'message': 'Server not found'}), 404
+
+    player = Player.query.get(player_id)
+    if not player or player.server_id != server_id:
+        return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+    if not player.steam_id:
+        return jsonify({'success': False, 'message': 'Player has no Steam ID'}), 400
+
+    # Unban the player
+    from ban_manager import BanManager
+    ban_manager = BanManager(server)
+    success, message = ban_manager.remove_ban(player.steam_id)
+
+    if success:
+        logger.info(f"Player {player.current_name} (Steam ID: {player.steam_id}) unbanned by {session.get('username', 'Admin')}")
+        return jsonify({'success': True, 'message': message})
+    else:
+        return jsonify({'success': False, 'message': message}), 400
 
 
 # Initialize database
